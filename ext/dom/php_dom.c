@@ -591,6 +591,16 @@ static void dom_import_simplexml_common(INTERNAL_FUNCTION_PARAMETERS, php_libxml
 			RETURN_THROWS();
 		}
 
+		/* The document is not locked to a model yet, but a legacy object may already be
+		 * attached to the node. Returning it would violate the declared return type, so
+		 * this is refused like an already-locked document. Only DOM registers a wrapper
+		 * in _private, so a non-NULL one here cannot come from SimpleXML. */
+		if (old_class_type == PHP_LIBXML_CLASS_UNSET && new_class == PHP_LIBXML_CLASS_MODERN
+			&& php_dom_object_get_data(nodep) != NULL) {
+			zend_argument_type_error(1, "must not be already imported as a DOMNode");
+			RETURN_THROWS();
+		}
+
 		/* Lock the node class type to prevent creating multiple representations of the same node. */
 		nodeobj->document->class_type = new_class;
 
