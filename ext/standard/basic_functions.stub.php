@@ -1896,7 +1896,7 @@ function array_all(array $array, callable $callback): bool {}
 function array_map(?callable $callback, array $array, array ...$arrays): array {}
 
 /**
- * @param string|int $key
+ * @param string|int|float|bool|resource|null $key
  * @compile-time-eval
  */
 function array_key_exists($key, array $array): bool {}
