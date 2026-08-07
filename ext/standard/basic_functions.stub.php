@@ -1778,8 +1778,9 @@ function array_intersect_key(array $array, array ...$arrays): array {}
 
 /**
  * @param array|callable $rest
+ * @param array|callable $rests
  */
-function array_intersect_ukey(array $array, ...$rest): array {}
+function array_intersect_ukey(array $array, $rest, ...$rests): array {}
 
 /**
  * @compile-time-eval
@@ -1788,8 +1789,9 @@ function array_intersect(array $array, array ...$arrays): array {}
 
 /**
  * @param array|callable $rest
+ * @param array|callable $rests
  */
-function array_uintersect(array $array, ...$rest): array {}
+function array_uintersect(array $array, $rest, ...$rests): array {}
 
 /**
  * @compile-time-eval
@@ -1799,19 +1801,23 @@ function array_intersect_assoc(array $array, array ...$arrays): array {}
 
 /**
  * @param array|callable $rest
+ * @param array|callable $rests
  * @refcount 1
  */
-function array_uintersect_assoc(array $array, ...$rest): array {}
+function array_uintersect_assoc(array $array, $rest, ...$rests): array {}
 
 /**
  * @param array|callable $rest
+ * @param array|callable $rests
  */
-function array_intersect_uassoc(array $array, ...$rest): array {}
+function array_intersect_uassoc(array $array, $rest, ...$rests): array {}
 
 /**
  * @param array|callable $rest
+ * @param array|callable $rest2
+ * @param array|callable $rests
  */
-function array_uintersect_uassoc(array $array, ...$rest): array {}
+function array_uintersect_uassoc(array $array, $rest, $rest2, ...$rests): array {}
 
 /**
  * @compile-time-eval
@@ -1821,9 +1827,10 @@ function array_diff_key(array $array, array ...$arrays): array {}
 
 /**
  * @param array|callable $rest
+ * @param array|callable $rests
  * @refcount 1
  */
-function array_diff_ukey(array $array, ...$rest): array {}
+function array_diff_ukey(array $array, $rest, ...$rests): array {}
 
 /**
  * @compile-time-eval
@@ -1832,9 +1839,10 @@ function array_diff(array $array, array ...$arrays): array {}
 
 /**
  * @param array|callable $rest
+ * @param array|callable $rests
  * @refcount 1
  */
-function array_udiff(array $array, ...$rest): array {}
+function array_udiff(array $array, $rest, ...$rests): array {}
 
 /**
  * @compile-time-eval
@@ -1844,21 +1852,25 @@ function array_diff_assoc(array $array, array ...$arrays): array {}
 
 /**
  * @param array|callable $rest
+ * @param array|callable $rests
  * @refcount 1
  */
-function array_diff_uassoc(array $array, ...$rest): array {}
+function array_diff_uassoc(array $array, $rest, ...$rests): array {}
 
 /**
  * @param array|callable $rest
+ * @param array|callable $rests
  * @refcount 1
  */
-function array_udiff_assoc(array $array, ...$rest): array {}
+function array_udiff_assoc(array $array, $rest, ...$rests): array {}
 
 /**
  * @param array|callable $rest
+ * @param array|callable $rest2
+ * @param array|callable $rests
  * @refcount 1
  */
-function array_udiff_uassoc(array $array, ...$rest): array {}
+function array_udiff_uassoc(array $array, $rest, $rest2, ...$rests): array {}
 
 /**
  * @param array $array

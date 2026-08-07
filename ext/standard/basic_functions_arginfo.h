@@ -1,5 +1,5 @@
 /* This is a generated file, edit basic_functions.stub.php instead.
- * Stub hash: 0c8af3b78b3d6e1ee3e59c60363d0d941bea9faa
+ * Stub hash: 6006ada954758c2c0a0508d3e5f78ac25b6fe1fe
  * Has decl header: yes */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_set_time_limit, 0, 1, _IS_BOOL, 0)
@@ -288,9 +288,10 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_array_intersect_key, 0, 1, IS_AR
 	ZEND_ARG_VARIADIC_TYPE_INFO(0, arrays, IS_ARRAY, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_array_intersect_ukey, 0, 1, IS_ARRAY, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_array_intersect_ukey, 0, 2, IS_ARRAY, 0)
 	ZEND_ARG_TYPE_INFO(0, array, IS_ARRAY, 0)
-	ZEND_ARG_VARIADIC_INFO(0, rest)
+	ZEND_ARG_INFO(0, rest)
+	ZEND_ARG_VARIADIC_INFO(0, rests)
 ZEND_END_ARG_INFO()
 
 #define arginfo_array_intersect arginfo_array_intersect_key
@@ -303,7 +304,12 @@ ZEND_END_ARG_INFO()
 
 #define arginfo_array_intersect_uassoc arginfo_array_intersect_ukey
 
-#define arginfo_array_uintersect_uassoc arginfo_array_intersect_ukey
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_array_uintersect_uassoc, 0, 3, IS_ARRAY, 0)
+	ZEND_ARG_TYPE_INFO(0, array, IS_ARRAY, 0)
+	ZEND_ARG_INFO(0, rest)
+	ZEND_ARG_INFO(0, rest2)
+	ZEND_ARG_VARIADIC_INFO(0, rests)
+ZEND_END_ARG_INFO()
 
 #define arginfo_array_diff_key arginfo_array_intersect_key
 
@@ -319,7 +325,7 @@ ZEND_END_ARG_INFO()
 
 #define arginfo_array_udiff_assoc arginfo_array_intersect_ukey
 
-#define arginfo_array_udiff_uassoc arginfo_array_intersect_ukey
+#define arginfo_array_udiff_uassoc arginfo_array_uintersect_uassoc
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_array_multisort, 0, 1, IS_TRUE, 0)
 	ZEND_ARG_INFO(ZEND_SEND_PREFER_REF, array)
