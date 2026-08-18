@@ -79,6 +79,13 @@ PHP 8.5 UPGRADE NOTES
     This aligns the type of Error thrown to be consistent with the rest of
     the language.
 
+- GD:
+  . imageftbbox(), imagefttext(), imagettfbbox() and imagettftext() no longer
+    resolve $font_filename themselves nor apply the open_basedir restriction to
+    it, leaving the lookup to libgd, which honours GDFONTPATH and fontconfig.
+    A font outside open_basedir is therefore loaded instead of being refused.
+    This is a consequence of fixing bug #64823.
+
 - Intl:
   . The extension now requires at least ICU 57.1.
   . The behaviour of Collator::SORT_REGULAR with respect to handling numeric
