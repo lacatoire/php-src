@@ -70,6 +70,13 @@ PHP 8.6 UPGRADE NOTES
   . GMP integer string parsing now throws a ValueError for strings containing NUL
     bytes, instead of silently truncating them.
 
+- GD:
+  . imageftbbox(), imagefttext(), imagettfbbox() and imagettftext() no longer
+    resolve $font_filename themselves nor apply the open_basedir restriction to
+    it, leaving the lookup to libgd, which honours GDFONTPATH and fontconfig.
+    A font outside open_basedir is therefore loaded instead of being refused.
+    This is a consequence of fixing bug #64823.
+
 - Intl:
   . Passing a non-stringable object as a time zone to Intl APIs that accept
     time zone objects or strings now raises a TypeError instead of an Error.
