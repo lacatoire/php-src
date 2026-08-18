@@ -1,5 +1,5 @@
 /* This is a generated file, edit test.stub.php instead.
- * Stub hash: 312a9d6e0e09c8649b1edcd83494904dcb7a5d86
+ * Stub hash: a923bc5f9e19f39bda6ba5dfc6142b2f8c6a9638
  * Has decl header: yes */
 
 #include "zend_attributes.h"
@@ -271,7 +271,7 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zend_test_zend_call_stack_get, 0, 0, IS_ARRAY, 1)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zend_test_zend_call_stack_use_all, 0, 0, IS_LONG, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zend_test_zend_call_stack_use_all, 0, 0, IS_LONG, 1)
 ZEND_END_ARG_INFO()
 #endif
 
