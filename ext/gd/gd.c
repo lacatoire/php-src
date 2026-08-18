@@ -4334,6 +4334,14 @@ PHP_FUNCTION(imagesetinterpolation)
 	if (method == -1) {
 		 method = GD_BILINEAR_FIXED;
 	}
+
+	/* gdImageSetInterpolationMethod() rejects out of range methods, but the
+	 * cast below would first truncate the zend_long into the enum's range,
+	 * turning e.g. PHP_INT_MIN into GD_DEFAULT. */
+	if (method < 0 || method > GD_METHOD_COUNT) {
+		RETURN_FALSE;
+	}
+
 	RETURN_BOOL(gdImageSetInterpolationMethod(im, (gdInterpolationMethod) method));
 }
 /* }}} */
