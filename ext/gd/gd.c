@@ -2089,7 +2089,7 @@ PHP_FUNCTION(imagejpeg)
 	}
 
 	if (quality < -1 || quality > 100) {
-		zend_argument_value_error(3, "must be at between -1 and 100");
+		zend_argument_value_error(3, "must be between -1 and 100");
 		ctx->gd_free(ctx);
 		RETURN_THROWS();
 	}
