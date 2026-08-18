@@ -414,7 +414,7 @@ namespace {
 
 #ifdef ZEND_CHECK_STACK_LIMIT
     function zend_test_zend_call_stack_get(): ?array {}
-    function zend_test_zend_call_stack_use_all(): int {}
+    function zend_test_zend_call_stack_use_all(): ?int {}
 #endif
 
     function zend_test_is_string_marked_as_valid_utf8(string $string): bool {}

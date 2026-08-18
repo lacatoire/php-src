@@ -1290,7 +1290,7 @@ static ZEND_FUNCTION(zend_test_zend_call_stack_use_all)
 	ZEND_PARSE_PARAMETERS_NONE();
 
 	if (!zend_call_stack_get(&stack)) {
-		return;
+		RETURN_NULL();
 	}
 
 	zend_call_stack_use_all_fun = zend_call_stack_use_all;
