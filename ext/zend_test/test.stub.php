@@ -398,7 +398,7 @@ namespace {
 
     function zend_call_method(object|string $obj_or_class, string $method, mixed $arg1 = UNKNOWN, mixed $arg2 = UNKNOWN): mixed {}
 
-    function zend_object_init_with_constructor(string $class, mixed ...$args): mixed {}
+    function zend_object_init_with_constructor(string $class, mixed ...$args): object {}
 
     function zend_call_method_if_exists(object $obj, string $method, mixed ...$args): mixed {}
 
