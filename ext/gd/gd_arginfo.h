@@ -773,7 +773,7 @@ static const zend_function_entry ext_functions[] = {
 	ZEND_FE(imagegammacorrect, arginfo_imagegammacorrect)
 	ZEND_FE(imagesetpixel, arginfo_imagesetpixel)
 	ZEND_FE(imageline, arginfo_imageline)
-	ZEND_FE(imagedashedline, arginfo_imagedashedline)
+	ZEND_RAW_FENTRY("imagedashedline", zif_imagedashedline, arginfo_imagedashedline, ZEND_ACC_DEPRECATED, NULL, NULL)
 	ZEND_FE(imagerectangle, arginfo_imagerectangle)
 	ZEND_FE(imagefilledrectangle, arginfo_imagefilledrectangle)
 	ZEND_FE(imagearc, arginfo_imagearc)
@@ -931,6 +931,13 @@ static void register_gd_symbols(int module_number)
 	zend_string *attribute_Deprecated_func_imagedestroy_0_arg1_str = zend_string_init("as it has no effect since PHP 8.0", strlen("as it has no effect since PHP 8.0"), 1);
 	ZVAL_STR(&attribute_Deprecated_func_imagedestroy_0->args[1].value, attribute_Deprecated_func_imagedestroy_0_arg1_str);
 	attribute_Deprecated_func_imagedestroy_0->args[1].name = ZSTR_KNOWN(ZEND_STR_MESSAGE);
+
+	zend_attribute *attribute_Deprecated_func_imagedashedline_0 = zend_add_function_attribute(zend_hash_str_find_ptr(CG(function_table), "imagedashedline", sizeof("imagedashedline") - 1), ZSTR_KNOWN(ZEND_STR_DEPRECATED_CAPITALIZED), 2);
+	ZVAL_STR(&attribute_Deprecated_func_imagedashedline_0->args[0].value, ZSTR_KNOWN(ZEND_STR_8_DOT_6));
+	attribute_Deprecated_func_imagedashedline_0->args[0].name = ZSTR_KNOWN(ZEND_STR_SINCE);
+	zend_string *attribute_Deprecated_func_imagedashedline_0_arg1_str = zend_string_init("use imagesetstyle() together with imageline() instead", strlen("use imagesetstyle() together with imageline() instead"), 1);
+	ZVAL_STR(&attribute_Deprecated_func_imagedashedline_0->args[1].value, attribute_Deprecated_func_imagedashedline_0_arg1_str);
+	attribute_Deprecated_func_imagedashedline_0->args[1].name = ZSTR_KNOWN(ZEND_STR_MESSAGE);
 }
 
 static zend_class_entry *register_class_GdImage(void)
