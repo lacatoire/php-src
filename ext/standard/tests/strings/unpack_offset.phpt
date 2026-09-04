@@ -21,9 +21,17 @@ try {
 } catch (ValueError $e) {
     echo $e->getMessage(), "\n";
 }
+
+/* the message names argument #2, so that name has to be the real one */
+foreach ((new ReflectionFunction('unpack'))->getParameters() as $parameter) {
+    echo '$', $parameter->getName(), "\n";
+}
 ?>
 --EXPECT--
 0x01020304 0x05060708
 0x01020304 0x05060708
-unpack(): Argument #3 ($offset) must be contained in argument #2 ($data)
-unpack(): Argument #3 ($offset) must be contained in argument #2 ($data)
+unpack(): Argument #3 ($offset) must be contained in argument #2 ($string)
+unpack(): Argument #3 ($offset) must be contained in argument #2 ($string)
+$format
+$string
+$offset
