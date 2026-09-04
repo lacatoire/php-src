@@ -2762,6 +2762,17 @@ PHP_FUNCTION(imagefilltoborder)
 		Z_PARAM_LONG(col)
 	ZEND_PARSE_PARAMETERS_END();
 
+	/* libgd takes the coordinates as int: without this check a value whose low
+	 * 32 bits happen to land inside the canvas would escape its own guard. */
+	if (ZEND_LONG_EXCEEDS_INT(x)) {
+		zend_argument_value_error(2, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+	if (ZEND_LONG_EXCEEDS_INT(y)) {
+		zend_argument_value_error(3, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+
 	im = php_gd_libgdimageptr_from_zval_p(IM);
 
 	gdImageFillToBorder(im, x, y, border, col);
@@ -2782,6 +2793,17 @@ PHP_FUNCTION(imagefill)
 		Z_PARAM_LONG(y)
 		Z_PARAM_LONG(col)
 	ZEND_PARSE_PARAMETERS_END();
+
+	/* libgd takes the coordinates as int: without this check a value whose low
+	 * 32 bits happen to land inside the canvas would escape its own guard. */
+	if (ZEND_LONG_EXCEEDS_INT(x)) {
+		zend_argument_value_error(2, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+	if (ZEND_LONG_EXCEEDS_INT(y)) {
+		zend_argument_value_error(3, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
 
 	im = php_gd_libgdimageptr_from_zval_p(IM);
 
