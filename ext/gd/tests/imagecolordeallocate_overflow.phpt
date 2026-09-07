@@ -18,30 +18,28 @@ $bias = 2 ** 32;
 // Values that alias onto valid indices must be rejected
 try {
     imagecolordeallocate($im, 1 + $bias);
-} catch (ValueError $e) {
-    echo $e->getMessage(), "\n";
+} catch (Throwable $e) {
+    echo $e::class, ': ', $e->getMessage(), "\n";
 }
 
 try {
     imagecolordeallocate($im, 0 + $bias);
-} catch (ValueError $e) {
-    echo $e->getMessage(), "\n";
+} catch (Throwable $e) {
+    echo $e::class, ': ', $e->getMessage(), "\n";
 }
 
 // The error message must name the correct maximum valid index (count - 1)
 try {
     imagecolordeallocate($im, 99);
-} catch (ValueError $e) {
-    echo $e->getMessage(), "\n";   // "must be between 0 and 1", not "0 and 2"
+} catch (Throwable $e) {
+    echo $e::class, ': ', $e->getMessage(), "\n";   // "must be between 0 and 1", not "0 and 2"
 }
 
 // Valid index 1 still works
 var_dump(imagecolordeallocate($im, 1));   // bool(true)
-
-imagedestroy($im);
 ?>
 --EXPECT--
-imagecolordeallocate(): Argument #2 ($color) must be between 0 and 1
-imagecolordeallocate(): Argument #2 ($color) must be between 0 and 1
-imagecolordeallocate(): Argument #2 ($color) must be between 0 and 1
+ValueError: imagecolordeallocate(): Argument #2 ($color) must be between 0 and 1
+ValueError: imagecolordeallocate(): Argument #2 ($color) must be between 0 and 1
+ValueError: imagecolordeallocate(): Argument #2 ($color) must be between 0 and 1
 bool(true)
