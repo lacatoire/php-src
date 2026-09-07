@@ -41,13 +41,13 @@ $truncating = 2 ** 32 + 4;
 foreach ([[$truncating, 4], [4, $truncating], [PHP_INT_MIN, 0], [0, PHP_INT_MAX]] as [$x, $y]) {
     try {
         imagefilltoborder($image, $x, $y, $red, $green);
-    } catch (ValueError $e) {
-        echo $e->getMessage(), "\n";
+    } catch (Throwable $e) {
+        echo $e::class, ': ', $e->getMessage(), "\n";
     }
     try {
         imagefill($image, $x, $y, $green);
-    } catch (ValueError $e) {
-        echo $e->getMessage(), "\n";
+    } catch (Throwable $e) {
+        echo $e::class, ': ', $e->getMessage(), "\n";
     }
 }
 
@@ -66,14 +66,14 @@ var_dump(imagefilltoborder($image, 4, 4, $red, $green));
 var_dump(filled($image, $green));
 ?>
 --EXPECT--
-imagefilltoborder(): Argument #2 ($x) must be between -2147483648 and 2147483647
-imagefill(): Argument #2 ($x) must be between -2147483648 and 2147483647
-imagefilltoborder(): Argument #3 ($y) must be between -2147483648 and 2147483647
-imagefill(): Argument #3 ($y) must be between -2147483648 and 2147483647
-imagefilltoborder(): Argument #2 ($x) must be between -2147483648 and 2147483647
-imagefill(): Argument #2 ($x) must be between -2147483648 and 2147483647
-imagefilltoborder(): Argument #3 ($y) must be between -2147483648 and 2147483647
-imagefill(): Argument #3 ($y) must be between -2147483648 and 2147483647
+ValueError: imagefilltoborder(): Argument #2 ($x) must be between -2147483648 and 2147483647
+ValueError: imagefill(): Argument #2 ($x) must be between -2147483648 and 2147483647
+ValueError: imagefilltoborder(): Argument #3 ($y) must be between -2147483648 and 2147483647
+ValueError: imagefill(): Argument #3 ($y) must be between -2147483648 and 2147483647
+ValueError: imagefilltoborder(): Argument #2 ($x) must be between -2147483648 and 2147483647
+ValueError: imagefill(): Argument #2 ($x) must be between -2147483648 and 2147483647
+ValueError: imagefilltoborder(): Argument #3 ($y) must be between -2147483648 and 2147483647
+ValueError: imagefill(): Argument #3 ($y) must be between -2147483648 and 2147483647
 int(0)
 bool(true)
 int(56)
