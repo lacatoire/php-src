@@ -16,7 +16,7 @@ var_dump($object instanceof Test, $object->value);
 
 try {
     zend_object_init_with_constructor(Test::class, 'not an int');
-} catch (TypeError $e) {
+} catch (Throwable $e) {
     echo $e::class, "\n";
 }
 

@@ -7,10 +7,10 @@ zend_test
 
 try {
     zend_test_uri_parser("https://example.com", "nosuchparser");
-} catch (ValueError $e) {
-    echo $e->getMessage(), "\n";
+} catch (Throwable $e) {
+    echo $e::class, ': ', $e->getMessage(), "\n";
 }
 
 ?>
 --EXPECT--
-zend_test_uri_parser(): Argument #2 ($parser) Unknown parser
+ValueError: zend_test_uri_parser(): Argument #2 ($parser) Unknown parser
