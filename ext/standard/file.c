@@ -1712,7 +1712,7 @@ PHP_FUNCTION(fputcsv)
 		Z_PARAM_STRING(delimiter_str, delimiter_str_len)
 		Z_PARAM_STRING(enclosure_str, enclosure_str_len)
 		Z_PARAM_STR(escape_str)
-		Z_PARAM_STR_OR_NULL(eol_str)
+		Z_PARAM_STR(eol_str)
 	ZEND_PARSE_PARAMETERS_END();
 
 	if (delimiter_str != NULL) {
