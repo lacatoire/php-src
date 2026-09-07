@@ -22,23 +22,23 @@ foreach ($filters as $name => $filter) {
 
     try {
         imagefilter($image, $filter, 5);
-    } catch (ArgumentCountError $e) {
-        printf("%-26s %s\n", $name, $e->getMessage());
+    } catch (Throwable $e) {
+        printf("%-26s %s: %s\n", $name, $e::class, $e->getMessage());
     }
 }
 ?>
 --EXPECT--
 bool(true)
-IMG_FILTER_NEGATE          imagefilter() expects exactly 2 arguments, 3 given
+IMG_FILTER_NEGATE          ArgumentCountError: imagefilter() expects exactly 2 arguments, 3 given
 bool(true)
-IMG_FILTER_GRAYSCALE       imagefilter() expects exactly 2 arguments, 3 given
+IMG_FILTER_GRAYSCALE       ArgumentCountError: imagefilter() expects exactly 2 arguments, 3 given
 bool(true)
-IMG_FILTER_EDGEDETECT      imagefilter() expects exactly 2 arguments, 3 given
+IMG_FILTER_EDGEDETECT      ArgumentCountError: imagefilter() expects exactly 2 arguments, 3 given
 bool(true)
-IMG_FILTER_EMBOSS          imagefilter() expects exactly 2 arguments, 3 given
+IMG_FILTER_EMBOSS          ArgumentCountError: imagefilter() expects exactly 2 arguments, 3 given
 bool(true)
-IMG_FILTER_GAUSSIAN_BLUR   imagefilter() expects exactly 2 arguments, 3 given
+IMG_FILTER_GAUSSIAN_BLUR   ArgumentCountError: imagefilter() expects exactly 2 arguments, 3 given
 bool(true)
-IMG_FILTER_SELECTIVE_BLUR  imagefilter() expects exactly 2 arguments, 3 given
+IMG_FILTER_SELECTIVE_BLUR  ArgumentCountError: imagefilter() expects exactly 2 arguments, 3 given
 bool(true)
-IMG_FILTER_MEAN_REMOVAL    imagefilter() expects exactly 2 arguments, 3 given
+IMG_FILTER_MEAN_REMOVAL    ArgumentCountError: imagefilter() expects exactly 2 arguments, 3 given
