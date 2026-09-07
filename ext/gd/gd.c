@@ -3478,12 +3478,16 @@ static void php_imagettftext_common(INTERNAL_FUNCTION_PARAMETERS, int mode)
 #endif /* HAVE_GD_FREETYPE */
 
 /* Section Filters */
+/* The filter constant is parsed again here, so that the real argument count is
+ * checked and a surplus argument is reported like the other filters do. */
 #define PHP_GD_SINGLE_RES	\
 	zval *SIM;	\
 	gdImagePtr im_src;	\
-	if (zend_parse_parameters(1, "O", &SIM, gd_image_ce) == FAILURE) {	\
-		RETURN_THROWS();	\
-	}	\
+	zend_long filtertype_unused;	\
+	ZEND_PARSE_PARAMETERS_START(2, 2)	\
+		Z_PARAM_OBJECT_OF_CLASS(SIM, gd_image_ce)	\
+		Z_PARAM_LONG(filtertype_unused)	\
+	ZEND_PARSE_PARAMETERS_END();	\
 	im_src = php_gd_libgdimageptr_from_zval_p(SIM);
 
 static void php_image_filter_negate(INTERNAL_FUNCTION_PARAMETERS)
