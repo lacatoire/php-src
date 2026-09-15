@@ -1751,6 +1751,10 @@ dom_object *php_dom_instantiate_object_helper(zval *return_value, zend_class_ent
 			intern->document = parent->document;
 		}
 		php_libxml_increment_doc_ref((php_libxml_node_object *)intern, obj->doc);
+		/* Lock the document to the legacy DOM, so that Dom\import_simplexml() rejects it. */
+		if (intern->document->class_type == PHP_LIBXML_CLASS_UNSET && instanceof_function(ce, dom_node_class_entry)) {
+			intern->document->class_type = PHP_LIBXML_CLASS_LEGACY;
+		}
 	}
 
 	php_libxml_increment_node_ptr((php_libxml_node_object *)intern, obj, (void *)intern);
