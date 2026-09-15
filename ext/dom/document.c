@@ -1298,6 +1298,7 @@ PHP_METHOD(DOMDocument, __construct)
 		/* docp is always non-null so php_libxml_increment_doc_ref() never returns -1 */
 		ZEND_UNREACHABLE();
 	}
+	intern->document->class_type = PHP_LIBXML_CLASS_LEGACY;
 	php_libxml_increment_node_ptr((php_libxml_node_object *)intern, (xmlNodePtr)docp, (void *)intern);
 }
 /* }}} end DOMDocument::__construct */
