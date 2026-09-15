@@ -49,7 +49,7 @@ else {
 echo "acos 0.0 = ";
 $acosv4 = 360.0  * acos(0.0) / (2.0 * M_PI );
 var_dump($acosv4);
-if (allowed_rounding_error($acosv3 ,0 )) {
+if (allowed_rounding_error($acosv4 ,90 )) {
     echo "Pass\n";
 }
 else {
