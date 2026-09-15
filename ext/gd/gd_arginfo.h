@@ -1,5 +1,5 @@
 /* This is a generated file, edit gd.stub.php instead.
- * Stub hash: 2ce4992fd165002d586ad00c880e69db98875b93 */
+ * Stub hash: 4fb638c2a7bca747560a47ea38004fbc0506ea33 */
 
 #include "zend_attributes.h"
 #include "zend_constants.h"
