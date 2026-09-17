@@ -1290,7 +1290,7 @@ static ZEND_FUNCTION(zend_test_zend_call_stack_use_all)
 	ZEND_PARSE_PARAMETERS_NONE();
 
 	if (!zend_call_stack_get(&stack)) {
-		return;
+		RETURN_NULL();
 	}
 
 	zend_call_stack_use_all_fun = zend_call_stack_use_all;
@@ -1336,7 +1336,7 @@ static ZEND_FUNCTION(zend_test_uri_parser)
 
 	const php_uri_parser *parser = php_uri_get_parser(parser_name);
 	if (parser == NULL) {
-		zend_argument_value_error(1, "Unknown parser");
+		zend_argument_value_error(2, "Unknown parser");
 		RETURN_THROWS();
 	}
 

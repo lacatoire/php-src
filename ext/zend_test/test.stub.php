@@ -398,7 +398,7 @@ namespace {
 
     function zend_call_method(object|string $obj_or_class, string $method, mixed $arg1 = UNKNOWN, mixed $arg2 = UNKNOWN): mixed {}
 
-    function zend_object_init_with_constructor(string $class, mixed ...$args): mixed {}
+    function zend_object_init_with_constructor(string $class, mixed ...$args): object {}
 
     function zend_call_method_if_exists(object $obj, string $method, mixed ...$args): mixed {}
 
@@ -414,7 +414,7 @@ namespace {
 
 #ifdef ZEND_CHECK_STACK_LIMIT
     function zend_test_zend_call_stack_get(): ?array {}
-    function zend_test_zend_call_stack_use_all(): int {}
+    function zend_test_zend_call_stack_use_all(): ?int {}
 #endif
 
     function zend_test_is_string_marked_as_valid_utf8(string $string): bool {}
