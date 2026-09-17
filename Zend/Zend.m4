@@ -118,7 +118,7 @@ dnl Ugly hack to check if dlsym() requires a leading underscore in symbol name.
 dnl
 AC_DEFUN([ZEND_DLSYM_CHECK], [dnl
 AC_MSG_CHECKING([whether dlsym() requires a leading underscore in symbol names])
-_LT_AC_TRY_DLOPEN_SELF([AC_MSG_RESULT([no])], [
+_LT_TRY_DLOPEN_SELF([AC_MSG_RESULT([no])], [
   AC_MSG_RESULT([yes])
   AC_DEFINE([DLSYM_NEEDS_UNDERSCORE], [1],
     [Define to 1 if 'dlsym()' requires a leading underscore in symbol names.])
@@ -148,6 +148,7 @@ AC_CHECK_FUNCS(m4_normalize([
   pthread_attr_getstack
   pthread_get_stackaddr_np
   pthread_getattr_np
+  pthread_getthrds_np
   pthread_stackseg_np
   strnlen
 ]))
@@ -330,6 +331,24 @@ AS_VAR_IF([php_cv_have_global_register_vars], [yes],
 ])
 AC_MSG_CHECKING([whether to enable global register variables support])
 AC_MSG_RESULT([$ZEND_GCC_GLOBAL_REGS])
+
+dnl GCC doesn't propagate -ffixed-* from LTO objects. Reserve the VM registers
+dnl before LTO code gen to avoid "global register variable follows a function definition"
+AS_VAR_IF([ZEND_GCC_GLOBAL_REGS], [yes], [
+  zend_lto=no
+  for zend_flag in $CC $CFLAGS $LDFLAGS; do
+    AS_CASE([$zend_flag], [-flto|-flto=*], [zend_lto=yes], [-fno-lto], [zend_lto=no])
+  done
+  AS_VAR_IF([zend_lto], [yes], [
+    AS_CASE([$host_cpu],
+      [x86_64*|amd64*], [AS_VAR_APPEND([LDFLAGS], [" -ffixed-r14 -ffixed-r15"])],
+      [x86*|amd*|i?86*|pentium], [AS_VAR_APPEND([LDFLAGS], [" -ffixed-esi -ffixed-edi"])],
+      [aarch64*|arm64*], [AS_VAR_APPEND([LDFLAGS], [" -ffixed-x27 -ffixed-x28"])],
+      [ppc64*|powerpc64*], [AS_VAR_APPEND([LDFLAGS], [" -ffixed-r14 -ffixed-r15"])],
+      [riscv64*], [AS_VAR_APPEND([LDFLAGS], [" -ffixed-x18 -ffixed-x19"])],
+      [AC_MSG_ERROR([Cannot reserve VM registers for LTO, disable LTO or use --disable-gcc-global-regs])])
+  ])
+])
 ])
 
 dnl

@@ -1,14 +1,12 @@
 /*
    +----------------------------------------------------------------------+
-   | Copyright (c) The PHP Group                                          |
+   | Copyright © The PHP Group and Contributors.                          |
    +----------------------------------------------------------------------+
-   | This source file is subject to version 3.01 of the PHP license,      |
-   | that is bundled with this package in the file LICENSE, and is        |
-   | available through the world-wide-web at the following url:           |
-   | https://www.php.net/license/3_01.txt                                 |
-   | If you did not receive a copy of the PHP license and are unable to   |
-   | obtain it through the world-wide-web, please send a note to          |
-   | license@php.net so we can mail you a copy immediately.               |
+   | This source file is subject to the Modified BSD License that is      |
+   | bundled with this package in the file LICENSE, and is available      |
+   | through the World Wide Web at <https://www.php.net/license/>.        |
+   |                                                                      |
+   | SPDX-License-Identifier: BSD-3-Clause                                |
    +----------------------------------------------------------------------+
    | Author: Marcus Boerger <helly@php.net>                               |
    |         Johannes Schlueter <johannes@php.net>                        |
@@ -531,6 +529,7 @@ TODO:
 	} else {
 		char *lc_text;
 		const char *class_name_end;
+		const char *constant_text = text;
 		zend_string *class_name = NULL;
 		zend_class_entry *ce = NULL;
 
@@ -543,6 +542,7 @@ TODO:
 				zend_string_release_ex(class_name, 0);
 				return NULL;
 			}
+			constant_text = class_name_end + 2;
 			lc_text = zend_str_tolower_dup(class_name_end + 2, textlen - 2 - class_name_len);
 			textlen -= (class_name_len + 2);
 		} else {
@@ -559,7 +559,7 @@ TODO:
 				ZEND_FALLTHROUGH;
 			case 2:
 			case 3:
-				retval = cli_completion_generator_define(text, textlen, &cli_completion_state, ce ? &ce->constants_table : EG(zend_constants));
+				retval = cli_completion_generator_define(constant_text, textlen, &cli_completion_state, ce ? &ce->constants_table : EG(zend_constants));
 				if (retval || ce) {
 					break;
 				}
@@ -712,7 +712,7 @@ static int readline_shell_run(void) /* {{{ */
 		}
 
 		if (pager_pipe) {
-			fclose(pager_pipe);
+			pclose(pager_pipe);
 			pager_pipe = NULL;
 		}
 

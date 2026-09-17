@@ -1,14 +1,12 @@
 /*
    +----------------------------------------------------------------------+
-   | Copyright (c) The PHP Group                                          |
+   | Copyright © The PHP Group and Contributors.                          |
    +----------------------------------------------------------------------+
-   | This source file is subject to version 3.01 of the PHP license,      |
-   | that is bundled with this package in the file LICENSE, and is        |
-   | available through the world-wide-web at the following url:           |
-   | https://www.php.net/license/3_01.txt                                 |
-   | If you did not receive a copy of the PHP license and are unable to   |
-   | obtain it through the world-wide-web, please send a note to          |
-   | license@php.net so we can mail you a copy immediately.               |
+   | This source file is subject to the Modified BSD License that is      |
+   | bundled with this package in the file LICENSE, and is available      |
+   | through the World Wide Web at <https://www.php.net/license/>.        |
+   |                                                                      |
+   | SPDX-License-Identifier: BSD-3-Clause                                |
    +----------------------------------------------------------------------+
    | Authors: Andrew Skalski <askalski@chek.com>                          |
    |          Stefan Esser <sesser@php.net> (resume functions)            |
@@ -130,7 +128,7 @@ ftpbuf_t* ftp_open(const char *host, short port, zend_long timeout_sec)
 
 	/* Default Settings */
 	ftp->timeout_sec = timeout_sec;
-	ftp->nb = 0;
+	ftp->nb = false;
 
 	size = sizeof(ftp->localaddr);
 	memset(&ftp->localaddr, 0, size);
@@ -263,8 +261,8 @@ bool ftp_login(ftpbuf_t *ftp, const char *user, const size_t user_len, const cha
 			if (ftp->resp != 334) {
 				return false;
 			} else {
-				ftp->old_ssl = 1;
-				ftp->use_ssl_for_data = 1;
+				ftp->old_ssl = true;
+				ftp->use_ssl_for_data = true;
 			}
 		}
 
@@ -310,14 +308,9 @@ bool ftp_login(ftpbuf_t *ftp, const char *user, const size_t user_len, const cha
 
 				case SSL_ERROR_WANT_READ:
 				case SSL_ERROR_WANT_WRITE: {
-						php_pollfd p;
-						int i;
+						int i, events = (err == SSL_ERROR_WANT_READ) ? (POLLIN|POLLPRI) : POLLOUT;
 
-						p.fd = ftp->fd;
-						p.events = (err == SSL_ERROR_WANT_READ) ? (POLLIN|POLLPRI) : POLLOUT;
-						p.revents = 0;
-
-						i = php_poll2(&p, 1, 300);
+						i = php_pollfd_for_ms(ftp->fd, events, 300);
 
 						retry = i > 0;
 					}
@@ -385,7 +378,7 @@ bool ftp_reinit(ftpbuf_t *ftp)
 
 	ftp_gc(ftp);
 
-	ftp->nb = 0;
+	ftp->nb = false;
 
 	if (!ftp_putcmd(ftp, "REIN", sizeof("REIN")-1, NULL, (size_t) 0)) {
 		return false;
@@ -819,6 +812,11 @@ bool ftp_get(ftpbuf_t *ftp, php_stream *outstream, const char *path, const size_
 	if (ftp == NULL) {
 		return false;
 	}
+	if (ftp->in_use) {
+		php_error_docref(NULL, E_WARNING, "FTP\\Connection is already in use");
+		return false;
+	}
+	ftp->in_use = true;
 	if (!ftp_type(ftp, type)) {
 		goto bail;
 	}
@@ -852,6 +850,7 @@ bool ftp_get(ftpbuf_t *ftp, php_stream *outstream, const char *path, const size_
 		goto bail;
 	}
 
+	bool pending_cr = false;
 	while ((rcvd = my_recv(ftp, data->fd, data->buf, FTP_BUFSIZE))) {
 		if (rcvd == (size_t)-1) {
 			goto bail;
@@ -871,13 +870,30 @@ bool ftp_get(ftpbuf_t *ftp, php_stream *outstream, const char *path, const size_
 			php_stream_write(outstream, ptr, (e - ptr));
 			ptr = e;
 #else
-			while (e > ptr && (s = memchr(ptr, '\r', (e - ptr)))) {
-				php_stream_write(outstream, ptr, (s - ptr));
-				if (s + 1 < e && *(s + 1) == '\n') {
-					s++;
+			if (pending_cr) {
+				pending_cr = false;
+				if (*ptr == '\n') {
 					php_stream_putc(outstream, '\n');
+					ptr++;
+				} else {
+					php_stream_putc(outstream, '\r');
 				}
-				ptr = s + 1;
+			}
+			while (e > ptr && (s = memchr(ptr, '\r', (e - ptr)))) {
+				if (s + 1 < e) {
+					if (*(s + 1) == '\n') {
+						php_stream_write(outstream, ptr, (s - ptr));
+						php_stream_putc(outstream, '\n');
+						ptr = s + 2;
+					} else {
+						php_stream_write(outstream, ptr, (s - ptr) + 1);
+						ptr = s + 1;
+					}
+				} else {
+					php_stream_write(outstream, ptr, (s - ptr));
+					pending_cr = true;
+					ptr = s + 1;
+				}
 			}
 #endif
 			if (ptr < e) {
@@ -887,6 +903,9 @@ bool ftp_get(ftpbuf_t *ftp, php_stream *outstream, const char *path, const size_
 			goto bail;
 		}
 	}
+	if (pending_cr) {
+		php_stream_putc(outstream, '\r');
+	}
 
 	data_close(ftp);
 
@@ -894,9 +913,11 @@ bool ftp_get(ftpbuf_t *ftp, php_stream *outstream, const char *path, const size_
 		goto bail;
 	}
 
+	ftp->in_use = false;
 	return true;
 bail:
 	data_close(ftp);
+	ftp->in_use = false;
 	return false;
 }
 
@@ -981,6 +1002,11 @@ bool ftp_put(ftpbuf_t *ftp, const char *path, const size_t path_len, php_stream 
 	if (ftp == NULL) {
 		return false;
 	}
+	if (ftp->in_use) {
+		php_error_docref(NULL, E_WARNING, "FTP\\Connection is already in use");
+		return false;
+	}
+	ftp->in_use = true;
 	if (!ftp_type(ftp, type)) {
 		goto bail;
 	}
@@ -1021,9 +1047,11 @@ bool ftp_put(ftpbuf_t *ftp, const char *path, const size_t path_len, php_stream 
 	if (!ftp_getresp(ftp) || (ftp->resp != 226 && ftp->resp != 250 && ftp->resp != 200)) {
 		goto bail;
 	}
+	ftp->in_use = false;
 	return true;
 bail:
 	data_close(ftp);
+	ftp->in_use = false;
 	return false;
 }
 
@@ -1034,6 +1062,11 @@ bool ftp_append(ftpbuf_t *ftp, const char *path, const size_t path_len, php_stre
 	if (ftp == NULL) {
 		return false;
 	}
+	if (ftp->in_use) {
+		php_error_docref(NULL, E_WARNING, "FTP\\Connection is already in use");
+		return false;
+	}
+	ftp->in_use = true;
 	if (!ftp_type(ftp, type)) {
 		goto bail;
 	}
@@ -1061,9 +1094,11 @@ bool ftp_append(ftpbuf_t *ftp, const char *path, const size_t path_len, php_stre
 	if (!ftp_getresp(ftp) || (ftp->resp != 226 && ftp->resp != 250 && ftp->resp != 200)) {
 		goto bail;
 	}
+	ftp->in_use = false;
 	return true;
 bail:
 	data_close(ftp);
+	ftp->in_use = false;
 	return false;
 }
 
@@ -1193,7 +1228,7 @@ static bool ftp_putcmd(ftpbuf_t *ftp, const char *cmd, const size_t cmd_len, con
 			return false;
 		}
 		if (strpbrk(args, "\r\n")) {
-			return 0;
+			return false;
 		}
 		size = slprintf(data, sizeof(data), "%s %s\r\n", cmd, args);
 	} else {
@@ -1314,13 +1349,14 @@ static ssize_t my_recv_wrapper_with_restart(php_socket_t fd, void *buf, size_t s
 	return n;
 }
 
-static int single_send(ftpbuf_t *ftp, php_socket_t s, void *buf, size_t size) {
+static ssize_t single_send(ftpbuf_t *ftp, php_socket_t s, void *buf, size_t size) {
 #ifdef HAVE_FTP_SSL
 	int err;
-	bool retry = 0;
+	bool retry = false;
 	SSL *handle = NULL;
 	php_socket_t fd;
 	size_t sent;
+	int ret;
 
 	if (ftp->use_ssl && ftp->fd == s && ftp->ssl_active) {
 		handle = ftp->ssl_handle;
@@ -1333,29 +1369,25 @@ static int single_send(ftpbuf_t *ftp, php_socket_t s, void *buf, size_t size) {
 	}
 
 	do {
-		sent = SSL_write(handle, buf, size);
-		err = SSL_get_error(handle, sent);
+		sent = 0;
+		ret = SSL_write_ex(handle, buf, size, &sent);
+		err = SSL_get_error(handle, ret);
 
 		switch (err) {
 			case SSL_ERROR_NONE:
-				retry = 0;
+				retry = false;
 				break;
 
 			case SSL_ERROR_ZERO_RETURN:
-				retry = 0;
+				retry = false;
 				SSL_shutdown(handle);
 				break;
 
 			case SSL_ERROR_WANT_READ:
 			case SSL_ERROR_WANT_CONNECT: {
-					php_pollfd p;
-					int i;
+					int i, events = POLLOUT;
 
-					p.fd = fd;
-					p.events = POLLOUT;
-					p.revents = 0;
-
-					i = php_poll2(&p, 1, 300);
+					i = php_pollfd_for_ms(fd, events, 300);
 
 					retry = i > 0;
 				}
@@ -1437,7 +1469,7 @@ static int my_recv(ftpbuf_t *ftp, php_socket_t s, void *buf, size_t len)
 	int n, nr_bytes;
 #ifdef HAVE_FTP_SSL
 	int err;
-	bool retry = 0;
+	bool retry = false;
 	SSL *handle = NULL;
 	php_socket_t fd;
 #endif
@@ -1471,24 +1503,19 @@ static int my_recv(ftpbuf_t *ftp, php_socket_t s, void *buf, size_t len)
 
 			switch (err) {
 				case SSL_ERROR_NONE:
-					retry = 0;
+					retry = false;
 					break;
 
 				case SSL_ERROR_ZERO_RETURN:
-					retry = 0;
+					retry = false;
 					SSL_shutdown(handle);
 					break;
 
 				case SSL_ERROR_WANT_READ:
 				case SSL_ERROR_WANT_CONNECT: {
-						php_pollfd p;
-						int i;
+						int i, events = POLLIN|POLLPRI;
 
-						p.fd = fd;
-						p.events = POLLIN|POLLPRI;
-						p.revents = 0;
-
-						i = php_poll2(&p, 1, 300);
+						i = php_pollfd_for_ms(fd, events, 300);
 
 						retry = i > 0;
 					}
@@ -1775,24 +1802,19 @@ data_accepted:
 
 			switch (err) {
 				case SSL_ERROR_NONE:
-					retry = 0;
+					retry = false;
 					break;
 
 				case SSL_ERROR_ZERO_RETURN:
-					retry = 0;
+					retry = false;
 					SSL_shutdown(data->ssl_handle);
 					break;
 
 				case SSL_ERROR_WANT_READ:
 				case SSL_ERROR_WANT_WRITE: {
-						php_pollfd p;
-						int i;
+						int i, events = (err == SSL_ERROR_WANT_READ) ? (POLLIN|POLLPRI) : POLLOUT;
 
-						p.fd = data->fd;
-						p.events = (err == SSL_ERROR_WANT_READ) ? (POLLIN|POLLPRI) : POLLOUT;
-						p.revents = 0;
-
-						i = php_poll2(&p, 1, 300);
+						i = php_pollfd_for_ms(data->fd, events, 300);
 
 						retry = i > 0;
 					}
@@ -1920,6 +1942,10 @@ static char** ftp_genlist(ftpbuf_t *ftp, const char *cmd, const size_t cmd_len, 
 	char		**entry;
 	char		*text;
 
+	if (ftp->in_use) {
+		php_error_docref(NULL, E_WARNING, "FTP\\Connection is already in use");
+		return NULL;
+	}
 
 	if ((tmpstream = php_stream_fopen_tmpfile()) == NULL) {
 		php_error_docref(NULL, E_WARNING, "Unable to create temporary file.  Check permissions in temporary files directory.");
@@ -2018,6 +2044,11 @@ int ftp_nb_get(ftpbuf_t *ftp, php_stream *outstream, const char *path, const siz
 		return PHP_FTP_FAILED;
 	}
 
+	if (ftp->in_use) {
+		php_error_docref(NULL, E_WARNING, "FTP\\Connection is already in use");
+		return PHP_FTP_FAILED;
+	}
+
 	if (ftp->data != NULL) {
 		/* If there is a transfer in action, abort it.
 		 * If we don't, we get an invalid state and memory leaks when the new connection gets opened. */
@@ -2063,7 +2094,7 @@ int ftp_nb_get(ftpbuf_t *ftp, php_stream *outstream, const char *path, const siz
 	ftp->data = data;
 	ftp->stream = outstream;
 	ftp->lastch = 0;
-	ftp->nb = 1;
+	ftp->nb = true;
 
 	return (ftp_nb_continue_read(ftp));
 
@@ -2082,11 +2113,17 @@ int ftp_nb_continue_read(ftpbuf_t *ftp)
 
 	data = ftp->data;
 
+	if (ftp->in_use) {
+		php_error_docref(NULL, E_WARNING, "FTP\\Connection is already in use");
+		return PHP_FTP_FAILED;
+	}
+
 	/* check if there is already more data */
 	if (!data_available(ftp, data->fd, false)) {
 		return PHP_FTP_MOREDATA;
 	}
 
+	ftp->in_use = true;
 	type = ftp->type;
 
 	lastch = ftp->lastch;
@@ -2110,6 +2147,7 @@ int ftp_nb_continue_read(ftpbuf_t *ftp)
 		}
 
 		ftp->lastch = lastch;
+		ftp->in_use = false;
 		return PHP_FTP_MOREDATA;
 	}
 
@@ -2123,10 +2161,12 @@ int ftp_nb_continue_read(ftpbuf_t *ftp)
 		goto bail;
 	}
 
-	ftp->nb = 0;
+	ftp->nb = false;
+	ftp->in_use = false;
 	return PHP_FTP_FINISHED;
 bail:
-	ftp->nb = 0;
+	ftp->nb = false;
+	ftp->in_use = false;
 	data_close(ftp);
 	return PHP_FTP_FAILED;
 }
@@ -2138,6 +2178,10 @@ int ftp_nb_put(ftpbuf_t *ftp, const char *path, const size_t path_len, php_strea
 
 	if (ftp == NULL) {
 		return 0;
+	}
+	if (ftp->in_use) {
+		php_error_docref(NULL, E_WARNING, "FTP\\Connection is already in use");
+		return PHP_FTP_FAILED;
 	}
 	if (!ftp_type(ftp, type)) {
 		goto bail;
@@ -2171,7 +2215,7 @@ int ftp_nb_put(ftpbuf_t *ftp, const char *path, const size_t path_len, php_strea
 	ftp->data = data;
 	ftp->stream = instream;
 	ftp->lastch = 0;
-	ftp->nb = 1;
+	ftp->nb = true;
 
 	return (ftp_nb_continue_write(ftp));
 
@@ -2182,16 +2226,24 @@ bail:
 
 int ftp_nb_continue_write(ftpbuf_t *ftp)
 {
+	if (ftp->in_use) {
+		php_error_docref(NULL, E_WARNING, "FTP\\Connection is already in use");
+		return PHP_FTP_FAILED;
+	}
+
 	/* check if we can write more data */
 	if (!data_writeable(ftp, ftp->data->fd)) {
 		return PHP_FTP_MOREDATA;
 	}
+
+	ftp->in_use = true;
 
 	if (ftp_send_stream_to_data_socket(ftp, ftp->data, ftp->stream, ftp->type, true) != SUCCESS) {
 		goto bail;
 	}
 
 	if (!php_stream_eof(ftp->stream)) {
+		ftp->in_use = false;
 		return PHP_FTP_MOREDATA;
 	}
 
@@ -2200,10 +2252,12 @@ int ftp_nb_continue_write(ftpbuf_t *ftp)
 	if (!ftp_getresp(ftp) || (ftp->resp != 226 && ftp->resp != 250)) {
 		goto bail;
 	}
-	ftp->nb = 0;
+	ftp->nb = false;
+	ftp->in_use = false;
 	return PHP_FTP_FINISHED;
 bail:
 	data_close(ftp);
-	ftp->nb = 0;
+	ftp->nb = false;
+	ftp->in_use = false;
 	return PHP_FTP_FAILED;
 }
