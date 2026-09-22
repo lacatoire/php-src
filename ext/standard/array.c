@@ -4113,6 +4113,7 @@ PHPAPI int php_array_replace_recursive(HashTable *dest, HashTable *src) /* {{{ *
 	zend_string *string_key;
 	zend_ulong num_key;
 	int ret;
+	int result = 1;
 
 #ifdef ZEND_CHECK_STACK_LIMIT
 	if (UNEXPECTED(zend_call_stack_overflowed(EG(stack_limit)))) {
@@ -4120,6 +4121,21 @@ PHPAPI int php_array_replace_recursive(HashTable *dest, HashTable *src) /* {{{ *
 		return 0;
 	}
 #endif
+
+	/* Take our own reference to src for the duration of the loop below.
+	 * dest may be modified in place (zend_may_modify_arg_in_place() in
+	 * php_array_replace_wrapper()), so overwriting one of its values can
+	 * run that value's destructor. If src is only reachable through a
+	 * reference the destructor also has access to (e.g. a shared &$var),
+	 * the destructor dropping it would otherwise free src out from under
+	 * this FOREACH, a use-after-free. Skip this for an immutable/persistent
+	 * src (e.g. the shared empty-array singleton for []): it is never
+	 * freed through normal refcounting, and GC_ADDREF()/GC_DELREF() assert
+	 * against being used on one. */
+	bool src_refcounted = !(GC_FLAGS(src) & (GC_IMMUTABLE | GC_PERSISTENT));
+	if (src_refcounted) {
+		GC_ADDREF(src);
+	}
 
 	ZEND_HASH_FOREACH_KEY_VAL(src, num_key, string_key, src_entry) {
 		src_zval = src_entry;
@@ -4152,7 +4168,8 @@ PHPAPI int php_array_replace_recursive(HashTable *dest, HashTable *src) /* {{{ *
 			Z_IS_RECURSIVE_P(src_zval) ||
 			(Z_ISREF_P(src_entry) && Z_ISREF_P(dest_entry) && Z_REF_P(src_entry) == Z_REF_P(dest_entry) && (Z_REFCOUNT_P(dest_entry) % 2))) {
 			zend_throw_error(NULL, "Recursion detected");
-			return 0;
+			result = 0;
+			goto out;
 		}
 
 		ZEND_ASSERT(!Z_ISREF_P(dest_entry) || Z_REFCOUNT_P(dest_entry) > 1);
@@ -4176,11 +4193,16 @@ PHPAPI int php_array_replace_recursive(HashTable *dest, HashTable *src) /* {{{ *
 		}
 
 		if (!ret) {
-			return 0;
+			result = 0;
+			goto out;
 		}
 	} ZEND_HASH_FOREACH_END();
 
-	return 1;
+out:
+	if (src_refcounted && UNEXPECTED(GC_DELREF(src) == 0)) {
+		zend_array_destroy(src);
+	}
+	return result;
 }
 /* }}} */
 
