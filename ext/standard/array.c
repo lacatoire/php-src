@@ -4155,7 +4155,15 @@ PHPAPI int php_array_replace_recursive(HashTable *dest, HashTable *src) /* {{{ *
 			return 0;
 		}
 
-		ZEND_ASSERT(!Z_ISREF_P(dest_entry) || Z_REFCOUNT_P(dest_entry) > 1);
+		/* dest_entry can legitimately be a refcount-1 reference here: when
+		 * the in-place optimization applies (zend_may_modify_arg_in_place()
+		 * in php_array_replace_wrapper()), dest is the caller's temporary
+		 * array itself rather than a zend_array_dup() copy, and
+		 * zend_array_dup() is what used to unconditionally unwrap such
+		 * leftover references (e.g. from foreach ($a as &$v) {} unset($v);)
+		 * before they could reach this point. SEPARATE_ZVAL() below already
+		 * handles a refcount-1 reference correctly (it releases the
+		 * now-unshared zend_reference and keeps its value in place). */
 		SEPARATE_ZVAL(dest_entry);
 		dest_zval = dest_entry;
 
