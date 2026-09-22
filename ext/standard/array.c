@@ -4130,6 +4130,7 @@ PHPAPI int php_array_replace_recursive(HashTable *dest, HashTable *src) /* {{{ *
 	zend_string *string_key;
 	zend_ulong num_key;
 	int ret;
+	int result = 1;
 
 #ifdef ZEND_CHECK_STACK_LIMIT
 	if (UNEXPECTED(zend_call_stack_overflowed(EG(stack_limit)))) {
@@ -4138,6 +4139,8 @@ PHPAPI int php_array_replace_recursive(HashTable *dest, HashTable *src) /* {{{ *
 	}
 #endif
 
+	/* Overwriting a value of dest runs its destructor, which may release the last other reference to src. */
+	GC_TRY_ADDREF(src);
 	ZEND_HASH_FOREACH_KEY_VAL(src, num_key, string_key, src_entry) {
 		src_zval = src_entry;
 		ZVAL_DEREF(src_zval);
@@ -4169,7 +4172,8 @@ PHPAPI int php_array_replace_recursive(HashTable *dest, HashTable *src) /* {{{ *
 			Z_IS_RECURSIVE_P(src_zval) ||
 			(Z_ISREF_P(src_entry) && Z_ISREF_P(dest_entry) && Z_REF_P(src_entry) == Z_REF_P(dest_entry) && (Z_REFCOUNT_P(dest_entry) % 2))) {
 			zend_throw_error(NULL, "Recursion detected");
-			return 0;
+			result = 0;
+			break;
 		}
 
 		ZEND_ASSERT(!Z_ISREF_P(dest_entry) || Z_REFCOUNT_P(dest_entry) > 1);
@@ -4193,11 +4197,13 @@ PHPAPI int php_array_replace_recursive(HashTable *dest, HashTable *src) /* {{{ *
 		}
 
 		if (!ret) {
-			return 0;
+			result = 0;
+			break;
 		}
 	} ZEND_HASH_FOREACH_END();
 
-	return 1;
+	zend_array_release(src);
+	return result;
 }
 /* }}} */
 
