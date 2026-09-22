@@ -4148,8 +4148,18 @@ PHPAPI int php_array_replace_recursive(HashTable *dest, HashTable *src) /* {{{ *
 
 		dest_zval = dest_entry;
 		ZVAL_DEREF(dest_zval);
-		if (Z_IS_RECURSIVE_P(dest_zval) ||
-			Z_IS_RECURSIVE_P(src_zval) ||
+		/* Only src_zval's own recursion flag is checked here, against the
+		 * ancestor src values already being processed along this path.
+		 * dest_zval is checked further below, after SEPARATE_ZVAL(): before
+		 * separation, dest_zval may still be the same, copy-on-write-shared
+		 * zend_array as an unrelated ancestor src value that happens to
+		 * have been protected (e.g. the same subtree appearing as a source
+		 * value at one level and as the matching destination value deeper
+		 * on the same key path), which would falsely look recursive even
+		 * though there is no cycle. SEPARATE_ZVAL() gives dest_zval either
+		 * a private, unprotected copy (false positive avoided) or, for a
+		 * genuine cycle, leaves the actual shared/protected array in place. */
+		if (Z_IS_RECURSIVE_P(src_zval) ||
 			(Z_ISREF_P(src_entry) && Z_ISREF_P(dest_entry) && Z_REF_P(src_entry) == Z_REF_P(dest_entry) && (Z_REFCOUNT_P(dest_entry) % 2))) {
 			zend_throw_error(NULL, "Recursion detected");
 			return 0;
@@ -4158,6 +4168,11 @@ PHPAPI int php_array_replace_recursive(HashTable *dest, HashTable *src) /* {{{ *
 		ZEND_ASSERT(!Z_ISREF_P(dest_entry) || Z_REFCOUNT_P(dest_entry) > 1);
 		SEPARATE_ZVAL(dest_entry);
 		dest_zval = dest_entry;
+
+		if (Z_IS_RECURSIVE_P(dest_zval)) {
+			zend_throw_error(NULL, "Recursion detected");
+			return 0;
+		}
 
 		if (Z_REFCOUNTED_P(dest_zval)) {
 			Z_PROTECT_RECURSION_P(dest_zval);
