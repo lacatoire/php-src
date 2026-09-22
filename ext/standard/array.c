@@ -5116,6 +5116,7 @@ static void php_array_intersect_key(INTERNAL_FUNCTION_PARAMETERS, int data_compa
 	char *param_spec;
 	zend_string *key;
 	zend_ulong h;
+	PHP_ARRAY_CMP_FUNC_VARS;
 
 	/* Get the argument count */
 	argc = ZEND_NUM_ARGS();
@@ -5133,13 +5134,17 @@ static void php_array_intersect_key(INTERNAL_FUNCTION_PARAMETERS, int data_compa
 		}
 	}
 
+	PHP_ARRAY_CMP_FUNC_BACKUP();
+
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), param_spec, &args, &argc, &BG(user_compare_fci), &BG(user_compare_fci_cache)) == FAILURE) {
+		PHP_ARRAY_CMP_FUNC_RESTORE();
 		RETURN_THROWS();
 	}
 
 	for (i = 0; i < argc; i++) {
 		if (Z_TYPE(args[i]) != IS_ARRAY) {
 			zend_argument_type_error(i + 1, "must be of type array, %s given", zend_zval_value_name(&args[i]));
+			PHP_ARRAY_CMP_FUNC_RESTORE();
 			RETURN_THROWS();
 		}
 	}
@@ -5183,6 +5188,8 @@ static void php_array_intersect_key(INTERNAL_FUNCTION_PARAMETERS, int data_compa
 			}
 		}
 	} ZEND_HASH_FOREACH_END();
+
+	PHP_ARRAY_CMP_FUNC_RESTORE();
 }
 /* }}} */
 
@@ -5725,16 +5732,21 @@ static void php_array_diff_key(INTERNAL_FUNCTION_PARAMETERS, int data_compare_ty
 	zval *val, *data;
 	zend_string *key;
 	zend_ulong h;
+	PHP_ARRAY_CMP_FUNC_VARS;
+
+	PHP_ARRAY_CMP_FUNC_BACKUP();
 
 	/* Get the argument count */
 	argc = ZEND_NUM_ARGS();
 	if (data_compare_type == DIFF_COMP_DATA_USER) {
 		if (zend_parse_parameters(ZEND_NUM_ARGS(), "+f", &args, &argc, &BG(user_compare_fci), &BG(user_compare_fci_cache)) == FAILURE) {
+			PHP_ARRAY_CMP_FUNC_RESTORE();
 			RETURN_THROWS();
 		}
 		diff_data_compare_func = zval_user_compare;
 	} else {
 		if (zend_parse_parameters(ZEND_NUM_ARGS(), "+", &args, &argc) == FAILURE) {
+			PHP_ARRAY_CMP_FUNC_RESTORE();
 			RETURN_THROWS();
 		}
 		if (data_compare_type == DIFF_COMP_DATA_INTERNAL) {
@@ -5745,6 +5757,7 @@ static void php_array_diff_key(INTERNAL_FUNCTION_PARAMETERS, int data_compare_ty
 	for (i = 0; i < argc; i++) {
 		if (Z_TYPE(args[i]) != IS_ARRAY) {
 			zend_argument_type_error(i + 1, "must be of type array, %s given", zend_zval_value_name(&args[i]));
+			PHP_ARRAY_CMP_FUNC_RESTORE();
 			RETURN_THROWS();
 		}
 	}
@@ -5788,6 +5801,8 @@ static void php_array_diff_key(INTERNAL_FUNCTION_PARAMETERS, int data_compare_ty
 			}
 		}
 	} ZEND_HASH_FOREACH_END();
+
+	PHP_ARRAY_CMP_FUNC_RESTORE();
 }
 /* }}} */
 
