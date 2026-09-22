@@ -5392,7 +5392,16 @@ static void php_array_intersect(INTERNAL_FUNCTION_PARAMETERS, int behavior, int 
 			}
 			if (c) /* here we get if not all are equal */
 				break;
-			ptrs[i]++;
+			if (behavior == INTERSECT_NORMAL) {
+				ptrs[i]++;
+			}
+			/* For INTERSECT_KEY / INTERSECT_ASSOC, do not consume the matched
+			 * bucket: the user key comparator is not required to be injective,
+			 * so a later entry of ptrs[0] may belong to the same key-class and
+			 * needs to be matched against this same bucket of ptrs[i] again.
+			 * Leaving ptrs[i] parked on the match is still correct and keeps
+			 * the scan monotonic: once ptrs[0] moves to a strictly greater
+			 * key-class, the while loop above advances ptrs[i] past it. */
 		}
 		if (c) {
 			/* Value of ptrs[0] not in all arguments, delete all entries */
