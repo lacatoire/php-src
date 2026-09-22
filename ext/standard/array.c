@@ -5964,23 +5964,35 @@ static void php_array_diff(INTERNAL_FUNCTION_PARAMETERS, int behavior, int data_
 				} else if (behavior == DIFF_ASSOC) {  /* only when DIFF_ASSOC */
 					/* In this branch is execute only when DIFF_ASSOC. If behavior == DIFF_KEY
 					 * data comparison is not needed - skipped. */
-					if (Z_TYPE(ptr->val) != IS_UNDEF) {
+					while (Z_TYPE(ptr->val) != IS_UNDEF) {
 						if (data_compare_type == DIFF_COMP_DATA_USER) {
 							BG(user_compare_fci) = *fci_data;
 							BG(user_compare_fci_cache) = *fci_data_cache;
 						}
-						if (diff_data_compare_func(ptrs[0], ptr) != 0) {
-							/* the data is not the same */
-							c = -1;
-							if (key_compare_type == DIFF_COMP_KEY_USER) {
-								BG(user_compare_fci) = *fci_key;
-								BG(user_compare_fci_cache) = *fci_key_cache;
-							}
-						} else {
+						if (diff_data_compare_func(ptrs[0], ptr) == 0) {
+							c = 0;
 							break;
 							/* we have found the element in other arrays thus we don't want it
 							 * in the return_value -> delete from there */
 						}
+						/* The data is not the same, but the key comparator is not required
+						 * to be injective (e.g. strcasecmp()), so more than one bucket of
+						 * this argument may compare equal on the key. Keep scanning the
+						 * remaining key-equal buckets before giving up on this argument. */
+						c = -1;
+						if (key_compare_type == DIFF_COMP_KEY_USER) {
+							BG(user_compare_fci) = *fci_key;
+							BG(user_compare_fci_cache) = *fci_key_cache;
+						}
+						ptr++;
+						if (Z_TYPE(ptr->val) == IS_UNDEF || diff_key_compare_func(ptrs[0], ptr) != 0) {
+							break;
+						}
+					}
+					if (!c) {
+						break;
+						/* we have found the element in other arrays thus we don't want it
+						 * in the return_value -> delete from there */
 					}
 				} else if (behavior == DIFF_KEY) { /* only when DIFF_KEY */
 					/* the behavior here differs from INTERSECT_KEY in php_intersect
