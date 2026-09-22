@@ -5363,14 +5363,20 @@ static void php_array_intersect(INTERNAL_FUNCTION_PARAMETERS, int behavior, int 
 					}
 					if (intersect_data_compare_func(ptrs[0], ptrs[i]) != 0) {
 						c = 1;
-						if (key_compare_type == INTERSECT_COMP_KEY_USER) {
-							BG(user_compare_fci) = *fci_key;
-							BG(user_compare_fci_cache) = *fci_key_cache;
-							/* When KEY_USER, the last parameter is always the callback */
-						}
 						/* we are going to the break */
 					} else {
 						/* continue looping */
+					}
+					if (key_compare_type == INTERSECT_COMP_KEY_USER) {
+						/* Restore the key callback regardless of whether the
+						 * values matched: the next iteration's key search
+						 * over the following arrays (intersect_key_compare_func,
+						 * a few lines above) reads BG(user_compare_fci), and
+						 * must not still see the data callback left behind
+						 * by the value comparison above. */
+						BG(user_compare_fci) = *fci_key;
+						BG(user_compare_fci_cache) = *fci_key_cache;
+						/* When KEY_USER, the last parameter is always the callback */
 					}
 				}
 			}
