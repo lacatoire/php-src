@@ -1476,6 +1476,7 @@ static zend_result php_array_walk(
 			if (GC_IS_RECURSIVE(thash)) {
 				zend_throw_error(NULL, "Recursion detected");
 				result = FAILURE;
+				zval_ptr_dtor_str(&args[1]);
 				break;
 			}
 
