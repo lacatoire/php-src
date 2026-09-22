@@ -6525,6 +6525,7 @@ PHPAPI bool php_array_pick_keys(php_random_algo_with_state engine, zval *input, 
 		 * The worst case probability of hitting an empty element is 1-1/2. The worst case
 		 * probability of hitting N empty elements in a row is (1-1/2)**N.
 		 * For N=10 this becomes smaller than 0.1%. */
+		int failures = 0;
 		if (HT_IS_PACKED(ht)) {
 			do {
 				randval = algo->range(state, 0, ht->nNumUsed - 1);
@@ -6535,6 +6536,12 @@ PHPAPI bool php_array_pick_keys(php_random_algo_with_state engine, zval *input, 
 				if (!Z_ISUNDEF_P(zv)) {
 					ZVAL_LONG(retval, randval);
 					return true;
+				}
+				if (++failures > PHP_RANDOM_RANGE_ATTEMPTS) {
+					if (!silent) {
+						zend_throw_error(random_ce_Random_BrokenRandomEngineError, "Failed to generate an acceptable random number in %d attempts", PHP_RANDOM_RANGE_ATTEMPTS);
+					}
+					return false;
 				}
 			} while (true);
 		} else {
@@ -6551,6 +6558,12 @@ PHPAPI bool php_array_pick_keys(php_random_algo_with_state engine, zval *input, 
 						ZVAL_LONG(retval, b->h);
 					}
 					return true;
+				}
+				if (++failures > PHP_RANDOM_RANGE_ATTEMPTS) {
+					if (!silent) {
+						zend_throw_error(random_ce_Random_BrokenRandomEngineError, "Failed to generate an acceptable random number in %d attempts", PHP_RANDOM_RANGE_ATTEMPTS);
+					}
+					return false;
 				}
 			} while (true);
 		}
