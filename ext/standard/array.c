@@ -4150,7 +4150,14 @@ PHPAPI int php_array_replace_recursive(HashTable *dest, HashTable *src) /* {{{ *
 		ZVAL_DEREF(dest_zval);
 		if (Z_IS_RECURSIVE_P(dest_zval) ||
 			Z_IS_RECURSIVE_P(src_zval) ||
-			(Z_ISREF_P(src_entry) && Z_ISREF_P(dest_entry) && Z_REF_P(src_entry) == Z_REF_P(dest_entry) && (Z_REFCOUNT_P(dest_entry) % 2))) {
+			/* Defensive guard for a direct C-level self-call
+			 * php_array_replace_recursive(ht, ht): no such caller exists
+			 * in this tree today (the userland array_replace_recursive()
+			 * always calls this with dest and src as distinct HashTables,
+			 * even when they share references), so this never triggers in
+			 * practice, but mirrors the equivalent guard already in
+			 * php_array_merge_recursive() above. */
+			(src_entry == dest_entry && Z_ISREF_P(dest_entry) && (Z_REFCOUNT_P(dest_entry) % 2))) {
 			zend_throw_error(NULL, "Recursion detected");
 			return 0;
 		}
