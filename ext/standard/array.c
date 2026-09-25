@@ -4011,6 +4011,11 @@ PHPAPI int php_array_merge_recursive(HashTable *dest, HashTable *src) /* {{{ */
 				ZVAL_DEREF(src_zval);
 				ZVAL_DEREF(dest_zval);
 				thash = Z_TYPE_P(dest_zval) == IS_ARRAY ? Z_ARRVAL_P(dest_zval) : NULL;
+				/* dest_zval is dereferenced here; remember whether the (possibly
+				 * referenced) destination value is null before it gets reset to
+				 * the raw dest_entry below, so a reference-to-null is treated the
+				 * same as a plain null instead of silently becoming an empty array. */
+				bool dest_was_null = Z_TYPE_P(dest_zval) == IS_NULL;
 				if ((thash && GC_IS_RECURSIVE(thash)) || (src_entry == dest_entry && Z_ISREF_P(dest_entry) && (Z_REFCOUNT_P(dest_entry) % 2))) {
 					zend_throw_error(NULL, "Recursion detected");
 					return 0;
@@ -4019,11 +4024,9 @@ PHPAPI int php_array_merge_recursive(HashTable *dest, HashTable *src) /* {{{ */
 				ZEND_ASSERT(!Z_ISREF_P(dest_entry) || Z_REFCOUNT_P(dest_entry) > 1);
 				dest_zval = dest_entry;
 
-				if (Z_TYPE_P(dest_zval) == IS_NULL) {
-					convert_to_array(dest_zval);
+				convert_to_array(dest_zval);
+				if (dest_was_null) {
 					add_next_index_null(dest_zval);
-				} else {
-					convert_to_array(dest_zval);
 				}
 				SEPARATE_ZVAL(dest_zval);
 
@@ -5392,7 +5395,16 @@ static void php_array_intersect(INTERNAL_FUNCTION_PARAMETERS, int behavior, int 
 			}
 			if (c) /* here we get if not all are equal */
 				break;
-			ptrs[i]++;
+			if (behavior == INTERSECT_NORMAL) {
+				ptrs[i]++;
+			}
+			/* For INTERSECT_KEY / INTERSECT_ASSOC, do not consume the matched
+			 * bucket: the user key comparator is not required to be injective,
+			 * so a later entry of ptrs[0] may belong to the same key-class and
+			 * needs to be matched against this same bucket of ptrs[i] again.
+			 * Leaving ptrs[i] parked on the match is still correct and keeps
+			 * the scan monotonic: once ptrs[0] moves to a strictly greater
+			 * key-class, the while loop above advances ptrs[i] past it. */
 		}
 		if (c) {
 			/* Value of ptrs[0] not in all arguments, delete all entries */
