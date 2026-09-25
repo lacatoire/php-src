@@ -6670,6 +6670,26 @@ static zend_always_inline void php_array_binop_apply(
 	zend_result status = op(return_value, return_value, entry);
 	if (status == FAILURE) {
 		ZEND_ASSERT(EG(exception));
+		if (EG(exception)->ce != zend_ce_type_error) {
+			/* Not the plain "unsupported operand type" TypeError this
+			 * function raises itself below for BC: op() only leaves some
+			 * other exception pending when zend_binop_error() found one
+			 * already set, which happens when user code invoked while
+			 * evaluating this operand (e.g. a custom error handler reacting
+			 * to the "non-numeric value" warning, or exit()) threw or
+			 * unwound instead of returning normally. Let it propagate
+			 * instead of silently discarding it.
+			 *
+			 * Known limitation: a handler that itself throws a bare,
+			 * non-subclassed \TypeError is indistinguishable from this
+			 * function's own BC error by class alone, so it is treated as
+			 * "our own" and cleared here; the BC fallback then runs and,
+			 * for a non-numeric string or unsupported type, emits its own
+			 * warning, which re-enters the handler and produces a second
+			 * \TypeError with a different message than the one that was
+			 * discarded, instead of the exception being lost entirely. */
+			return;
+		}
 		zend_clear_exception();
 		/* BC resources: previously resources were cast to int */
 		if (Z_TYPE_P(entry) == IS_RESOURCE) {
@@ -6711,6 +6731,9 @@ static zend_always_inline void php_array_binop(INTERNAL_FUNCTION_PARAMETERS, con
 				continue;
 			}
 			php_array_binop_apply(return_value, entry, op_name, op);
+			if (UNEXPECTED(EG(exception))) {
+				return;
+			}
 		} ZEND_HASH_FOREACH_END();
 	} else if (op == mul_function) {
 		zval *entry;
@@ -6728,11 +6751,17 @@ static zend_always_inline void php_array_binop(INTERNAL_FUNCTION_PARAMETERS, con
 				continue;
 			}
 			php_array_binop_apply(return_value, entry, op_name, op);
+			if (UNEXPECTED(EG(exception))) {
+				return;
+			}
 		} ZEND_HASH_FOREACH_END();
 	} else {
 		zval *entry;
 		ZEND_HASH_FOREACH_VAL(input, entry) {
 			php_array_binop_apply(return_value, entry, op_name, op);
+			if (UNEXPECTED(EG(exception))) {
+				return;
+			}
 		} ZEND_HASH_FOREACH_END();
 	}
 }
