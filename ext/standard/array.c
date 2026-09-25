@@ -4107,12 +4107,13 @@ PHPAPI int php_array_merge(HashTable *dest, HashTable *src) /* {{{ */
 }
 /* }}} */
 
-PHPAPI int php_array_replace_recursive(HashTable *dest, HashTable *src) /* {{{ */
+PHPAPI int php_array_replace_recursive(zval *dest_container, HashTable *src) /* {{{ */
 {
 	zval *src_entry, *dest_entry, *src_zval, *dest_zval;
 	zend_string *string_key;
 	zend_ulong num_key;
 	int ret;
+	HashTable *dest = Z_ARRVAL_P(dest_container);
 
 #ifdef ZEND_CHECK_STACK_LIMIT
 	if (UNEXPECTED(zend_call_stack_overflowed(EG(stack_limit)))) {
@@ -4122,6 +4123,26 @@ PHPAPI int php_array_replace_recursive(HashTable *dest, HashTable *src) /* {{{ *
 #endif
 
 	ZEND_HASH_FOREACH_KEY_VAL(src, num_key, string_key, src_entry) {
+		/* dest may be shared with something reachable from a destructor run
+		 * while overwriting a previous entry below (e.g. via
+		 * debug_backtrace() or an exception trace holding a reference).
+		 * Re-check before every write, and if its refcount grew, duplicate
+		 * what has been built so far and redirect dest_container (and this
+		 * function's own `dest`) to the copy, same as the top-level
+		 * zend_may_modify_arg_in_place() degrade-to-copy, but re-armed for
+		 * every recursion depth and every write. */
+		if (GC_REFCOUNT(dest) != 1) {
+			HashTable *new_dest = zend_array_dup(dest);
+			/* dest_container holds one real, counted reference to dest
+			 * (never just an unaddref'd alias, see php_array_replace_wrapper());
+			 * release it before redirecting to the copy. Safe without a
+			 * zero/free check: we only get here when the refcount is
+			 * already >= 2, so this can't drop it to 0. */
+			GC_TRY_DELREF(dest);
+			dest = new_dest;
+			ZVAL_ARR(dest_container, dest);
+		}
+
 		src_zval = src_entry;
 		ZVAL_DEREF(src_zval);
 		if (string_key) {
@@ -4166,7 +4187,7 @@ PHPAPI int php_array_replace_recursive(HashTable *dest, HashTable *src) /* {{{ *
 			Z_PROTECT_RECURSION_P(src_zval);
 		}
 
-		ret = php_array_replace_recursive(Z_ARRVAL_P(dest_zval), Z_ARRVAL_P(src_zval));
+		ret = php_array_replace_recursive(dest_zval, Z_ARRVAL_P(src_zval));
 
 		if (Z_REFCOUNTED_P(dest_zval)) {
 			Z_UNPROTECT_RECURSION_P(dest_zval);
@@ -4217,19 +4238,29 @@ static zend_always_inline void php_array_replace_wrapper(INTERNAL_FUNCTION_PARAM
 	ZVAL_ARR(return_value, dest);
 
 	if (recursive) {
+		if (in_place) {
+			/* From here on, return_value must hold its own, independently
+			 * counted reference to dest, not just alias args[0]'s: unlike
+			 * the plain merge below, php_array_replace_recursive() may
+			 * need to redirect return_value to a private duplicate at any
+			 * point if dest becomes shared mid-merge, and releasing its
+			 * existing claim first (see its own comment) only balances
+			 * correctly if that claim was real to begin with. */
+			GC_ADDREF(dest);
+		}
 		for (i = 1; i < argc; i++) {
 			arg = args + i;
-			php_array_replace_recursive(dest, Z_ARRVAL_P(arg));
+			php_array_replace_recursive(return_value, Z_ARRVAL_P(arg));
 		}
 	} else {
 		for (i = 1; i < argc; i++) {
 			arg = args + i;
 			zend_hash_merge(dest, Z_ARRVAL_P(arg), zval_add_ref, 1);
 		}
-	}
 
-	if (in_place) {
-		GC_ADDREF(dest);
+		if (in_place) {
+			GC_ADDREF(dest);
+		}
 	}
 }
 /* }}} */
