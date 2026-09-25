@@ -407,6 +407,17 @@ unsupported_mode:
 			RETURN_FALSE;
 		}
 
+		/* BZ2_bzdopen() takes ownership of the fd it is given (BZ2_bzclose()
+		 * closes it). Hand it a dup(), the same idiom already used by
+		 * ext/zlib for gzdopen(), so the bzip2 stream owns an independent
+		 * fd instead of sharing the caller's stream's fd: closing either
+		 * stream then only closes its own fd, not the other's. */
+		fd = dup((int)fd);
+		if (fd < 0) {
+			php_error_docref(NULL, E_WARNING, "Cannot duplicate stream file descriptor");
+			RETURN_FALSE;
+		}
+
 		bz = BZ2_bzdopen((int)fd, mode);
 
 		stream = php_stream_bz2open_from_BZFILE(bz, mode, stream);
