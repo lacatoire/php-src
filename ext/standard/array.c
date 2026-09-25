@@ -3336,6 +3336,10 @@ static void php_splice(HashTable *in_hash, zend_long offset, zend_long length, H
 		/* If there are entries to insert.. */
 		if (replace) {
 			ZEND_HASH_FOREACH_VAL(replace, entry) {
+				if (UNEXPECTED(Z_ISREF_P(entry)) &&
+					UNEXPECTED(Z_REFCOUNT_P(entry) == 1)) {
+					entry = Z_REFVAL_P(entry);
+				}
 				Z_TRY_ADDREF_P(entry);
 				zend_hash_next_index_insert_new(&out_hash, entry);
 				pos++;
@@ -3406,6 +3410,10 @@ static void php_splice(HashTable *in_hash, zend_long offset, zend_long length, H
 		/* If there are entries to insert.. */
 		if (replace) {
 			ZEND_HASH_FOREACH_VAL(replace, entry) {
+				if (UNEXPECTED(Z_ISREF_P(entry)) &&
+					UNEXPECTED(Z_REFCOUNT_P(entry) == 1)) {
+					entry = Z_REFVAL_P(entry);
+				}
 				Z_TRY_ADDREF_P(entry);
 				zend_hash_next_index_insert_new(&out_hash, entry);
 				pos++;
@@ -4827,6 +4835,10 @@ PHP_FUNCTION(array_pad)
 
 		ZEND_HASH_FILL_PACKED(Z_ARRVAL_P(return_value)) {
 			ZEND_HASH_PACKED_FOREACH_VAL(Z_ARRVAL_P(input), value) {
+				if (UNEXPECTED(Z_ISREF_P(value)) &&
+					UNEXPECTED(Z_REFCOUNT_P(value) == 1)) {
+					value = Z_REFVAL_P(value);
+				}
 				Z_TRY_ADDREF_P(value);
 				ZEND_HASH_FILL_ADD(value);
 			} ZEND_HASH_FOREACH_END();
@@ -4847,6 +4859,10 @@ PHP_FUNCTION(array_pad)
 		}
 
 		ZEND_HASH_MAP_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(input), key, value) {
+			if (UNEXPECTED(Z_ISREF_P(value)) &&
+				UNEXPECTED(Z_REFCOUNT_P(value) == 1)) {
+				value = Z_REFVAL_P(value);
+			}
 			Z_TRY_ADDREF_P(value);
 			if (key) {
 				zend_hash_add_new(Z_ARRVAL_P(return_value), key, value);
@@ -7161,7 +7177,12 @@ PHP_FUNCTION(array_map)
 										ZEND_HASH_FILL_SET_NULL();
 										break;
 									} else if (Z_TYPE(Z_ARRVAL(arrays[i])->arPacked[pos]) != IS_UNDEF) {
-										ZVAL_COPY(&zv, &Z_ARRVAL(arrays[i])->arPacked[pos]);
+										zval *src = &Z_ARRVAL(arrays[i])->arPacked[pos];
+										if (UNEXPECTED(Z_ISREF_P(src)) &&
+											UNEXPECTED(Z_REFCOUNT_P(src) == 1)) {
+											src = Z_REFVAL_P(src);
+										}
+										ZVAL_COPY(&zv, src);
 										ZEND_HASH_FILL_SET(&zv);
 										array_pos[i] = pos + 1;
 										break;
@@ -7174,7 +7195,12 @@ PHP_FUNCTION(array_map)
 										ZEND_HASH_FILL_SET_NULL();
 										break;
 									} else if (Z_TYPE(Z_ARRVAL(arrays[i])->arData[pos].val) != IS_UNDEF) {
-										ZVAL_COPY(&zv, &Z_ARRVAL(arrays[i])->arData[pos].val);
+										zval *src = &Z_ARRVAL(arrays[i])->arData[pos].val;
+										if (UNEXPECTED(Z_ISREF_P(src)) &&
+											UNEXPECTED(Z_REFCOUNT_P(src) == 1)) {
+											src = Z_REFVAL_P(src);
+										}
+										ZVAL_COPY(&zv, src);
 										ZEND_HASH_FILL_SET(&zv);
 										array_pos[i] = pos + 1;
 										break;
