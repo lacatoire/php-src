@@ -1,14 +1,12 @@
 /*
    +----------------------------------------------------------------------+
-   | Copyright (c) The PHP Group                                          |
+   | Copyright © The PHP Group and Contributors.                          |
    +----------------------------------------------------------------------+
-   | This source file is subject to version 3.01 of the PHP license,      |
-   | that is bundled with this package in the file LICENSE, and is        |
-   | available through the world-wide-web at the following url:           |
-   | https://www.php.net/license/3_01.txt                                 |
-   | If you did not receive a copy of the PHP license and are unable to   |
-   | obtain it through the world-wide-web, please send a note to          |
-   | license@php.net so we can mail you a copy immediately.               |
+   | This source file is subject to the Modified BSD License that is      |
+   | bundled with this package in the file LICENSE, and is available      |
+   | through the World Wide Web at <https://www.php.net/license/>.        |
+   |                                                                      |
+   | SPDX-License-Identifier: BSD-3-Clause                                |
    +----------------------------------------------------------------------+
    | Author: Marcus Boerger <helly@php.net>                               |
    |         Johannes Schlueter <johannes@php.net>                        |
@@ -130,7 +128,7 @@ static zend_string *cli_get_prompt(char *block, char prompt) /* {{{ */
 	char *prompt_spec = CLIR_G(prompt) ? CLIR_G(prompt) : DEFAULT_PROMPT;
 	bool unicode_warned = false;
 
-	do {
+	while (*prompt_spec) {
 		if (*prompt_spec == '\\') {
 			switch (prompt_spec[1]) {
 			case '\\':
@@ -198,9 +196,9 @@ static zend_string *cli_get_prompt(char *block, char prompt) /* {{{ */
 				smart_str_appendc(&retval, '?');
 			}
 		}
-	} while (++prompt_spec && *prompt_spec);
-	smart_str_0(&retval);
-	return retval.s;
+		++prompt_spec;
+	}
+	return smart_str_extract(&retval);
 }
 /* }}} */
 
@@ -609,7 +607,7 @@ static int readline_shell_run(void) /* {{{ */
 		zend_file_handle prepend_file;
 
 		zend_stream_init_filename(&prepend_file, PG(auto_prepend_file));
-		zend_execute_scripts(ZEND_REQUIRE, NULL, 1, &prepend_file);
+		zend_execute_script(ZEND_REQUIRE, NULL, &prepend_file);
 		zend_destroy_file_handle(&prepend_file);
 	}
 
@@ -714,7 +712,7 @@ static int readline_shell_run(void) /* {{{ */
 		}
 
 		if (pager_pipe) {
-			fclose(pager_pipe);
+			pclose(pager_pipe);
 			pager_pipe = NULL;
 		}
 
