@@ -5357,11 +5357,55 @@ static void php_array_intersect(INTERNAL_FUNCTION_PARAMETERS, int behavior, int 
 					 * and "c==0" is from last operation
 					 * in this branch of code we enter only when INTERSECT_ASSOC
 					 * since when we have INTERSECT_KEY compare of data is not wanted. */
-					if (data_compare_type == INTERSECT_COMP_DATA_USER) {
-						BG(user_compare_fci) = *fci_data;
-						BG(user_compare_fci_cache) = *fci_data_cache;
+					/* The key comparator is not required to be injective (e.g.
+					 * strcasecmp()), so more than one bucket of this argument
+					 * may compare equal on the key ("key-class"). Scan the
+					 * contiguous run of key-class-equal buckets (contiguous
+					 * because the list was sorted by the key comparator) for
+					 * one whose value also matches, instead of giving up
+					 * after the first key-class-equal bucket. */
+					Bucket *ptr = ptrs[i];
+					bool matched = false;
+					while (true) {
+						if (data_compare_type == INTERSECT_COMP_DATA_USER) {
+							BG(user_compare_fci) = *fci_data;
+							BG(user_compare_fci_cache) = *fci_data_cache;
+						}
+						if (intersect_data_compare_func(ptrs[0], ptr) == 0) {
+							matched = true;
+							break;
+						}
+						ptr++;
+						if (Z_TYPE(ptr->val) == IS_UNDEF) {
+							break;
+						}
+						if (key_compare_type == INTERSECT_COMP_KEY_USER) {
+							BG(user_compare_fci) = *fci_key;
+							BG(user_compare_fci_cache) = *fci_key_cache;
+						}
+						if (intersect_key_compare_func(ptrs[0], ptr) != 0) {
+							break;
+						}
 					}
-					if (intersect_data_compare_func(ptrs[0], ptrs[i]) != 0) {
+					if (matched) {
+						/* Swap the matched bucket into ptrs[i]'s slot instead
+						 * of just moving ptrs[i] forward to it: ptrs[i] must
+						 * advance by exactly one slot per consumed match (the
+						 * rest of this loop and the cleanup below assume
+						 * that), and jumping it ahead to ptr would silently
+						 * drop any unmatched buckets in between. Swapping
+						 * keeps those buckets in the still-unvisited part of
+						 * the list, available to a later ptrs[0] entry of
+						 * the same key-class. lists[i] is a scratch copy
+						 * used only for this scan, so swapping bucket
+						 * *values* within it is safe. */
+						if (ptr != ptrs[i]) {
+							Bucket tmp = *ptrs[i];
+							*ptrs[i] = *ptr;
+							*ptr = tmp;
+						}
+						/* continue looping */
+					} else {
 						c = 1;
 						if (key_compare_type == INTERSECT_COMP_KEY_USER) {
 							BG(user_compare_fci) = *fci_key;
@@ -5369,8 +5413,6 @@ static void php_array_intersect(INTERNAL_FUNCTION_PARAMETERS, int behavior, int 
 							/* When KEY_USER, the last parameter is always the callback */
 						}
 						/* we are going to the break */
-					} else {
-						/* continue looping */
 					}
 				}
 			}
