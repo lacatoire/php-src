@@ -2213,6 +2213,11 @@ PHP_FUNCTION(getservbyport)
 		Z_PARAM_PATH(proto, proto_len)
 	ZEND_PARSE_PARAMETERS_END();
 
+	if (port < 0 || port > USHRT_MAX) {
+		zend_argument_value_error(1, "must be between 0 and %u", USHRT_MAX);
+		RETURN_THROWS();
+	}
+
 	serv = getservbyport(htons((unsigned short) port), proto);
 
 	if (serv == NULL) {
