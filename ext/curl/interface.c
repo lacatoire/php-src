@@ -2739,7 +2739,7 @@ PHP_FUNCTION(curl_getinfo)
 					{
 						curl_off_t c_off;
 						if (curl_easy_getinfo(ch->cp, option, &c_off) == CURLE_OK) {
-							RETURN_LONG((long) c_off);
+							RETURN_LONG((zend_long) c_off);
 						} else {
 							RETURN_FALSE;
 						}
