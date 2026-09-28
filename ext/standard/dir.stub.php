@@ -62,6 +62,13 @@ const GLOB_NOSORT = UNKNOWN;
  */
 const GLOB_ONLYDIR = UNKNOWN;
 #endif
+#if (defined(PHP_GLOB_LIMIT) && PHP_GLOB_LIMIT != 0)
+/**
+ * @var int
+ * @cvalue PHP_GLOB_LIMIT
+ */
+const GLOB_LIMIT = UNKNOWN;
+#endif
 #ifdef PHP_GLOB_AVAILABLE_FLAGS
 /**
  * @var int

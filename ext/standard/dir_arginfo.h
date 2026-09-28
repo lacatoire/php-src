@@ -1,5 +1,5 @@
 /* This is a generated file, edit dir.stub.php instead.
- * Stub hash: e21d382cd4001001874c49d8c5244efb57613910 */
+ * Stub hash: 603107e10efeecc78093dfa779692c4c2988e4d1 */
 
 #include "zend_constants.h"
 
@@ -46,6 +46,9 @@ static void register_dir_symbols(int module_number)
 #endif
 #if (defined(PHP_GLOB_ONLYDIR) && PHP_GLOB_ONLYDIR != 0)
 	REGISTER_LONG_CONSTANT("GLOB_ONLYDIR", PHP_GLOB_ONLYDIR, CONST_PERSISTENT);
+#endif
+#if (defined(PHP_GLOB_LIMIT) && PHP_GLOB_LIMIT != 0)
+	REGISTER_LONG_CONSTANT("GLOB_LIMIT", PHP_GLOB_LIMIT, CONST_PERSISTENT);
 #endif
 #if defined(PHP_GLOB_AVAILABLE_FLAGS)
 	REGISTER_LONG_CONSTANT("GLOB_AVAILABLE_FLAGS", PHP_GLOB_AVAILABLE_FLAGS, CONST_PERSISTENT);
