@@ -2353,7 +2353,15 @@ PHP_FUNCTION(curl_setopt)
 
 	ch = Z_CURL_P(zid);
 
-	RETURN_BOOL(_php_curl_setopt(ch, options, zvalue, 0) == SUCCESS);
+	if (_php_curl_setopt(ch, options, zvalue, 0) == SUCCESS) {
+		RETURN_TRUE;
+	}
+	/* A rejected option never runs curl_easy_perform(), so it can neither
+	   set nor clear ch->err.str (only libcurl itself writes there, during
+	   a transfer). Clear it here so curl_error() does not keep reporting
+	   the message of an unrelated, earlier curl_exec() failure. */
+	ch->err.str[0] = '\0';
+	RETURN_FALSE;
 }
 /* }}} */
 
@@ -2380,6 +2388,9 @@ PHP_FUNCTION(curl_setopt_array)
 
 		ZVAL_DEREF(entry);
 		if (_php_curl_setopt(ch, (zend_long) option, entry, 1) == FAILURE) {
+			/* See PHP_FUNCTION(curl_setopt): a rejected option must not
+			   leave a stale curl_error() message from an earlier exec. */
+			ch->err.str[0] = '\0';
 			RETURN_FALSE;
 		}
 	} ZEND_HASH_FOREACH_END();
