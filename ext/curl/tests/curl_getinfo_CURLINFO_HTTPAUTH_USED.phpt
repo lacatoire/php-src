@@ -33,7 +33,7 @@ var_dump(isset($info['httpauth_used']));
 var_dump(isset($info['proxyauth_used']));
 var_dump($info['httpauth_used'] === 0);
 var_dump($info['proxyauth_used'] === 0);
-var_dump(curl_getinfo($ch, CURLINFO_HTTPAUTH_USED) === $info['used_proxy']);
+var_dump(curl_getinfo($ch, CURLINFO_HTTPAUTH_USED) === $info['httpauth_used']);
 var_dump(curl_getinfo($ch, CURLINFO_PROXYAUTH_USED) === $info['proxyauth_used']);
 
 echo "httpauth_used set after request\n";
