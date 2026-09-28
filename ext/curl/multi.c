@@ -355,7 +355,18 @@ PHP_FUNCTION(curl_multi_close)
 		_php_curl_verify_handlers(ch, /* reporterror */ true);
 		curl_multi_remove_handle(mh->multi, ch->cp);
 	}
-	zend_llist_clean(&mh->easyh);
+
+	/* Detach the list before freeing its zvals: freeing one can run a
+	 * user __destruct() that reenters curl_multi_add_handle() or
+	 * curl_multi_close() on this same handle, while mh->easyh is still
+	 * mid-teardown (zend_llist_destroy() only resets head/tail/count once
+	 * every element has been freed). Swapping in a fresh, already-usable
+	 * list first means a reentrant add lands safely, and a reentrant
+	 * close simply sees an empty list instead of touching nodes we are
+	 * still freeing. */
+	zend_llist old_easyh = mh->easyh;
+	zend_llist_init(&mh->easyh, old_easyh.size, old_easyh.dtor, old_easyh.persistent);
+	zend_llist_destroy(&old_easyh);
 }
 /* }}} */
 
