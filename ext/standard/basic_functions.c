@@ -2262,6 +2262,11 @@ PHP_FUNCTION(getprotobynumber)
 		Z_PARAM_LONG(proto)
 	ZEND_PARSE_PARAMETERS_END();
 
+	if (ZEND_LONG_EXCEEDS_INT(proto)) {
+		zend_argument_value_error(1, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+
 	ent = getprotobynumber((int)proto);
 
 	if (ent == NULL) {
