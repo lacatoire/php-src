@@ -352,6 +352,15 @@ PHP_FUNCTION(curl_multi_close)
 	for (pz_ch = (zval *)zend_llist_get_first_ex(&mh->easyh, &pos); pz_ch;
 		pz_ch = (zval *)zend_llist_get_next_ex(&mh->easyh, &pos)) {
 		php_curl *ch = Z_CURL_P(pz_ch);
+		if (ch->in_callback) {
+			zend_throw_error(NULL, "%s(): Attempt to close a multi handle from a callback of one of its cURL handles", get_active_function_name());
+			RETURN_THROWS();
+		}
+	}
+
+	for (pz_ch = (zval *)zend_llist_get_first_ex(&mh->easyh, &pos); pz_ch;
+		pz_ch = (zval *)zend_llist_get_next_ex(&mh->easyh, &pos)) {
+		php_curl *ch = Z_CURL_P(pz_ch);
 		_php_curl_verify_handlers(ch, /* reporterror */ true);
 		curl_multi_remove_handle(mh->multi, ch->cp);
 	}
