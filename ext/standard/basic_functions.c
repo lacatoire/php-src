@@ -974,8 +974,16 @@ PHP_FUNCTION(getopt)
 		 * and a trailing NULL */
 		argv = (char **) safe_emalloc(sizeof(char *), (argc + 1), 0);
 
+		/* Bump the refcount of the array being iterated so that a __toString()
+		 * called below (on a Stringable element) can't mutate it in place: any
+		 * write from user code will instead trigger a COW separation, leaving
+		 * this HashTable's storage untouched and stable for the rest of the
+		 * loop. */
+		zend_array *argv_ht = Z_ARRVAL_P(args);
+		GC_ADDREF(argv_ht);
+
 		/* Iterate over the hash to construct the argv array. */
-		ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(args), entry) {
+		ZEND_HASH_FOREACH_VAL(argv_ht, entry) {
 			zend_string *tmp_arg_str;
 			zend_string *arg_str = zval_get_tmp_string(entry, &tmp_arg_str);
 
@@ -983,6 +991,10 @@ PHP_FUNCTION(getopt)
 
 			zend_tmp_string_release(tmp_arg_str);
 		} ZEND_HASH_FOREACH_END();
+
+		if (UNEXPECTED(GC_DELREF(argv_ht) == 0)) {
+			zend_array_destroy(argv_ht);
+		}
 
 		/* The C Standard requires argv[argc] to be NULL - this might
 		 * keep some getopt implementations happy. */
