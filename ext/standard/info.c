@@ -1327,6 +1327,13 @@ PHP_FUNCTION(phpcredits)
 		Z_PARAM_LONG(flag)
 	ZEND_PARSE_PARAMETERS_END();
 
+	/* Keep negative values that fit in int working (-1 historically means "all"),
+	 * but do not let larger values silently wrap around to other flag sets. */
+	if (flag > PHP_CREDITS_ALL || flag < INT_MIN) {
+		zend_argument_value_error(1, "must be between %d and " ZEND_LONG_FMT, INT_MIN, (zend_long) PHP_CREDITS_ALL);
+		RETURN_THROWS();
+	}
+
 	php_print_credits((int)flag);
 	RETURN_TRUE;
 }
