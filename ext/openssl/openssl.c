@@ -4866,7 +4866,7 @@ PHP_FUNCTION(openssl_open)
 	ctx = EVP_CIPHER_CTX_new();
 	if (ctx != NULL && EVP_OpenInit(ctx, cipher, (unsigned char *)ekey, (int)ekey_len, iv_buf, pkey) &&
 			EVP_OpenUpdate(ctx, buf, &len1, (unsigned char *)data, (int)data_len) &&
-			EVP_OpenFinal(ctx, buf + len1, &len2) && (len1 + len2 > 0)) {
+			EVP_OpenFinal(ctx, buf + len1, &len2)) {
 		buf[len1 + len2] = '\0';
 		ZEND_TRY_ASSIGN_REF_NEW_STR(opendata, zend_string_init((char*)buf, len1 + len2, 0));
 		RETVAL_TRUE;
