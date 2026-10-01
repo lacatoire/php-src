@@ -251,7 +251,16 @@ PHP_FUNCTION(pack)
 				i++;
 			}
 			else if (c >= '0' && c <= '9') {
-				arg = atoi(&format[i]);
+				errno = 0;
+				long tmp = strtol(&format[i], NULL, 10);
+				if (errno || tmp > INT_MAX) {
+					efree(formatcodes);
+					efree(formatargs);
+					efree(formatendian);
+					zend_value_error("Type %c: integer overflow in format string", code);
+					RETURN_THROWS();
+				}
+				arg = (int) tmp;
 
 				while (format[i] >= '0' && format[i] <= '9' && i < formatlen) {
 					i++;
