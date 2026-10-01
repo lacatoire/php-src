@@ -2584,11 +2584,12 @@ PHPAPI void php_pcre_split_impl(const pcre_cache_entry *pce, zend_string *subjec
 	last_match_offset = 0;
 	PCRE_G(error_code) = PHP_PCRE_NO_ERROR;
 
-	if (limit_val == -1) {
-		/* pass */
+	if (limit_val < 0) {
+		/* Any negative limit means "no limit", like in the preg_replace() family */
+		limit_val = -1;
 	} else if (limit_val == 0) {
 		limit_val = -1;
-	} else if (limit_val <= 1) {
+	} else if (limit_val == 1) {
 		goto last;
 	}
 
