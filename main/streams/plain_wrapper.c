@@ -1404,6 +1404,38 @@ static int php_plain_files_rename(php_stream_wrapper *wrapper, const char *url_f
 			int oldmask = umask(077);
 # endif
 			int success = 0;
+			zend_stat_t lsb;
+			bool have_times = false;
+			time_t atime_from = 0, mtime_from = 0;
+			/* Taken before the copy, which reads the source and may update its atime. */
+			if (VCWD_LSTAT(url_from, &lsb) == 0) {
+				have_times = true;
+				atime_from = lsb.st_atime;
+				mtime_from = lsb.st_mtime;
+				if (S_ISLNK(lsb.st_mode)) {
+					/* Move the link itself, as rename() does on the same filesystem. */
+					char from_path[MAXPATHLEN], to_path[MAXPATHLEN], link_target[MAXPATHLEN];
+					ssize_t len;
+					if (expand_filepath_with_mode(url_from, from_path, NULL, 0, CWD_EXPAND)
+								&& expand_filepath_with_mode(url_to, to_path, NULL, 0, CWD_EXPAND)
+							&& (len = php_sys_readlink(from_path, link_target, MAXPATHLEN - 1)) > 0) {
+						link_target[len] = '\0';
+						VCWD_UNLINK(url_to);
+						if (php_sys_symlink(link_target, to_path) == 0) {
+							success = 1;
+							VCWD_UNLINK(url_from);
+						}
+					}
+					if (!success) {
+						php_stream_wrapper_warn_nt(wrapper, context, options, CopyFailed,
+								"%s", php_socket_strerror_s(errno, errstr, sizeof(errstr)));
+					}
+#  if !defined(ZTS) && !defined(TSRM_WIN32)
+					umask(oldmask);
+#  endif
+					return success;
+				}
+			}
 			if (php_copy_file(url_from, url_to) == SUCCESS) {
 				if (VCWD_STAT(url_from, &sb) == 0) {
 					success = 1;
@@ -1436,6 +1468,14 @@ static int php_plain_files_rename(php_stream_wrapper *wrapper, const char *url_f
 					}
 #  endif
 					if (success) {
+#  ifdef HAVE_UTIME
+						if (have_times) {
+							struct utimbuf times;
+							times.actime = atime_from;
+							times.modtime = mtime_from;
+							VCWD_UTIME(url_to, &times);
+						}
+#  endif
 						VCWD_UNLINK(url_from);
 					}
 				} else {
