@@ -1082,6 +1082,11 @@ static zend_result set_proc_descriptor_from_array(const HashTable *ht, descripto
 			goto finish;
 		}
 
+		if (Z_LVAL_P(ztarget) < 0 || Z_LVAL_P(ztarget) > INT_MAX) {
+			zend_value_error("Redirection target must be between 0 and %d", INT_MAX);
+			goto finish;
+		}
+
 		retval = redirect_proc_descriptor(
 			&descriptors[ndesc], (int)Z_LVAL_P(ztarget), descriptors, ndesc, nindex);
 	} else if (zend_string_equals(ztype, ZSTR_KNOWN(ZEND_STR_NULL_LOWERCASE))) {
@@ -1303,6 +1308,11 @@ PHP_FUNCTION(proc_open)
 	ZEND_HASH_FOREACH_KEY_VAL(descriptorspec, nindex, str_index, descitem) {
 		if (str_index) {
 			zend_argument_value_error(2, "must be an integer indexed array");
+			goto exit_fail;
+		}
+
+		if (nindex > INT_MAX) {
+			zend_argument_value_error(2, "descriptor keys must be between 0 and %d", INT_MAX);
 			goto exit_fail;
 		}
 
