@@ -352,7 +352,7 @@ restart:
 re2c:yyfill:check = 0;
 LNUM [0-9]+
 DNUM ([0-9]*[.][0-9]+)|([0-9]+[.][0-9]*)
-NUMBER [-]?{LNUM}|{DNUM}
+NUMBER ([-]?{LNUM})|([-]?{DNUM})
 ANY_CHAR (.|[\n\t])
 NEWLINE	("\r"|"\n"|"\r\n")
 TABS_AND_SPACES [ \t]
