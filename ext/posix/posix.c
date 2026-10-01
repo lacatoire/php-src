@@ -113,11 +113,30 @@ ZEND_GET_MODULE(posix)
 	ZEND_PARSE_PARAMETERS_NONE();	\
 	RETURN_LONG(func_name());
 
-#define PHP_POSIX_SINGLE_ARG_FUNC(func_name)	\
+/* Reject values that would be silently truncated when converted to a narrower
+ * uid_t/gid_t/mode_t. Negative values down to the signed range are still
+ * accepted, as (uid_t)-1 is a meaningful "no id" value. */
+static bool php_posix_id_in_range(zend_long val, size_t size)
+{
+	if (size >= sizeof(zend_long)) {
+		return true;
+	}
+	int bits = (int) (size * 8);
+	return val >= -((zend_long) 1 << (bits - 1)) && val < ((zend_long) 1 << bits);
+}
+
+#define PHP_POSIX_CHECK_ID(val, arg, type)	\
+	if (!php_posix_id_in_range(val, sizeof(type))) {	\
+		zend_argument_value_error(arg, "is too large");	\
+		RETURN_THROWS();	\
+	}
+
+#define PHP_POSIX_SINGLE_ARG_FUNC(func_name, type)	\
 	zend_long val;	\
 	ZEND_PARSE_PARAMETERS_START(1, 1) \
 		Z_PARAM_LONG(val) \
 	ZEND_PARSE_PARAMETERS_END(); \
+	PHP_POSIX_CHECK_ID(val, 1, type) \
 	if (func_name(val) < 0) {	\
 		POSIX_G(last_error) = errno;	\
 		RETURN_FALSE;	\
@@ -197,14 +216,14 @@ PHP_FUNCTION(posix_getegid)
 /* {{{ Set user id (POSIX.1, 4.2.2) */
 PHP_FUNCTION(posix_setuid)
 {
-	PHP_POSIX_SINGLE_ARG_FUNC(setuid);
+	PHP_POSIX_SINGLE_ARG_FUNC(setuid, uid_t);
 }
 /* }}} */
 
 /* {{{ Set group id (POSIX.1, 4.2.2) */
 PHP_FUNCTION(posix_setgid)
 {
-	PHP_POSIX_SINGLE_ARG_FUNC(setgid);
+	PHP_POSIX_SINGLE_ARG_FUNC(setgid, gid_t);
 }
 /* }}} */
 
@@ -212,7 +231,7 @@ PHP_FUNCTION(posix_setgid)
 #ifdef HAVE_SETEUID
 PHP_FUNCTION(posix_seteuid)
 {
-	PHP_POSIX_SINGLE_ARG_FUNC(seteuid);
+	PHP_POSIX_SINGLE_ARG_FUNC(seteuid, uid_t);
 }
 #endif
 /* }}} */
@@ -221,7 +240,7 @@ PHP_FUNCTION(posix_seteuid)
 #ifdef HAVE_SETEGID
 PHP_FUNCTION(posix_setegid)
 {
-	PHP_POSIX_SINGLE_ARG_FUNC(setegid);
+	PHP_POSIX_SINGLE_ARG_FUNC(setegid, gid_t);
 }
 #endif
 /* }}} */
@@ -615,6 +634,8 @@ PHP_FUNCTION(posix_mkfifo)
 		Z_PARAM_LONG(mode)
 	ZEND_PARSE_PARAMETERS_END();
 
+	PHP_POSIX_CHECK_ID(mode, 2, mode_t)
+
 	if (php_check_open_basedir_ex(ZSTR_VAL(path), 0)) {
 		RETURN_FALSE;
 	}
@@ -876,6 +897,8 @@ PHP_FUNCTION(posix_getgrgid)
 		Z_PARAM_LONG(gid)
 	ZEND_PARSE_PARAMETERS_END();
 
+	PHP_POSIX_CHECK_ID(gid, 1, gid_t)
+
 #if defined(ZTS) && defined(HAVE_GETGRGID_R) && defined(_SC_GETGR_R_SIZE_MAX)
 
 	grbuflen = sysconf(_SC_GETGR_R_SIZE_MAX);
@@ -1023,6 +1046,8 @@ PHP_FUNCTION(posix_getpwuid)
 	ZEND_PARSE_PARAMETERS_START(1, 1)
 		Z_PARAM_LONG(uid)
 	ZEND_PARSE_PARAMETERS_END();
+
+	PHP_POSIX_CHECK_ID(uid, 1, uid_t)
 
 #if defined(ZTS) && defined(_SC_GETPW_R_SIZE_MAX) && defined(HAVE_GETPWUID_R)
 	pwbuflen = sysconf(_SC_GETPW_R_SIZE_MAX);
