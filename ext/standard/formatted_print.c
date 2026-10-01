@@ -313,7 +313,7 @@ php_sprintf_appenddouble(zend_string **buffer, size_t *pos,
 inline static void
 php_sprintf_append2n(zend_string **buffer, size_t *pos, zend_long number,
 					 size_t width, char padding, size_t alignment, int n,
-					 const char *chartable, int expprec)
+					 const char *chartable)
 {
 	char numbuf[NUM_BUF_SIZE];
 	zend_ulong num;
@@ -336,7 +336,7 @@ php_sprintf_append2n(zend_string **buffer, size_t *pos, zend_long number,
 
 	php_sprintf_appendstring(buffer, pos, &numbuf[i], width, 0,
 							 padding, alignment, (NUM_BUF_SIZE - 1) - i,
-							 /* neg */ false, expprec, 0);
+							 /* neg */ false, /* expprec */ 0, 0);
 }
 /* }}} */
 
@@ -670,28 +670,28 @@ php_formatted_print(char *format, size_t format_len, zval *args, int argc, int n
 					php_sprintf_append2n(&result, &outpos,
 										 zval_get_long(tmp),
 										 width, padding, alignment, 3,
-										 hexchars, expprec);
+										 hexchars);
 					break;
 
 				case 'x':
 					php_sprintf_append2n(&result, &outpos,
 										 zval_get_long(tmp),
 										 width, padding, alignment, 4,
-										 hexchars, expprec);
+										 hexchars);
 					break;
 
 				case 'X':
 					php_sprintf_append2n(&result, &outpos,
 										 zval_get_long(tmp),
 										 width, padding, alignment, 4,
-										 HEXCHARS, expprec);
+										 HEXCHARS);
 					break;
 
 				case 'b':
 					php_sprintf_append2n(&result, &outpos,
 										 zval_get_long(tmp),
 										 width, padding, alignment, 1,
-										 hexchars, expprec);
+										 hexchars);
 					break;
 
 				case '%':
