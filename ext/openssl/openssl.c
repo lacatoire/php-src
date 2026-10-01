@@ -2868,6 +2868,12 @@ PHP_FUNCTION(openssl_pbkdf2)
 		RETURN_FALSE;
 	}
 
+	if (EVP_MD_flags(digest) & EVP_MD_FLAG_XOF) {
+		php_error_docref(NULL, E_WARNING, "Extendable-output digest algorithms are not supported");
+		php_openssl_release_evp_md(digest);
+		RETURN_FALSE;
+	}
+
 	out_buffer = zend_string_alloc(key_length, 0);
 
 	if (PKCS5_PBKDF2_HMAC(password, (int)password_len, (unsigned char *)salt, (int)salt_len, (int)iterations, digest, (int)key_length, (unsigned char*)ZSTR_VAL(out_buffer)) == 1) {
@@ -4952,6 +4958,12 @@ PHP_FUNCTION(openssl_digest)
 	mdtype = php_openssl_get_evp_md_by_name(method);
 	if (!mdtype) {
 		php_error_docref(NULL, E_WARNING, "Unknown digest algorithm");
+		RETURN_FALSE;
+	}
+
+	if (EVP_MD_flags(mdtype) & EVP_MD_FLAG_XOF) {
+		php_error_docref(NULL, E_WARNING, "Extendable-output digest algorithms are not supported");
+		php_openssl_release_evp_md(mdtype);
 		RETURN_FALSE;
 	}
 
