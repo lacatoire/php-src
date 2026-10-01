@@ -126,7 +126,7 @@ ZEND_GET_MODULE(posix)
 
 #define PHP_POSIX_CHECK_PID(pid, arg, lower, upper)										\
 	if (pid < lower || pid > upper) {										\
-		zend_argument_value_error(arg, "must be between " ZEND_LONG_FMT " and " ZEND_LONG_FMT, lower, upper);	\
+		zend_argument_value_error(arg, "must be between " ZEND_LONG_FMT " and " ZEND_LONG_FMT, (zend_long) (lower), (zend_long) (upper));	\
 		RETURN_THROWS();											\
 	}
 
@@ -142,6 +142,8 @@ PHP_FUNCTION(posix_kill)
 	ZEND_PARSE_PARAMETERS_END();
 
 	PHP_POSIX_CHECK_PID(pid, 1, POSIX_PID_MIN, POSIX_PID_MAX)
+
+	PHP_POSIX_CHECK_PID(sig, 2, INT_MIN, INT_MAX)
 
 	if (kill(pid, sig) < 0) {
 		POSIX_G(last_error) = errno;
@@ -326,6 +328,8 @@ PHP_FUNCTION(posix_getpgid)
 	ZEND_PARSE_PARAMETERS_START(1, 1)
 		Z_PARAM_LONG(val)
 	ZEND_PARSE_PARAMETERS_END();
+
+	PHP_POSIX_CHECK_PID(val, 1, POSIX_PID_MIN, POSIX_PID_MAX)
 
 	if ((val = getpgid(val)) < 0) {
 		POSIX_G(last_error) = errno;
@@ -1275,6 +1279,8 @@ PHP_FUNCTION(posix_strerror)
 		Z_PARAM_LONG(error)
 	ZEND_PARSE_PARAMETERS_END();
 
+	PHP_POSIX_CHECK_PID(error, 1, INT_MIN, INT_MAX)
+
 	RETURN_STRING(strerror(error));
 }
 /* }}} */
@@ -1310,6 +1316,8 @@ PHP_FUNCTION(posix_sysconf)
 	ZEND_PARSE_PARAMETERS_START(1, 1)
 		Z_PARAM_LONG(conf_id)
 	ZEND_PARSE_PARAMETERS_END();
+
+	PHP_POSIX_CHECK_PID(conf_id, 1, INT_MIN, INT_MAX)
 
 	RETURN_LONG(sysconf(conf_id));
 }
