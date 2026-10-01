@@ -376,7 +376,7 @@ PHPDBG_COMMAND(exec) /* {{{ */
 	zend_stat_t sb = {0};
 
 	if (VCWD_STAT(param->str, &sb) != FAILURE) {
-		if (sb.st_mode & (S_IFREG|S_IFLNK)) {
+		if (S_ISREG(sb.st_mode)) {
 			char *res = phpdbg_resolve_path(param->str);
 			size_t res_len = strlen(res);
 
