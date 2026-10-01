@@ -1283,6 +1283,12 @@ PHP_FUNCTION(phpinfo)
 		Z_PARAM_LONG(flag)
 	ZEND_PARSE_PARAMETERS_END();
 
+	/* Negative values are accepted for BC (e.g. -1 for all flags). */
+	if (flag < INT_MIN || flag > UINT32_MAX) {
+		zend_argument_value_error(1, "must be between %d and %" PRIu32, INT_MIN, (uint32_t) UINT32_MAX);
+		RETURN_THROWS();
+	}
+
 	/* Andale!  Andale!  Yee-Hah! */
 	php_output_start_default();
 	php_print_info((int)flag);
