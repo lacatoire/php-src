@@ -1334,6 +1334,7 @@ PHP_FUNCTION(posix_pathconf)
 		RETURN_FALSE;
 	}
 
+	errno = 0;
 	ret = pathconf(path, name);
 
 	if (ret < 0 && errno != 0) {
@@ -1374,6 +1375,7 @@ PHP_FUNCTION(posix_fpathconf)
 		RETURN_FALSE;
 	}
 
+	errno = 0;
 	ret = fpathconf(fd, name);
 
 	if (ret < 0 && errno != 0) {
