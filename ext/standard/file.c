@@ -1183,7 +1183,7 @@ PHP_FUNCTION(readfile)
 {
 	char *filename;
 	size_t filename_len;
-	size_t size = 0;
+	ssize_t size = 0;
 	bool use_include_path = 0;
 	zval *zcontext = NULL;
 	php_stream *stream;
@@ -1203,7 +1203,11 @@ PHP_FUNCTION(readfile)
 	if (stream) {
 		size = php_stream_passthru(stream);
 		php_stream_close(stream);
-		RETVAL_LONG(size);
+		if (size < 0) {
+			RETVAL_FALSE;
+		} else {
+			RETVAL_LONG(size);
+		}
 	} else {
 		RETVAL_FALSE;
 	}
@@ -1243,7 +1247,7 @@ PHP_FUNCTION(umask)
 /* {{{ Output all remaining data from a file pointer */
 PHPAPI PHP_FUNCTION(fpassthru)
 {
-	size_t size;
+	ssize_t size;
 	php_stream *stream;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
@@ -1253,7 +1257,8 @@ PHPAPI PHP_FUNCTION(fpassthru)
 	php_stream_error_operation_begin();
 	size = php_stream_passthru(stream);
 	php_stream_error_operation_end_for_stream(stream);
-	RETURN_LONG(size);
+	/* The return type is int, so a failed first read is reported as 0 bytes. */
+	RETURN_LONG(size < 0 ? 0 : size);
 }
 /* }}} */
 
