@@ -1006,7 +1006,7 @@ static zend_result dup_proc_descriptor(php_file_descriptor_t from, php_file_desc
 }
 
 static zend_result redirect_proc_descriptor(descriptorspec_item *desc, int target,
-	const descriptorspec_item *descriptors, int ndesc, int nindex)
+	const descriptorspec_item *descriptors, int ndesc, int nindex, const HashTable *descriptorspec)
 {
 	php_file_descriptor_t redirect_to = PHP_INVALID_FD;
 
@@ -1020,6 +1020,14 @@ static zend_result redirect_proc_descriptor(descriptorspec_item *desc, int targe
 	if (redirect_to == PHP_INVALID_FD) { /* Didn't find the index we wanted */
 		if (target < 0 || target > 2) {
 			php_error_docref(NULL, E_WARNING, "Redirection target %d not found", target);
+			return FAILURE;
+		}
+
+		/* A target declared later in the descriptor spec is not set up yet, so
+		 * falling back to the parent's descriptor would silently be wrong. */
+		if (zend_hash_index_exists(descriptorspec, target)) {
+			php_error_docref(NULL, E_WARNING,
+				"Redirection target %d must be declared before the redirection", target);
 			return FAILURE;
 		}
 
@@ -1042,7 +1050,7 @@ static zend_result redirect_proc_descriptor(descriptorspec_item *desc, int targe
 
 /* Process one item from `$descriptorspec` argument to `proc_open` */
 static zend_result set_proc_descriptor_from_array(const HashTable *ht, descriptorspec_item *descriptors,
-	int ndesc, int nindex, int *pty_master_fd, int *pty_slave_fd) {
+	int ndesc, int nindex, const HashTable *descriptorspec, int *pty_master_fd, int *pty_slave_fd) {
 	zend_string *ztype = get_string_parameter(ht, 0, "handle qualifier");
 	if (!ztype) {
 		return FAILURE;
@@ -1083,7 +1091,7 @@ static zend_result set_proc_descriptor_from_array(const HashTable *ht, descripto
 		}
 
 		retval = redirect_proc_descriptor(
-			&descriptors[ndesc], (int)Z_LVAL_P(ztarget), descriptors, ndesc, nindex);
+			&descriptors[ndesc], (int)Z_LVAL_P(ztarget), descriptors, ndesc, nindex, descriptorspec);
 	} else if (zend_string_equals(ztype, ZSTR_KNOWN(ZEND_STR_NULL_LOWERCASE))) {
 		/* Set descriptor to blackhole (discard all data written) */
 		retval = set_proc_descriptor_to_blackhole(&descriptors[ndesc]);
@@ -1314,7 +1322,7 @@ PHP_FUNCTION(proc_open)
 				goto exit_fail;
 			}
 		} else if (Z_TYPE_P(descitem) == IS_ARRAY) {
-			if (set_proc_descriptor_from_array(Z_ARRVAL_P(descitem), descriptors, ndesc, (int)nindex,
+			if (set_proc_descriptor_from_array(Z_ARRVAL_P(descitem), descriptors, ndesc, (int)nindex, descriptorspec,
 				&pty_master_fd, &pty_slave_fd) == FAILURE) {
 				goto exit_fail;
 			}
