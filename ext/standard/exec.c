@@ -539,8 +539,17 @@ PHP_FUNCTION(proc_nice)
 		Z_PARAM_LONG(pri)
 	ZEND_PARSE_PARAMETERS_END();
 
+	/* nice() takes an int and adds it to the current niceness, so a huge value
+	 * would wrap or overflow. The niceness range is [-20, 19], so any increment
+	 * beyond +/-40 has the same effect as +/-40. */
+	if (pri > 40) {
+		pri = 40;
+	} else if (pri < -40) {
+		pri = -40;
+	}
+
 	errno = 0;
-	php_ignore_value(nice(pri));
+	php_ignore_value(nice((int) pri));
 	if (errno) {
 #ifdef PHP_WIN32
 		char *err = php_win_err();
