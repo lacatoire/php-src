@@ -1126,6 +1126,50 @@ static zend_result set_proc_descriptor_from_resource(zval *resource, descriptors
 }
 
 #ifndef PHP_WIN32
+/* Move an FD above every requested descriptor number */
+static zend_result move_fd_above(php_file_descriptor_t *fd, int minfd)
+{
+	int newfd = fcntl(*fd, F_DUPFD, minfd);
+	if (newfd < 0) {
+		php_error_docref(NULL, E_WARNING, "Unable to duplicate file descriptor %d: %s", *fd, strerror(errno));
+		return FAILURE;
+	}
+	close(*fd);
+	*fd = newfd;
+	return SUCCESS;
+}
+
+/* The child closes parent ends and dup2()s child ends onto the requested numbers in
+ * order. If an FD allocated in the parent has the number requested for another
+ * descriptor, one of these steps would clobber the other, so move such FDs out of the way. */
+static zend_result relocate_colliding_descriptors(descriptorspec_item *descriptors, int ndesc)
+{
+	int minfd = 0;
+	for (int i = 0; i < ndesc; i++) {
+		if (descriptors[i].index >= minfd) {
+			minfd = descriptors[i].index + 1;
+		}
+	}
+
+	for (int i = 0; i < ndesc; i++) {
+		for (int j = 0; j < ndesc; j++) {
+			if (descriptors[i].type != DESCRIPTOR_TYPE_STD && descriptors[i].parentend == descriptors[j].index && i != j) {
+				if (move_fd_above(&descriptors[i].parentend, minfd) == FAILURE) {
+					return FAILURE;
+				}
+				make_descriptor_cloexec(descriptors[i].parentend);
+			}
+			if (descriptors[i].childend == descriptors[j].index && i != j) {
+				if (move_fd_above(&descriptors[i].childend, minfd) == FAILURE) {
+					return FAILURE;
+				}
+			}
+		}
+	}
+
+	return SUCCESS;
+}
+
 #if defined(USE_POSIX_SPAWN)
 static zend_result close_parentends_of_pipes(posix_spawn_file_actions_t * actions, const descriptorspec_item *descriptors, int ndesc)
 {
@@ -1324,6 +1368,12 @@ PHP_FUNCTION(proc_open)
 		}
 		ndesc++;
 	} ZEND_HASH_FOREACH_END();
+
+#ifndef PHP_WIN32
+	if (relocate_colliding_descriptors(descriptors, ndesc) == FAILURE) {
+		goto exit_fail;
+	}
+#endif
 
 #ifdef PHP_WIN32
 	if (cwd == NULL) {
