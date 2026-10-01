@@ -1068,6 +1068,12 @@ try_again:
 
 #define UNLIMITED_STRING "unlimited"
 
+/* rlim_t is unsigned: clamp values above ZEND_LONG_MAX instead of wrapping to negative */
+static zend_long posix_rlimit_to_long(rlim_t value)
+{
+	return value > (rlim_t) ZEND_LONG_MAX ? ZEND_LONG_MAX : (zend_long) value;
+}
+
 /* {{{ posix_addlimit */
 static zend_result posix_addlimit(int limit, const char *name, zval *return_value) {
 	int result;
@@ -1087,13 +1093,13 @@ static zend_result posix_addlimit(int limit, const char *name, zval *return_valu
 	if (rl.rlim_cur == RLIM_INFINITY) {
 		add_assoc_stringl(return_value, soft, UNLIMITED_STRING, sizeof(UNLIMITED_STRING)-1);
 	} else {
-		add_assoc_long(return_value, soft, rl.rlim_cur);
+		add_assoc_long(return_value, soft, posix_rlimit_to_long(rl.rlim_cur));
 	}
 
 	if (rl.rlim_max == RLIM_INFINITY) {
 		add_assoc_stringl(return_value, hard, UNLIMITED_STRING, sizeof(UNLIMITED_STRING)-1);
 	} else {
-		add_assoc_long(return_value, hard, rl.rlim_max);
+		add_assoc_long(return_value, hard, posix_rlimit_to_long(rl.rlim_max));
 	}
 
 	return SUCCESS;
@@ -1189,7 +1195,11 @@ PHP_FUNCTION(posix_getrlimit)
 		}
 	} else {
 		struct rlimit rl;
-		int result = getrlimit(res, &rl);
+		if (res < INT_MIN || res > INT_MAX) {
+			POSIX_G(last_error) = EINVAL;
+			RETURN_FALSE;
+		}
+		int result = getrlimit((int) res, &rl);
 		if (result < 0) {
 			POSIX_G(last_error) = errno;
 			RETURN_FALSE;
@@ -1200,13 +1210,13 @@ PHP_FUNCTION(posix_getrlimit)
 		if (rl.rlim_cur == RLIM_INFINITY) {
 			add_next_index_stringl(return_value, UNLIMITED_STRING, sizeof(UNLIMITED_STRING)-1);
 		} else {
-			add_next_index_long(return_value, rl.rlim_cur);
+			add_next_index_long(return_value, posix_rlimit_to_long(rl.rlim_cur));
 		}
 
 		if (rl.rlim_max == RLIM_INFINITY) {
 			add_next_index_stringl(return_value, UNLIMITED_STRING, sizeof(UNLIMITED_STRING)-1);
 		} else {
-			add_next_index_long(return_value, rl.rlim_max);
+			add_next_index_long(return_value, posix_rlimit_to_long(rl.rlim_max));
 		}
 	}
 }
@@ -1242,10 +1252,15 @@ PHP_FUNCTION(posix_setrlimit)
 		RETURN_THROWS();
 	}
 
+	if (res < INT_MIN || res > INT_MAX) {
+		POSIX_G(last_error) = EINVAL;
+		RETURN_FALSE;
+	}
+
 	rl.rlim_cur = cur;
 	rl.rlim_max = max;
 
-	if (setrlimit(res, &rl) == -1) {
+	if (setrlimit((int) res, &rl) == -1) {
 		POSIX_G(last_error) = errno;
 		RETURN_FALSE;
 	}
