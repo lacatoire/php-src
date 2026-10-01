@@ -195,7 +195,11 @@ PHP_FUNCTION(readline_info)
 					memcpy(rl_line_buffer, Z_STRVAL_P(value), Z_STRLEN_P(value) + 1);
 				}
 #else
-				char *copy = strdup(Z_STRVAL_P(value));
+				/* Copy the full length, strdup() would cut at the first NUL while rl_end keeps the full length. */
+				char *copy = malloc(Z_STRLEN_P(value) + 1);
+				if (copy) {
+					memcpy(copy, Z_STRVAL_P(value), Z_STRLEN_P(value) + 1);
+				}
 				rl_line_buffer = copy;
 				if (php_readline_custom_line_buffer) {
 					free(php_readline_custom_line_buffer);
