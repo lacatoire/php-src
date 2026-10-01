@@ -318,6 +318,11 @@ PHP_FUNCTION(phpdbg_break_file)
 		RETURN_THROWS();
 	}
 
+	if (line < 1) {
+		zend_argument_value_error(2, "must be greater than 0");
+		RETURN_THROWS();
+	}
+
 	phpdbg_set_breakpoint_file(file, 0, line);
 } /* }}} */
 
