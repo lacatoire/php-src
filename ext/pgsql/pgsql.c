@@ -3127,10 +3127,12 @@ PHP_FUNCTION(pg_set_error_verbosity)
 
 	pgsql = link->conn;
 
-	if (verbosity & (PQERRORS_TERSE|PQERRORS_DEFAULT|PQERRORS_VERBOSE|PQERRORS_SQLSTATE)) {
+	if (verbosity == PQERRORS_TERSE || verbosity == PQERRORS_DEFAULT
+	 || verbosity == PQERRORS_VERBOSE || verbosity == PQERRORS_SQLSTATE) {
 		RETURN_LONG(PQsetErrorVerbosity(pgsql, verbosity));
 	} else {
-		RETURN_FALSE;
+		zend_argument_value_error(ZEND_NUM_ARGS() == 1 ? 1 : 2, "must be one of PGSQL_ERRORS_TERSE, PGSQL_ERRORS_DEFAULT, PGSQL_ERRORS_VERBOSE or PGSQL_ERRORS_SQLSTATE");
+		RETURN_THROWS();
 	}
 }
 /* }}} */
@@ -3152,7 +3154,7 @@ PHP_FUNCTION(pg_set_error_context_visibility)
 
 	pgsql = link->conn;
 
-	if (visibility == PQSHOW_CONTEXT_NEVER || visibility & (PQSHOW_CONTEXT_ERRORS|PQSHOW_CONTEXT_ALWAYS)) {
+	if (visibility == PQSHOW_CONTEXT_NEVER || visibility == PQSHOW_CONTEXT_ERRORS || visibility == PQSHOW_CONTEXT_ALWAYS) {
 		RETURN_LONG(PQsetErrorContextVisibility(pgsql, visibility));
 	} else {
 		zend_argument_value_error(2, "must be one of PGSQL_SHOW_CONTEXT_NEVER, PGSQL_SHOW_CONTEXT_ERRORS or PGSQL_SHOW_CONTEXT_ALWAYS");
