@@ -373,6 +373,18 @@ PHP_FUNCTION(readline_list_history)
 /* }}} */
 #endif
 
+/* The library falls back to ~/.history when no file name is given, so that
+ * default path has to go through open_basedir as well. */
+static zend_string *php_readline_default_history_path(void)
+{
+	const char *home = getenv("HOME");
+
+	if (!home || !*home) {
+		return NULL;
+	}
+	return zend_strpprintf(0, "%s/.history", home);
+}
+
 /* {{{ Reads the history */
 PHP_FUNCTION(readline_read_history)
 {
@@ -383,13 +395,28 @@ PHP_FUNCTION(readline_read_history)
 		RETURN_THROWS();
 	}
 
-	if (arg && php_check_open_basedir(arg)) {
-		RETURN_FALSE;
+	if (arg) {
+		if (php_check_open_basedir(arg)) {
+			RETURN_FALSE;
+		}
+		RETURN_BOOL(!read_history(arg));
 	}
 
-	/* XXX from & to NYI  
+	if (PG(open_basedir) && *PG(open_basedir)) {
+		zend_string *path = php_readline_default_history_path();
+		if (!path) {
+			RETURN_FALSE;
+		}
+		if (php_check_open_basedir(ZSTR_VAL(path))) {
+			zend_string_release(path);
+			RETURN_FALSE;
+		}
+		zend_string_release(path);
+	}
+
+	/* XXX from & to NYI
 		If filename is NULL, then read from `~/.history' */
-	RETURN_BOOL(!read_history(arg));
+	RETURN_BOOL(!read_history(NULL));
 }
 
 /* }}} */
@@ -403,11 +430,26 @@ PHP_FUNCTION(readline_write_history)
 		RETURN_THROWS();
 	}
 
-	if (arg && php_check_open_basedir(arg)) {
-		RETURN_FALSE;
+	if (arg) {
+		if (php_check_open_basedir(arg)) {
+			RETURN_FALSE;
+		}
+		RETURN_BOOL(!write_history(arg));
 	}
 
-	RETURN_BOOL(!write_history(arg));
+	if (PG(open_basedir) && *PG(open_basedir)) {
+		zend_string *path = php_readline_default_history_path();
+		if (!path) {
+			RETURN_FALSE;
+		}
+		if (php_check_open_basedir(ZSTR_VAL(path))) {
+			zend_string_release(path);
+			RETURN_FALSE;
+		}
+		zend_string_release(path);
+	}
+
+	RETURN_BOOL(!write_history(NULL));
 }
 
 /* }}} */
