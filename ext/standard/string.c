@@ -1676,8 +1676,8 @@ PHP_FUNCTION(pathinfo)
 
 	if (opt == PHP_PATHINFO_DIRNAME) {
 		char *dirname = estrndup(path, path_len);
-		php_dirname(dirname, path_len);
-		RETVAL_STRING_FAST(dirname);
+		size_t dirname_len = php_dirname(dirname, path_len);
+		RETVAL_STRINGL(dirname, dirname_len);
 		efree(dirname);
 		return;
 	}
@@ -1711,9 +1711,9 @@ PHP_FUNCTION(pathinfo)
 	array_init(return_value);
 
 	char *dirname = estrndup(path, path_len);
-	php_dirname(dirname, path_len);
-	if (*dirname) {
-		add_assoc_string(return_value, "dirname", dirname);
+	size_t dirname_len = php_dirname(dirname, path_len);
+	if (dirname_len) {
+		add_assoc_stringl(return_value, "dirname", dirname, dirname_len);
 	}
 	efree(dirname);
 
