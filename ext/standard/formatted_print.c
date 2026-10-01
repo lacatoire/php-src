@@ -234,18 +234,19 @@ php_sprintf_appenddouble(zend_string **buffer, size_t *pos,
 		precision = MAX_FLOAT_PRECISION;
 	}
 
+	/* Zero padding makes no sense for non-finite values, and would make
+	 * php_sprintf_appendstring() treat the first letter as a sign. */
 	if (zend_isnan(number)) {
-		is_negative = (number<0);
-		php_sprintf_appendstring(buffer, pos, "NaN", 3, 0, padding,
-								 alignment, 3, is_negative, 0, always_sign);
+		php_sprintf_appendstring(buffer, pos, "NaN", width, 0, ' ',
+								 alignment, 3, false, 0, 0);
 		return;
 	}
 
 	if (zend_isinf(number)) {
-		is_negative = (number<0);		
-		char *str = is_negative ? "-INF" : "INF";
-		php_sprintf_appendstring(buffer, pos, str, strlen(str), 0, padding,
-								alignment, strlen(str), is_negative, 0, always_sign);
+		is_negative = (number<0);
+		char *str = is_negative ? "-INF" : (always_sign ? "+INF" : "INF");
+		php_sprintf_appendstring(buffer, pos, str, width, 0, ' ',
+								alignment, strlen(str), false, 0, 0);
 		return;
 	}
 
