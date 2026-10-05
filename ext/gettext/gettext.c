@@ -206,7 +206,7 @@ PHP_FUNCTION(bindtextdomain)
 		RETURN_STRING(btd_result);
 	}
 
-	if (ZSTR_LEN(dir) != 0 && !zend_string_equals_literal(dir, "0")) {
+	if (ZSTR_LEN(dir) != 0) {
 		if (!VCWD_REALPATH(ZSTR_VAL(dir), dir_name)) {
 			RETURN_FALSE;
 		}
