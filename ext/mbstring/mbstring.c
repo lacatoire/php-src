@@ -1869,6 +1869,12 @@ PHP_FUNCTION(mb_strlen)
 		RETURN_THROWS();
 	}
 
+	unsigned int char_len = enc->flag & (MBFL_ENCTYPE_SBCS | MBFL_ENCTYPE_WCS2 | MBFL_ENCTYPE_WCS4);
+	if (char_len) {
+		/* A trailing partial unit counts as one (invalid) character, like in mb_str_split() */
+		RETURN_LONG((ZSTR_LEN(string) + char_len - 1) / char_len);
+	}
+
 	RETVAL_LONG(mb_get_strlen(string, enc));
 }
 /* }}} */
