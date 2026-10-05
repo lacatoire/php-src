@@ -3107,9 +3107,8 @@ static zend_string* trim_each_wchar(zend_string *str, const HashTable *what_ht, 
 		}
 	}
 
-	if (left == 0 && right == 0) {
-		return zend_string_copy(str);
-	}
+	/* Always re-encode, even when nothing is stripped, so that invalid input
+	 * gives the same result as mb_substr() whether or not trimming occurs. */
 	return mb_get_substr(str, left, total_len - (right + left), enc);
 }
 
