@@ -1220,7 +1220,7 @@ PHP_FUNCTION(mb_split)
 		beg = regs->beg[0], end = regs->end[0];
 		/* add it to the array */
 		if ((size_t)(pos - (OnigUChar *)string) < end) {
-			if (beg < string_len && beg >= (size_t)(chunk_pos - (OnigUChar *)string)) {
+			if (beg >= (size_t)(chunk_pos - (OnigUChar *)string)) {
 				add_next_index_stringl(return_value, (char *)chunk_pos, ((OnigUChar *)(string + beg) - chunk_pos));
 				--count;
 			} else {
