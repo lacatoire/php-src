@@ -4311,14 +4311,16 @@ found_ampersand:
 					uint32_t value = 0, *p3 = p + 2;
 					while (p3 < p2) {
 						/* If unsigned integer overflow would occur in the below
-						 * multiplication by 10, this entity is no good
-						 * 0x19999999 is 1/10th of 0xFFFFFFFF */
-						if (value > 0x19999999) {
+						 * multiplication by 10 and addition of the digit,
+						 * this entity is no good */
+						uint32_t digit = *p3 - '0';
+						if (value > (UINT32_MAX - digit) / 10) {
 							memcpy(converted, p, (p2 - p) * 4);
 							converted += p2 - p;
 							goto decimal_entity_too_big;
 						}
-						value = (value * 10) + (*p3++ - '0');
+						value = (value * 10) + digit;
+						p3++;
 					}
 					if (html_numeric_entity_deconvert(value, convmap, conversion_map_size, converted)) {
 						converted++;
