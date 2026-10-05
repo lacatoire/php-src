@@ -1106,10 +1106,12 @@ PHP_FUNCTION(odbc_execute)
 	switch (rc) {
 		case SQL_NEED_DATA: {
 			char buf[4096];
-			int fp, nbytes;
+			SQLPOINTER param_ptr;
+			int nbytes;
 			while (rc == SQL_NEED_DATA) {
-				rc = SQLParamData(result->stmt, (void*)&fp);
+				rc = SQLParamData(result->stmt, &param_ptr);
 				if (rc == SQL_NEED_DATA) {
+					int fp = (int)(intptr_t) param_ptr;
 					while ((nbytes = read(fp, &buf, 4096)) > 0) {
 						SQLPutData(result->stmt, (void*)&buf, nbytes);
 					}
