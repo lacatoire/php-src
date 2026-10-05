@@ -86,15 +86,11 @@ PHP_FUNCTION(md5_file)
 		PHP_MD5Update(&context, buf, n);
 	}
 
-	/* XXX this probably can be improved with some number of retries */
-	if (!php_stream_eof(stream)) {
-		php_stream_close(stream);
-		PHP_MD5Final(digest, &context);
+	php_stream_close(stream);
 
+	if (n < 0) {
 		RETURN_FALSE;
 	}
-
-	php_stream_close(stream);
 
 	PHP_MD5Final(digest, &context);
 

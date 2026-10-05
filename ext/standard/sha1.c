@@ -82,9 +82,13 @@ PHP_FUNCTION(sha1_file)
 		PHP_SHA1Update(&context, buf, n);
 	}
 
-	PHP_SHA1Final(digest, &context);
-
 	php_stream_close(stream);
+
+	if (n < 0) {
+		RETURN_FALSE;
+	}
+
+	PHP_SHA1Final(digest, &context);
 
 	if (raw_output) {
 		RETURN_STRINGL((char *) digest, 20);
