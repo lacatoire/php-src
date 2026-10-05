@@ -139,6 +139,57 @@ static zend_result php_zlib_output_conflict_check(const char *handler_name, size
 }
 /* }}} */
 
+/* Whether the coding is listed in an Accept-Encoding header with a non-zero qvalue. */
+static bool php_zlib_accepts_coding(const char *header, const char *coding, const char *alias)
+{
+	size_t coding_len = strlen(coding);
+	size_t alias_len = alias ? strlen(alias) : 0;
+	const char *p = header;
+
+	while (*p) {
+		const char *end = strchr(p, ',');
+		const char *item = p;
+		const char *item_end = end ? end : p + strlen(p);
+
+		p = end ? end + 1 : item_end;
+
+		while (item < item_end && (*item == ' ' || *item == '\t')) {
+			item++;
+		}
+
+		const char *token_end = item;
+		while (token_end < item_end && *token_end != ';' && *token_end != ' ' && *token_end != '\t') {
+			token_end++;
+		}
+		size_t token_len = token_end - item;
+
+		if (!(token_len == coding_len && strncasecmp(item, coding, coding_len) == 0)
+		 && !(alias && token_len == alias_len && strncasecmp(item, alias, alias_len) == 0)) {
+			continue;
+		}
+
+		/* The coding is refused when its "q=" parameter is zero. */
+		const char *param = token_end;
+		while (param < item_end) {
+			while (param < item_end && (*param == ' ' || *param == '\t' || *param == ';')) {
+				param++;
+			}
+			if (item_end - param >= 2 && (param[0] == 'q' || param[0] == 'Q') && param[1] == '=') {
+				const char *q = param + 2;
+				while (q < item_end && (*q == '0' || *q == '.')) {
+					q++;
+				}
+				return q < item_end && *q >= '1' && *q <= '9';
+			}
+			while (param < item_end && *param != ';') {
+				param++;
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
 /* {{{ php_zlib_output_encoding() */
 static int php_zlib_output_encoding(void)
 {
@@ -148,9 +199,9 @@ static int php_zlib_output_encoding(void)
 		if ((Z_TYPE(PG(http_globals)[TRACK_VARS_SERVER]) == IS_ARRAY || zend_is_auto_global(ZSTR_KNOWN(ZEND_STR_AUTOGLOBAL_SERVER))) &&
 			(enc = zend_hash_str_find(Z_ARRVAL(PG(http_globals)[TRACK_VARS_SERVER]), "HTTP_ACCEPT_ENCODING", sizeof("HTTP_ACCEPT_ENCODING") - 1))) {
 			convert_to_string(enc);
-			if (strstr(Z_STRVAL_P(enc), "gzip")) {
+			if (php_zlib_accepts_coding(Z_STRVAL_P(enc), "gzip", "x-gzip")) {
 				ZLIBG(compression_coding) = PHP_ZLIB_ENCODING_GZIP;
-			} else if (strstr(Z_STRVAL_P(enc), "deflate")) {
+			} else if (php_zlib_accepts_coding(Z_STRVAL_P(enc), "deflate", NULL)) {
 				ZLIBG(compression_coding) = PHP_ZLIB_ENCODING_DEFLATE;
 			}
 		}
