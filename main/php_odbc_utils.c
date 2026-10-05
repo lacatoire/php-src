@@ -40,18 +40,21 @@ PHPAPI bool php_odbc_connstr_is_quoted(const char *str)
 	if (str[0] != '{') {
 		return false;
 	}
-	/* Check for } that aren't doubled up or at the end of the string */
+	/* Look for the closing }, which must be the last character. A } that is
+	 * doubled up is an escaped brace. */
 	size_t length = strlen(str);
-	for (size_t i = 0; i < length; i++) {
-		if (str[i] == '}' && str[i + 1] == '}') {
-			/* Skip over so we don't count it again */
-			i++;
-		} else if (str[i] == '}' && str[i + 1] != '\0') {
-			/* If not at the end, not quoted */
-			return false;
+	for (size_t i = 1; i < length; i++) {
+		if (str[i] == '}') {
+			if (str[i + 1] == '}') {
+				/* Skip over so we don't count it again */
+				i++;
+			} else {
+				return str[i + 1] == '\0';
+			}
 		}
 	}
-	return true;
+	/* No closing brace */
+	return false;
 }
 
 /**
