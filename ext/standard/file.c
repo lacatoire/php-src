@@ -1148,6 +1148,12 @@ PHP_FUNCTION(mkdir)
 		Z_PARAM_RESOURCE_OR_NULL(zcontext)
 	ZEND_PARSE_PARAMETERS_END();
 
+	/* Values outside the 32-bit unsigned range would silently wrap to a different mode. */
+	if (mode < 0 || mode > (zend_long) UINT_MAX) {
+		zend_argument_value_error(2, "must be between 0 and %u", UINT_MAX);
+		RETURN_THROWS();
+	}
+
 	context = php_stream_context_from_zval(zcontext, 0);
 
 	php_stream_error_operation_begin();
