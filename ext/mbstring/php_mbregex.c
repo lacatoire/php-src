@@ -941,7 +941,13 @@ static void _php_mb_regex_ereg_exec(INTERNAL_FUNCTION_PARAMETERS, int icase)
 	regs = onig_region_new();
 
 	/* actually execute the regular expression */
-	if (_php_mb_onig_search(re, (OnigUChar *)string, (OnigUChar *)(string + string_len), (OnigUChar *)string, (OnigUChar *)(string + string_len), regs, 0) < 0) {
+	int err = _php_mb_onig_search(re, (OnigUChar *)string, (OnigUChar *)(string + string_len), (OnigUChar *)string, (OnigUChar *)(string + string_len), regs, 0);
+	if (err < 0) {
+		if (err != ONIG_MISMATCH) {
+			OnigUChar err_str[ONIG_MAX_ERROR_MESSAGE_LEN];
+			onig_error_code_to_str(err_str, err);
+			php_error_docref(NULL, E_WARNING, "mbregex search failure in mbregex_exec(): %s", err_str);
+		}
 		RETVAL_FALSE;
 		goto out;
 	}
@@ -1311,6 +1317,11 @@ PHP_FUNCTION(mb_ereg_match)
 	/* match */
 	err = onig_match_with_param(re, (OnigUChar *)string, (OnigUChar *)(string + string_len), (OnigUChar *)string, NULL, 0, mp);
 	onig_free_match_param(mp);
+	if (err < 0 && err != ONIG_MISMATCH) {
+		OnigUChar err_str[ONIG_MAX_ERROR_MESSAGE_LEN];
+		onig_error_code_to_str(err_str, err);
+		php_error_docref(NULL, E_WARNING, "mbregex match failure in mb_ereg_match(): %s", err_str);
+	}
 	RETURN_BOOL(err >= 0);
 }
 /* }}} */

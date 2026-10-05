@@ -26,9 +26,13 @@ echo 'OK';
 ?>
 --EXPECTF--
 Deprecated: Function mb_ereg() is deprecated since 8.6, because the underlying library is no longer maintained in %s on line %d
+
+Warning: mb_ereg(): mbregex search failure in mbregex_exec(): match-stack limit over in %s on line %d
 bool(false)
 
 Deprecated: Function mb_ereg() is deprecated since 8.6, because the underlying library is no longer maintained in %s on line %d
+
+Warning: mb_ereg(): mbregex search failure in mbregex_exec(): match-stack limit over in %s on line %d
 bool(false)
 
 Deprecated: Function mb_ereg() is deprecated since 8.6, because the underlying library is no longer maintained in %s on line %d
