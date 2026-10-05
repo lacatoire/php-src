@@ -1059,6 +1059,14 @@ static void _php_mb_regex_ereg_replace_exec(INTERNAL_FUNCTION_PARAMETERS, OnigOp
 	}
 
 	if (is_callable) {
+		/* The callback may recompile the same pattern with other options, which
+		 * frees the cached regex. Use a private copy for the duration of the loop. */
+		php_mb_regex_t *private_re = NULL;
+		if (onig_new(&private_re, (OnigUChar *)arg_pattern, (OnigUChar *)(arg_pattern + arg_pattern_len),
+				onig_get_options(re), onig_get_encoding(re), onig_get_syntax(re), NULL) != ONIG_NORMAL) {
+			RETURN_FALSE;
+		}
+		re = private_re;
 		pbuf = &eval_buf;
 		description = zend_make_compiled_string_description("mbregex replace");
 	} else {
@@ -1143,6 +1151,9 @@ static void _php_mb_regex_ereg_replace_exec(INTERNAL_FUNCTION_PARAMETERS, OnigOp
 		onig_region_free(regs, 1);
 	}
 	smart_str_free(&eval_buf);
+	if (is_callable) {
+		onig_free(re);
+	}
 
 	if (err <= -2) {
 		smart_str_free(&out_buf);
