@@ -245,6 +245,12 @@ PHP_FUNCTION(ngettext)
 	msgstr = ngettext(ZSTR_VAL(msgid1), ZSTR_VAL(msgid2), count);
 
 	ZEND_ASSERT(msgstr);
+	/* Without a translation the argument is returned as is; keep it whole if it contains NUL bytes. */
+	if (msgstr == ZSTR_VAL(msgid1)) {
+		RETURN_STR_COPY(msgid1);
+	} else if (msgstr == ZSTR_VAL(msgid2)) {
+		RETURN_STR_COPY(msgid2);
+	}
 	RETURN_STRING(msgstr);
 }
 /* }}} */
@@ -272,6 +278,12 @@ PHP_FUNCTION(dngettext)
 	msgstr = dngettext(ZSTR_VAL(domain), ZSTR_VAL(msgid1), ZSTR_VAL(msgid2), count);
 
 	ZEND_ASSERT(msgstr);
+	/* Without a translation the argument is returned as is; keep it whole if it contains NUL bytes. */
+	if (msgstr == ZSTR_VAL(msgid1)) {
+		RETURN_STR_COPY(msgid1);
+	} else if (msgstr == ZSTR_VAL(msgid2)) {
+		RETURN_STR_COPY(msgid2);
+	}
 	RETURN_STRING(msgstr);
 }
 /* }}} */
@@ -303,6 +315,12 @@ PHP_FUNCTION(dcngettext)
 	msgstr = dcngettext(ZSTR_VAL(domain), ZSTR_VAL(msgid1), ZSTR_VAL(msgid2), count, category);
 
 	ZEND_ASSERT(msgstr);
+	/* Without a translation the argument is returned as is; keep it whole if it contains NUL bytes. */
+	if (msgstr == ZSTR_VAL(msgid1)) {
+		RETURN_STR_COPY(msgid1);
+	} else if (msgstr == ZSTR_VAL(msgid2)) {
+		RETURN_STR_COPY(msgid2);
+	}
 	RETURN_STRING(msgstr);
 }
 /* }}} */
