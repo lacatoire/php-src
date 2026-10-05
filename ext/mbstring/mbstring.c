@@ -1913,6 +1913,22 @@ static size_t pointer_to_offset_utf8(unsigned char *start, unsigned char *pos) {
 	return mb_fast_strlen_utf8(start, pos - start);
 }
 
+/* A byte-wise match in UTF-8 text is only meaningful when it starts on a character boundary,
+ * otherwise an invalid needle can match inside a multibyte character. */
+static bool is_utf8_char_boundary(const unsigned char *start, const unsigned char *pos)
+{
+	if ((*pos & 0xC0) != 0x80) {
+		return true;
+	}
+	for (size_t i = 1; i <= 3 && (size_t) (pos - start) >= i; i++) {
+		unsigned char c = pos[-(ssize_t) i];
+		if ((c & 0xC0) != 0x80) {
+			return mbfl_encoding_utf8.mblen_table[c] <= i;
+		}
+	}
+	return true;
+}
+
 static size_t mb_find_strpos(zend_string *haystack, zend_string *needle, const mbfl_encoding *enc, ssize_t offset, bool reverse)
 {
 	size_t result;
@@ -1939,11 +1955,25 @@ static size_t mb_find_strpos(zend_string *haystack, zend_string *needle, const m
 		goto out;
 	}
 
+	const unsigned char *hay_start = (const unsigned char*)ZSTR_VAL(haystack_u8);
 	const char *found_pos;
 	if (!reverse) {
-		found_pos = zend_memnstr((const char*)offset_pointer, ZSTR_VAL(needle_u8), ZSTR_LEN(needle_u8), ZSTR_VAL(haystack_u8) + ZSTR_LEN(haystack_u8));
+		const char *hay_end = ZSTR_VAL(haystack_u8) + ZSTR_LEN(haystack_u8);
+		found_pos = zend_memnstr((const char*)offset_pointer, ZSTR_VAL(needle_u8), ZSTR_LEN(needle_u8), hay_end);
+		while (found_pos && !is_utf8_char_boundary(hay_start, (const unsigned char*)found_pos)) {
+			found_pos = zend_memnstr(found_pos + 1, ZSTR_VAL(needle_u8), ZSTR_LEN(needle_u8), hay_end);
+		}
 	} else if (offset >= 0) {
-		found_pos = zend_memnrstr((const char*)offset_pointer, ZSTR_VAL(needle_u8), ZSTR_LEN(needle_u8), ZSTR_VAL(haystack_u8) + ZSTR_LEN(haystack_u8));
+		const char *search_end = ZSTR_VAL(haystack_u8) + ZSTR_LEN(haystack_u8);
+		found_pos = zend_memnrstr((const char*)offset_pointer, ZSTR_VAL(needle_u8), ZSTR_LEN(needle_u8), search_end);
+		while (found_pos && !is_utf8_char_boundary(hay_start, (const unsigned char*)found_pos)) {
+			search_end = found_pos + ZSTR_LEN(needle_u8) - 1;
+			if (search_end < (const char*)offset_pointer + ZSTR_LEN(needle_u8)) {
+				found_pos = NULL;
+				break;
+			}
+			found_pos = zend_memnrstr((const char*)offset_pointer, ZSTR_VAL(needle_u8), ZSTR_LEN(needle_u8), search_end);
+		}
 	} else {
 		size_t needle_len = pointer_to_offset_utf8((unsigned char*)ZSTR_VAL(needle_u8), (unsigned char*)ZSTR_VAL(needle_u8) + ZSTR_LEN(needle_u8));
 		offset_pointer = offset_to_pointer_utf8(offset_pointer, (unsigned char*)ZSTR_VAL(haystack_u8) + ZSTR_LEN(haystack_u8), needle_len);
@@ -1951,7 +1981,16 @@ static size_t mb_find_strpos(zend_string *haystack, zend_string *needle, const m
 			offset_pointer = (unsigned char*)ZSTR_VAL(haystack_u8) + ZSTR_LEN(haystack_u8);
 		}
 
-		found_pos = zend_memnrstr(ZSTR_VAL(haystack_u8), ZSTR_VAL(needle_u8), ZSTR_LEN(needle_u8), (const char*)offset_pointer);
+		const char *search_end = (const char*)offset_pointer;
+		found_pos = zend_memnrstr(ZSTR_VAL(haystack_u8), ZSTR_VAL(needle_u8), ZSTR_LEN(needle_u8), search_end);
+		while (found_pos && !is_utf8_char_boundary(hay_start, (const unsigned char*)found_pos)) {
+			search_end = found_pos + ZSTR_LEN(needle_u8) - 1;
+			if (search_end < ZSTR_VAL(haystack_u8) + ZSTR_LEN(needle_u8)) {
+				found_pos = NULL;
+				break;
+			}
+			found_pos = zend_memnrstr(ZSTR_VAL(haystack_u8), ZSTR_VAL(needle_u8), ZSTR_LEN(needle_u8), search_end);
+		}
 	}
 
 	if (found_pos) {
