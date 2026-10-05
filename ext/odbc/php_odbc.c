@@ -1500,9 +1500,9 @@ static void php_odbc_fetch(INTERNAL_FUNCTION_PARAMETERS, bool return_array, php_
 			zend_hash_index_update(Z_ARRVAL_P(pv_res_arr), i, &tmp);
 		} else {
 			if (!*(result->values[i].name) && Z_TYPE(tmp) == IS_STRING) {
-				zend_hash_update(Z_ARRVAL_P(pv_res_arr), Z_STR(tmp), &tmp);
+				zend_symtable_update(Z_ARRVAL_P(pv_res_arr), Z_STR(tmp), &tmp);
 			} else {
-				zend_hash_str_update(Z_ARRVAL_P(pv_res_arr), result->values[i].name, strlen(result->values[i].name), &tmp);
+				zend_symtable_str_update(Z_ARRVAL_P(pv_res_arr), result->values[i].name, strlen(result->values[i].name), &tmp);
 			}
 		}
 	}
