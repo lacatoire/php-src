@@ -801,21 +801,21 @@ static zend_string* mb_cut_utf16be(unsigned char *str, size_t from, size_t len, 
 	if (len < 2 || (end - start) < 2) {
 		return zend_empty_string;
 	}
+	unsigned char *_end = start + len;
+	if (_end > end) {
+		_end = end;
+	}
 	/* Check if 1st codepoint is 2nd part of surrogate pair */
 	if (from > 0) {
 		uint32_t start_cp = (*start << 8) + *(start + 1);
 		if (start_cp >= 0xDC00 && start_cp <= 0xDFFF) {
 			uint32_t preceding_cp = (*(start - 2) << 8) + *(start - 1);
 			if (preceding_cp >= 0xD800 && preceding_cp <= 0xDBFF) {
-				from -= 2;
+				start -= 2;
 			}
 		}
 	}
 	/* Same for ending cut point */
-	unsigned char *_end = start + len;
-	if (_end > end) {
-		_end = end;
-	}
 	uint32_t ending_cp = (*(_end - 2) << 8) + *(_end - 1);
 	if (ending_cp >= 0xD800 && ending_cp <= 0xDBFF) {
 		_end -= 2;
@@ -834,21 +834,21 @@ static zend_string* mb_cut_utf16le(unsigned char *str, size_t from, size_t len, 
 	if (len < 2 || (end - start) < 2) {
 		return zend_empty_string;
 	}
+	unsigned char *_end = start + len;
+	if (_end > end) {
+		_end = end;
+	}
 	/* Check if 1st codepoint is 2nd part of surrogate pair */
 	if (from > 0) {
 		uint32_t start_cp = (*(start + 1) << 8) + *start;
 		if (start_cp >= 0xDC00 && start_cp <= 0xDFFF) {
 			uint32_t preceding_cp = (*(start - 1) << 8) + *(start - 2);
 			if (preceding_cp >= 0xD800 && preceding_cp <= 0xDBFF) {
-				from -= 2;
+				start -= 2;
 			}
 		}
 	}
 	/* Same for ending cut point */
-	unsigned char *_end = start + len;
-	if (_end > end) {
-		_end = end;
-	}
 	uint32_t ending_cp = (*(_end - 1) << 8) + *(_end - 2);
 	if (ending_cp >= 0xD800 && ending_cp <= 0xDBFF) {
 		_end -= 2;
