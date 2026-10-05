@@ -1543,7 +1543,10 @@ PHP_FUNCTION(mb_parse_str)
 
 	detected = _php_mb_encoding_handler_ex(&info, track_vars_array, encstr);
 
-	MBSTRG(http_input_identify) = detected;
+	/* An empty string detects nothing: keep the previously identified encoding. */
+	if (detected) {
+		MBSTRG(http_input_identify) = detected;
+	}
 
 	RETVAL_BOOL(detected);
 
