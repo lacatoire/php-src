@@ -4040,7 +4040,15 @@ static uint32_t *make_conversion_map(HashTable *target_hash, size_t *conversion_
 			zend_argument_value_error(2, "must only be composed of values of type int");
 			return NULL;
 		}
-		*mapelm++ = tmp;
+		/* The offset (3rd element of each group) may be negative, as the
+		 * addition is done modulo 2^32. Other elements are code points or masks. */
+		zend_long min = ((mapelm - convmap) % 4 == 2) ? INT32_MIN : 0;
+		if (tmp < min || tmp > (zend_long) UINT32_MAX) {
+			efree(convmap);
+			zend_argument_value_error(2, "must only be composed of values that fit in an unsigned 32-bit integer");
+			return NULL;
+		}
+		*mapelm++ = (uint32_t) tmp;
 	} ZEND_HASH_FOREACH_END();
 
 	return convmap;
