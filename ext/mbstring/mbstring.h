@@ -97,6 +97,8 @@ ZEND_BEGIN_MODULE_GLOBALS(mbstring)
 	size_t illegalchars;
 	bool outconv_enabled;
 	unsigned int outconv_state;
+	unsigned char outconv_pending[8];
+	size_t outconv_pending_len;
     void *http_output_conv_mimetypes;
 #ifdef HAVE_MBREGEX
     struct _zend_mb_regex_globals *mb_regex_globals;
