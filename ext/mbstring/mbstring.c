@@ -1735,7 +1735,8 @@ PHP_FUNCTION(mb_str_split)
 
 			while (i < out_len) {
 				/* Prepare for the next chunk */
-				mb_convert_buf_init(&buf, split_len, MBSTRG(current_filter_illegal_substchar), MBSTRG(current_filter_illegal_mode));
+				/* Don't size the buffer by the requested chunk length, which can far exceed the input */
+				mb_convert_buf_init(&buf, MIN((size_t) split_len, in_len + (out_len - i)), MBSTRG(current_filter_illegal_substchar), MBSTRG(current_filter_illegal_mode));
 
 				if (out_len - i >= split_len) {
 					enc->from_wchar(wchar_buf + i, split_len, &buf, true);
