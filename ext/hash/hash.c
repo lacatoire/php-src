@@ -1294,7 +1294,7 @@ PHP_FUNCTION(mhash_keygen_s2k)
 	}
 
 	if (l_bytes <= 0) {
-		zend_argument_value_error(4, "must be a greater than 0");
+		zend_argument_value_error(4, "must be greater than 0");
 		RETURN_THROWS();
 	}
 
