@@ -1014,6 +1014,7 @@ ZEND_TSRMLS_CACHE_UPDATE();
 	mbstring_globals->strict_detection = 0;
 	mbstring_globals->outconv_enabled = false;
 	mbstring_globals->outconv_state = 0;
+	mbstring_globals->outconv_pending_len = 0;
 	mbstring_globals->http_output_conv_mimetypes = NULL;
 #ifdef HAVE_MBREGEX
 	mbstring_globals->mb_regex_globals = php_mb_regex_globals_alloc();
@@ -1163,6 +1164,7 @@ PHP_RSHUTDOWN_FUNCTION(mbstring)
 
 	MBSTRG(outconv_enabled) = false;
 	MBSTRG(outconv_state) = 0;
+	MBSTRG(outconv_pending_len) = 0;
 
 	if (MBSTRG(all_encodings_list)) {
 		/* must be *array* release to remove from GC root buffer and free the hashtable itself */
@@ -1620,13 +1622,44 @@ PHP_FUNCTION(mb_output_handler)
 		RETURN_STR_COPY(str);
 	}
 
-	mb_convert_buf buf;
-	mb_convert_buf_init(&buf, ZSTR_LEN(str), MBSTRG(current_filter_illegal_substchar), MBSTRG(current_filter_illegal_mode));
+	bool last_feed = ((arg_status & PHP_OUTPUT_HANDLER_END) != 0);
 
-	uint32_t wchar_buf[128];
+	/* A multibyte character may be split across two calls: prepend the bytes
+	 * kept from the previous call, and keep the incomplete tail of this one. */
+	zend_string *joined = NULL;
+	if (MBSTRG(outconv_pending_len)) {
+		joined = zend_string_alloc(MBSTRG(outconv_pending_len) + ZSTR_LEN(str), false);
+		memcpy(ZSTR_VAL(joined), MBSTRG(outconv_pending), MBSTRG(outconv_pending_len));
+		memcpy(ZSTR_VAL(joined) + MBSTRG(outconv_pending_len), ZSTR_VAL(str), ZSTR_LEN(str));
+		ZSTR_VAL(joined)[ZSTR_LEN(joined)] = '\0';
+		MBSTRG(outconv_pending_len) = 0;
+		str = joined;
+	}
+
 	unsigned char *in = (unsigned char*)ZSTR_VAL(str);
 	size_t in_len = ZSTR_LEN(str);
-	bool last_feed = ((arg_status & PHP_OUTPUT_HANDLER_END) != 0);
+
+	const unsigned char *mbtab = MBSTRG(current_internal_encoding)->mblen_table;
+	if (!last_feed && mbtab && MBSTRG(outconv_state) == 0) {
+		const unsigned char *p = in, *e = in + in_len;
+		while (p < e) {
+			size_t n = mbtab[*p];
+			if (p + n > e) {
+				if (e - p <= sizeof(MBSTRG(outconv_pending))) {
+					MBSTRG(outconv_pending_len) = e - p;
+					memcpy(MBSTRG(outconv_pending), p, e - p);
+					in_len -= e - p;
+				}
+				break;
+			}
+			p += n;
+		}
+	}
+
+	mb_convert_buf buf;
+	mb_convert_buf_init(&buf, in_len, MBSTRG(current_filter_illegal_substchar), MBSTRG(current_filter_illegal_mode));
+
+	uint32_t wchar_buf[128];
 
 	while (in_len) {
 		size_t out_len = MBSTRG(current_internal_encoding)->to_wchar(&in, &in_len, wchar_buf, 128, &MBSTRG(outconv_state));
@@ -1636,10 +1669,14 @@ PHP_FUNCTION(mb_output_handler)
 
 	MBSTRG(illegalchars) += buf.errors;
 	RETVAL_STR(mb_convert_buf_result_raw(&buf));
+	if (joined) {
+		zend_string_release(joined);
+	}
 
 	if (last_feed) {
 		MBSTRG(outconv_enabled) = false;
 		MBSTRG(outconv_state) = 0;
+		MBSTRG(outconv_pending_len) = 0;
 	}
 }
 
