@@ -1233,29 +1233,27 @@ PHP_FUNCTION(mb_language)
 /* {{{ Sets the current internal encoding or Returns the current internal encoding as a string */
 PHP_FUNCTION(mb_internal_encoding)
 {
-	char *name = NULL;
-	size_t name_len;
+	zend_string *name = NULL;
 	const mbfl_encoding *encoding;
 
 	ZEND_PARSE_PARAMETERS_START(0, 1)
 		Z_PARAM_OPTIONAL
-		Z_PARAM_STRING_OR_NULL(name, name_len)
+		Z_PARAM_STR_OR_NULL(name)
 	ZEND_PARSE_PARAMETERS_END();
 
 	if (name == NULL) {
 		ZEND_ASSERT(MBSTRG(current_internal_encoding));
 		RETURN_STRING(MBSTRG(current_internal_encoding)->name);
 	} else {
-		encoding = mbfl_name2encoding(name);
+		/* Goes through php_mb_get_encoding() to emit the deprecation for pseudo-encodings */
+		encoding = php_mb_get_encoding(name, 1);
 		if (!encoding) {
-			zend_argument_value_error(1, "must be a valid encoding, \"%s\" given", name);
 			RETURN_THROWS();
-		} else {
-			MBSTRG(current_internal_encoding) = encoding;
-			MBSTRG(internal_encoding_set) = 1;
-			/* TODO Return old encoding */
-			RETURN_TRUE;
 		}
+		MBSTRG(current_internal_encoding) = encoding;
+		MBSTRG(internal_encoding_set) = 1;
+		/* TODO Return old encoding */
+		RETURN_TRUE;
 	}
 }
 /* }}} */
