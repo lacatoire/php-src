@@ -25,7 +25,7 @@ Stack trace:
 #1 {main}
 
 Deprecated: Function mhash_keygen_s2k() is deprecated since 8.1 in %s on line %d
-ValueError: mhash_keygen_s2k(): Argument #4 ($length) must be a greater than 0 in %s:%d
+ValueError: mhash_keygen_s2k(): Argument #4 ($length) must be greater than 0 in %s:%d
 Stack trace:
 #0 %s(%d): mhash_keygen_s2k(0, Object(SensitiveParameterValue), 'salt', 0)
 #1 {main}
