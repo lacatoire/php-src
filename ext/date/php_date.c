@@ -1210,6 +1210,11 @@ PHPAPI void php_mktime(INTERNAL_FUNCTION_PARAMETERS, bool gmt)
 		now->y = yea;
 	}
 
+	/* Rough estimate of the result, to detect overflows that timelib wraps silently. */
+	double estimate = ((double) now->y - 1970.0) * 31556952.0
+		+ (double) now->m * 2629746.0 + (double) now->d * 86400.0
+		+ (double) now->h * 3600.0 + (double) now->i * 60.0 + (double) now->s;
+
 	/* Update the timestamp */
 	if (gmt) {
 		timelib_update_ts(now, NULL);
@@ -1219,6 +1224,12 @@ PHPAPI void php_mktime(INTERNAL_FUNCTION_PARAMETERS, bool gmt)
 
 	/* Clean up and return */
 	ts = timelib_date_to_int(now, &epoch_does_not_fit_in_zend_long);
+
+	/* timelib_date_to_int() cannot detect the wrap-around on 64-bit. A wrapped
+	 * value is off by a multiple of 2^64, far beyond the error of the estimate. */
+	if (!epoch_does_not_fit_in_zend_long && fabs(estimate - (double) now->sse) > 1e17) {
+		epoch_does_not_fit_in_zend_long = 1;
+	}
 
 	if (epoch_does_not_fit_in_zend_long) {
 		timelib_time_dtor(now);
