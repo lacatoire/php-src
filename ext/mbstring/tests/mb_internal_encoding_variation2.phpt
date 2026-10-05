@@ -255,11 +255,15 @@ string(11) "ISO-8859-15"
 
 -- Iteration 36 --
 string(11) "ISO-8859-15"
+
+Deprecated: mb_internal_encoding(): Handling Base64 via mbstring is deprecated; use base64_encode/base64_decode instead in %s on line %d
 bool(true)
 string(6) "BASE64"
 
 -- Iteration 37 --
 string(6) "BASE64"
+
+Deprecated: mb_internal_encoding(): Handling HTML entities via mbstring is deprecated; use htmlspecialchars, htmlentities, or mb_encode_numericentity/mb_decode_numericentity instead in %s on line %d
 bool(true)
 string(13) "HTML-ENTITIES"
 
