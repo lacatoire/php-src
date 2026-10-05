@@ -792,10 +792,10 @@ static void mb_wchar_to_utf16le_avx2(uint32_t *in, size_t len, mb_convert_buf *b
 
 static zend_string* mb_cut_utf16be(unsigned char *str, size_t from, size_t len, unsigned char *end)
 {
+	from &= ~1;
 	if (len > end - (str + from)) {
 		len = end - (str + from);
 	}
-	from &= ~1;
 	len &= ~1;
 	unsigned char *start = str + from;
 	if (len < 2 || (end - start) < 2) {
@@ -825,10 +825,10 @@ static zend_string* mb_cut_utf16be(unsigned char *str, size_t from, size_t len, 
 
 static zend_string* mb_cut_utf16le(unsigned char *str, size_t from, size_t len, unsigned char *end)
 {
+	from &= ~1;
 	if (len > end - (str + from)) {
 		len = end - (str + from);
 	}
-	from &= ~1;
 	len &= ~1;
 	unsigned char *start = str + from;
 	if (len < 2 || (end - start) < 2) {
