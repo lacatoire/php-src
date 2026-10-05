@@ -1558,7 +1558,7 @@ PHP_FUNCTION(ob_get_status)
 /* {{{ Turn implicit flush on/off and is equivalent to calling flush() after every output call */
 PHP_FUNCTION(ob_implicit_flush)
 {
-	zend_long flag = 1;
+	bool flag = 1;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|b", &flag) == FAILURE) {
 		RETURN_THROWS();
