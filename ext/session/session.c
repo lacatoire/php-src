@@ -2709,9 +2709,13 @@ PHP_FUNCTION(session_start)
 	if (PS(session_status) != php_session_active) {
 		IF_SESSION_VARS() {
 			zval *sess_var = Z_REFVAL(PS(http_session_vars));
-			SEPARATE_ARRAY(sess_var);
-			/* Clean $_SESSION. */
-			zend_hash_clean(Z_ARRVAL_P(sess_var));
+			zval old_vars;
+			/* Clean $_SESSION. The old table is detached before it is destroyed:
+			 * a destructor can call session functions and must not see the table
+			 * being cleaned. */
+			ZVAL_COPY_VALUE(&old_vars, sess_var);
+			array_init(sess_var);
+			zval_ptr_dtor(&old_vars);
 		}
 		RETURN_FALSE;
 	}
