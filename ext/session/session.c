@@ -1808,7 +1808,10 @@ static bool php_session_abort(void)
 
 static bool php_session_reset(void)
 {
-	return PS(session_status) == php_session_active && php_session_initialize() == SUCCESS;
+	return PS(session_status) == php_session_active
+		&& php_session_initialize() == SUCCESS
+		/* A decode failure destroys the session, the initialization still succeeds */
+		&& PS(session_status) == php_session_active;
 }
 
 
