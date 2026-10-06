@@ -2098,32 +2098,47 @@ static inline void set_user_save_handler_ini(void) {
 	zend_string_release_ex(ini_name, false);
 }
 
+/* The old value is destroyed after the slot holds the new one: its destructor
+ * can call session_set_save_handler() again and must not find the value being
+ * destroyed in the slot. */
+static void php_session_replace_user_handler(zval *slot, zval *new_value)
+{
+	zval old_value;
+
+	ZVAL_COPY_VALUE(&old_value, slot);
+	ZVAL_COPY_VALUE(slot, new_value);
+	if (!Z_ISUNDEF(old_value)) {
+		zval_ptr_dtor(&old_value);
+	}
+}
+
 #define SESSION_RELEASE_USER_HANDLER_OO(struct_name) \
 	if (!Z_ISUNDEF(PS(mod_user_names).struct_name)) { \
-		zval_ptr_dtor(&PS(mod_user_names).struct_name); \
+		zval old_handler; \
+		ZVAL_COPY_VALUE(&old_handler, &PS(mod_user_names).struct_name); \
 		ZVAL_UNDEF(&PS(mod_user_names).struct_name); \
+		zval_ptr_dtor(&old_handler); \
 	}
 
 #define SESSION_SET_USER_HANDLER_OO(struct_name, zstr_method_name) \
-	array_init_size(&PS(mod_user_names).struct_name, 2); \
-	Z_ADDREF_P(obj); \
-	add_next_index_zval(&PS(mod_user_names).struct_name, obj); \
-	add_next_index_str(&PS(mod_user_names).struct_name, zstr_method_name);
+	do { \
+		zval new_handler; \
+		array_init_size(&new_handler, 2); \
+		Z_ADDREF_P(obj); \
+		add_next_index_zval(&new_handler, obj); \
+		add_next_index_str(&new_handler, zstr_method_name); \
+		php_session_replace_user_handler(&PS(mod_user_names).struct_name, &new_handler); \
+	} while (0)
 
 #define SESSION_SET_USER_HANDLER_OO_MANDATORY(struct_name, method_name) \
-	if (!Z_ISUNDEF(PS(mod_user_names).struct_name)) { \
-		zval_ptr_dtor(&PS(mod_user_names).struct_name); \
-	} \
-	array_init_size(&PS(mod_user_names).struct_name, 2); \
-	Z_ADDREF_P(obj); \
-	add_next_index_zval(&PS(mod_user_names).struct_name, obj); \
-	add_next_index_str(&PS(mod_user_names).struct_name, zend_string_init(method_name, strlen(method_name), false));
+	SESSION_SET_USER_HANDLER_OO(struct_name, zend_string_init(method_name, strlen(method_name), false))
 
 #define SESSION_SET_USER_HANDLER_PROCEDURAL(struct_name, fci) \
-	if (!Z_ISUNDEF(PS(mod_user_names).struct_name)) { \
-		zval_ptr_dtor(&PS(mod_user_names).struct_name); \
-	} \
-	ZVAL_COPY(&PS(mod_user_names).struct_name, &fci.function_name);
+	do { \
+		zval new_handler; \
+		ZVAL_COPY(&new_handler, &fci.function_name); \
+		php_session_replace_user_handler(&PS(mod_user_names).struct_name, &new_handler); \
+	} while (0)
 
 #define SESSION_SET_USER_HANDLER_PROCEDURAL_OPTIONAL(struct_name, fci) \
 	if (ZEND_FCI_INITIALIZED(fci)) { \
