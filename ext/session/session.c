@@ -82,6 +82,14 @@ zend_class_entry *php_session_update_timestamp_iface_entry;
 #define IF_SESSION_VARS() \
 	if (Z_ISREF_P(&PS(http_session_vars)) && Z_TYPE_P(Z_REFVAL(PS(http_session_vars))) == IS_ARRAY)
 
+/* The handler callbacks run by session_regenerate_id() execute while the id is
+ * not set: the session functions that would use it must not run from them. */
+#define SESSION_CHECK_NOT_REGENERATING(on_failure) \
+	if (UNEXPECTED(PS(in_regenerate))) { \
+		php_error_docref(NULL, E_WARNING, "Session cannot be modified while its ID is being regenerated"); \
+		on_failure; \
+	}
+
 #define SESSION_CHECK_ACTIVE_STATE \
 	if (PS(session_status) == php_session_active) { \
 		php_session_session_already_started_error(E_WARNING, "Session ini settings cannot be changed when a session is active"); \
@@ -114,6 +122,7 @@ static inline void php_rinit_session_globals(void)
 	PS(id) = NULL;
 	PS(session_status) = php_session_none;
 	PS(in_save_handler) = false;
+	PS(in_regenerate) = false;
 	PS(set_handler) = false;
 	PS(mod_data) = NULL;
 	PS(mod_user_is_open) = false;
@@ -2354,6 +2363,8 @@ PHP_FUNCTION(session_id)
 	}
 }
 
+static bool php_session_regenerate_open_new(void);
+
 /* Update the current session id with a newly generated one. If delete_old_session is set to true, remove the old session. */
 PHP_FUNCTION(session_regenerate_id)
 {
@@ -2362,6 +2373,8 @@ PHP_FUNCTION(session_regenerate_id)
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|b", &del_ses) == FAILURE) {
 		RETURN_THROWS();
 	}
+
+	SESSION_CHECK_NOT_REGENERATING(RETURN_FALSE);
 
 	if (PS(session_status) != php_session_active) {
 		php_session_session_already_started_error(E_WARNING, "Session ID cannot be regenerated when there is no active session");
@@ -2404,6 +2417,23 @@ PHP_FUNCTION(session_regenerate_id)
 	}
 	PS(mod)->s_close(&PS(mod_data));
 
+	PS(in_regenerate) = true;
+	const bool opened = php_session_regenerate_open_new();
+	PS(in_regenerate) = false;
+	if (!opened) {
+		RETURN_THROWS();
+	}
+
+	if (PS(use_cookies)) {
+		PS(send_cookie) = true;
+	}
+
+	RETURN_BOOL(php_session_reset_id() == SUCCESS);
+}
+
+/* Opens the handler for the new id. A failure always leaves an exception. */
+static bool php_session_regenerate_open_new(void)
+{
 	/* New session data */
 	if (PS(session_vars)) {
 		zend_string_release_ex(PS(session_vars), false);
@@ -2420,7 +2450,7 @@ PHP_FUNCTION(session_regenerate_id)
 		if (!EG(exception)) {
 			zend_throw_error(NULL, "Failed to open session: %s (path: %pS)", PS(mod)->s_name, PS(save_path));
 		}
-		RETURN_THROWS();
+		return false;
 	}
 
 	PS(id) = PS(mod)->s_create_sid(&PS(mod_data));
@@ -2429,7 +2459,7 @@ PHP_FUNCTION(session_regenerate_id)
 		if (!EG(exception)) {
 			zend_throw_error(NULL, "Failed to create new session ID: %s (path: %pS)", PS(mod)->s_name, PS(save_path));
 		}
-		RETURN_THROWS();
+		return false;
 	}
 	if (PS(use_strict_mode)) {
 		if ((!PS(mod_user_implemented) && PS(mod)->s_validate_sid) || !Z_ISUNDEF(PS(mod_user_names).ps_validate_sid)) {
@@ -2445,7 +2475,7 @@ PHP_FUNCTION(session_regenerate_id)
 					if (!EG(exception)) {
 						zend_throw_error(NULL, "Failed to create session ID by collision: %s (path: %pS)", PS(mod)->s_name, PS(save_path));
 					}
-					RETURN_THROWS();
+					return false;
 				}
 			}
 		}
@@ -2459,17 +2489,13 @@ PHP_FUNCTION(session_regenerate_id)
 		if (!EG(exception)) {
 			zend_throw_error(NULL, "Failed to create(read) session ID: %s (path: %pS)", PS(mod)->s_name, PS(save_path));
 		}
-		RETURN_THROWS();
+		return false;
 	}
 	if (data) {
 		zend_string_release_ex(data, false);
 	}
 
-	if (PS(use_cookies)) {
-		PS(send_cookie) = true;
-	}
-
-	RETURN_BOOL(php_session_reset_id() == SUCCESS);
+	return true;
 }
 
 /* Generate new session ID. Intended for user save handlers. */
@@ -2646,6 +2672,8 @@ PHP_FUNCTION(session_start)
 		RETURN_THROWS();
 	}
 
+	SESSION_CHECK_NOT_REGENERATING(RETURN_FALSE);
+
 	if (PS(session_status) == php_session_active) {
 		php_session_session_already_started_error(E_NOTICE, "Ignoring session_start() because a session is already active");
 		RETURN_TRUE;
@@ -2727,12 +2755,16 @@ PHP_FUNCTION(session_destroy)
 {
 	ZEND_PARSE_PARAMETERS_NONE();
 
+	SESSION_CHECK_NOT_REGENERATING(RETURN_FALSE);
+
 	RETURN_BOOL(php_session_destroy() == SUCCESS);
 }
 
 PHP_FUNCTION(session_unset)
 {
 	ZEND_PARSE_PARAMETERS_NONE();
+
+	SESSION_CHECK_NOT_REGENERATING(RETURN_FALSE);
 
 	if (PS(session_status) != php_session_active) {
 		RETURN_FALSE;
@@ -2771,6 +2803,8 @@ PHP_FUNCTION(session_write_close)
 {
 	ZEND_PARSE_PARAMETERS_NONE();
 
+	SESSION_CHECK_NOT_REGENERATING(RETURN_FALSE);
+
 	RETURN_BOOL(php_session_flush(true));
 }
 
@@ -2779,6 +2813,8 @@ PHP_FUNCTION(session_abort)
 {
 	ZEND_PARSE_PARAMETERS_NONE();
 
+	SESSION_CHECK_NOT_REGENERATING(RETURN_FALSE);
+
 	RETURN_BOOL(php_session_abort());
 }
 
@@ -2786,6 +2822,8 @@ PHP_FUNCTION(session_abort)
 PHP_FUNCTION(session_reset)
 {
 	ZEND_PARSE_PARAMETERS_NONE();
+
+	SESSION_CHECK_NOT_REGENERATING(RETURN_FALSE);
 
 	RETURN_BOOL(php_session_reset());
 }
