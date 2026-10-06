@@ -492,6 +492,15 @@ static zend_result php_session_initialize(void)
 
 	/* GC must be done after read */
 	php_session_gc(false);
+	if (UNEXPECTED(EG(exception))) {
+		/* The data would be decoded without running __unserialize() and
+		 * __wakeup(), and written back at the end of the request. */
+		if (val) {
+			zend_string_release_ex(val, false);
+		}
+		php_session_abort();
+		return FAILURE;
+	}
 
 	if (PS(session_vars)) {
 		zend_string_release_ex(PS(session_vars), false);
