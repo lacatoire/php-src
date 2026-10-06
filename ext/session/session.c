@@ -158,10 +158,11 @@ static inline void php_session_cleanup_filename(void)
 static void php_rshutdown_session_globals(void)
 {
 	/* Do NOT destroy PS(mod_user_names) here! */
-	if (!Z_ISUNDEF(PS(http_session_vars))) {
-		zval_ptr_dtor(&PS(http_session_vars));
-		ZVAL_UNDEF(&PS(http_session_vars));
-	}
+	zval old_vars;
+	/* Released last, once the session is closed: destructors of the objects it
+	 * holds can call session functions. */
+	ZVAL_COPY_VALUE(&old_vars, &PS(http_session_vars));
+	ZVAL_UNDEF(&PS(http_session_vars));
 	if (PS(mod_data) || PS(mod_user_implemented)) {
 		zend_try {
 			PS(mod)->s_close(&PS(mod_data));
@@ -182,6 +183,10 @@ static void php_rshutdown_session_globals(void)
 	/* User save handlers may end up directly here by misuse, bugs in user script, etc. */
 	/* Set session status to prevent error while restoring save handler INI value. */
 	PS(session_status) = php_session_none;
+
+	if (!Z_ISUNDEF(old_vars)) {
+		zval_ptr_dtor(&old_vars);
+	}
 }
 
 PHPAPI zend_result php_session_destroy(void)
@@ -2740,10 +2745,13 @@ PHP_FUNCTION(session_unset)
 
 	IF_SESSION_VARS() {
 		zval *sess_var = Z_REFVAL(PS(http_session_vars));
-		SEPARATE_ARRAY(sess_var);
+		zval old_vars;
 
-		/* Clean $_SESSION. */
-		zend_hash_clean(Z_ARRVAL_P(sess_var));
+		/* Clean $_SESSION. The old table is detached before it is destroyed:
+		 * a destructor can call session functions and must not see it half cleaned. */
+		ZVAL_COPY_VALUE(&old_vars, sess_var);
+		array_init(sess_var);
+		zval_ptr_dtor(&old_vars);
 	}
 	RETURN_TRUE;
 }
