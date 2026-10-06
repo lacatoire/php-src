@@ -1759,9 +1759,10 @@ PHPAPI zend_result php_session_start(void)
 		}
 	}
 
-	/* Finally check session id for dangerous characters
+	/* Finally check session id for dangerous characters, a NUL byte included:
+	 * the characters after it would not be checked.
 	 * Security note: session id may be embedded in HTML pages.*/
-	if (PS(id) && strpbrk(ZSTR_VAL(PS(id)), "\r\n\t <>'\"\\")) {
+	if (PS(id) && (strlen(ZSTR_VAL(PS(id))) != ZSTR_LEN(PS(id)) || strpbrk(ZSTR_VAL(PS(id)), "\r\n\t <>'\"\\"))) {
 		zend_string_release_ex(PS(id), false);
 		PS(id) = NULL;
 	}
