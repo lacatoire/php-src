@@ -2210,14 +2210,17 @@ PHP_FUNCTION(session_set_save_handler)
 				.params = NULL,
 				.param_count = 0,
 			};
+			/* disable_functions removes the function from the table: the session is
+			 * then only written at request shutdown. */
 			zend_function *fn_entry = zend_hash_str_find_ptr(CG(function_table), ZEND_STRL("session_register_shutdown"));
-			ZEND_ASSERT(fn_entry != NULL);
-			shutdown_function_entry.fci_cache.function_handler = fn_entry;
+			if (fn_entry) {
+				shutdown_function_entry.fci_cache.function_handler = fn_entry;
 
-			/* add shutdown function, removing the old one if it exists */
-			if (!register_user_shutdown_function(ZEND_STRL("session_shutdown"), &shutdown_function_entry)) {
-				php_error_docref(NULL, E_WARNING, "Unable to register session shutdown function");
-				RETURN_FALSE;
+				/* add shutdown function, removing the old one if it exists */
+				if (!register_user_shutdown_function(ZEND_STRL("session_shutdown"), &shutdown_function_entry)) {
+					php_error_docref(NULL, E_WARNING, "Unable to register session shutdown function");
+					RETURN_FALSE;
+				}
 			}
 		} else {
 			/* remove shutdown function */
@@ -2815,7 +2818,10 @@ PHP_FUNCTION(session_register_shutdown)
 	 * the session still to be available.
 	 */
 	zend_function *fn_entry = zend_hash_str_find_ptr(CG(function_table), ZEND_STRL("session_write_close"));
-	ZEND_ASSERT(fn_entry != NULL);
+	if (!fn_entry) {
+		/* Removed by disable_functions: the session is written at request shutdown. */
+		return;
+	}
 	shutdown_function_entry.fci_cache.function_handler = fn_entry;
 
 	if (!append_user_shutdown_function(&shutdown_function_entry)) {
