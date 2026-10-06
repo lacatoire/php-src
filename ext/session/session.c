@@ -2668,6 +2668,7 @@ PHP_FUNCTION(session_start)
 				zend_argument_value_error(1, "must be of type array with keys as string");
 				RETURN_THROWS();
 			}
+			ZVAL_DEREF(value);
 			switch (Z_TYPE_P(value)) {
 				case IS_STRING:
 				case IS_TRUE:
