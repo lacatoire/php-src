@@ -1876,12 +1876,21 @@ PHP_FUNCTION(session_set_cookie_params)
 			if (key) {
 				ZVAL_DEREF(value);
 				if (zend_string_equals_literal_ci(key, "lifetime")) {
+					if (lifetime) {
+						zend_string_release(lifetime);
+					}
 					lifetime = zval_get_string(value);
 					found++;
 				} else if (zend_string_equals_literal_ci(key, "path")) {
+					if (path) {
+						zend_string_release(path);
+					}
 					path = zval_get_string(value);
 					found++;
 				} else if (zend_string_equals_literal_ci(key, "domain")) {
+					if (domain) {
+						zend_string_release(domain);
+					}
 					domain = zval_get_string(value);
 					found++;
 				} else if (zend_string_equals_literal_ci(key, "secure")) {
@@ -1897,6 +1906,9 @@ PHP_FUNCTION(session_set_cookie_params)
 					httponly_null = false;
 					found++;
 				} else if (zend_string_equals_literal_ci(key, "samesite")) {
+					if (samesite) {
+						zend_string_release(samesite);
+					}
 					samesite = zval_get_string(value);
 					found++;
 				} else {
