@@ -388,16 +388,7 @@ PS_OPEN_FUNC(files)
 	int filemode = 0600;
 	const char *used_save_path;
 
-	if (ZSTR_LEN(save_path) == 0) {
-		/* if save path is an empty string, determine the temporary dir */
-		used_save_path = php_get_temporary_directory();
-
-		if (php_check_open_basedir(used_save_path)) {
-			return FAILURE;
-		}
-	} else {
-		used_save_path = ZSTR_VAL(save_path);
-	}
+	used_save_path = ZSTR_VAL(save_path);
 
 	/* split up input parameter */
 	last = used_save_path;
@@ -428,6 +419,17 @@ PS_OPEN_FUNC(files)
 		}
 	}
 	used_save_path = argv[argc - 1];
+
+	if (*used_save_path == '\0') {
+		/* if the path is empty (also after an "N;MODE;" prefix), determine the temporary dir */
+		used_save_path = php_get_temporary_directory();
+	}
+
+	/* The ini handler only checks open_basedir when the value is assigned: a
+	 * relative path or a stricter open_basedir set later must be caught here. */
+	if (php_check_open_basedir(used_save_path)) {
+		return FAILURE;
+	}
 
 	data = ecalloc(1, sizeof(*data));
 
