@@ -529,7 +529,11 @@ static void php_session_save_current_state(bool write)
 					return;
 				}
 
-				if (PS(lazy_write) && PS(session_vars)
+				if (UNEXPECTED(EG(exception))) {
+					/* The encoder stopped on the exception: the partial string must not
+					 * replace the stored data. */
+					ret = FAILURE;
+				} else if (PS(lazy_write) && PS(session_vars)
 					&& PS(mod)->s_update_timestamp
 					&& PS(mod)->s_update_timestamp != php_session_update_timestamp
 					&& zend_string_equals(val, PS(session_vars))
@@ -2386,7 +2390,11 @@ PHP_FUNCTION(session_regenerate_id)
 	} else {
 		zend_string *old_session_data = php_session_encode();
 		/* If we have no data we must destroy the related session ID */
-		if (UNEXPECTED(old_session_data == NULL)) {
+		if (UNEXPECTED(old_session_data == NULL || EG(exception))) {
+			/* An exception means the string is partial: it must not replace the stored data */
+			if (old_session_data) {
+				zend_string_release_ex(old_session_data, false);
+			}
 			PS(mod)->s_close(&PS(mod_data));
 			PS(session_status) = php_session_none;
 			RETURN_FALSE;
