@@ -410,6 +410,21 @@ PS_OPEN_FUNC(files)
 	}
 	argv[argc++] = last;
 
+	/* The "N;" and "N;MODE;" prefixes only exist when N is a number: otherwise
+	 * a ';' is part of the path. */
+	if (argc > 1) {
+		const char *digit = argv[0];
+		const char *prefix_end = argv[1] - 1;
+
+		while (digit < prefix_end && *digit >= '0' && *digit <= '9') {
+			digit++;
+		}
+		if (digit == argv[0] || digit != prefix_end) {
+			argc = 1;
+			argv[0] = used_save_path;
+		}
+	}
+
 	if (argc > 1) {
 		errno = 0;
 		dirdepth = (size_t) ZEND_STRTOL(argv[0], NULL, 10);
@@ -420,12 +435,18 @@ PS_OPEN_FUNC(files)
 	}
 
 	if (argc > 2) {
+		char *mode_end;
+		zend_long mode;
+
 		errno = 0;
-		filemode = (int)ZEND_STRTOL(argv[1], NULL, 8);
-		if (errno == ERANGE || filemode < 0 || filemode > 07777) {
+		mode = ZEND_STRTOL(argv[1], &mode_end, 8);
+		/* The mode must be a complete octal number, ZEND_STRTOL() alone turns
+		 * an empty or partly numeric text into 0 or a prefix. */
+		if (errno == ERANGE || mode_end == argv[1] || mode_end != argv[2] - 1 || mode < 0 || mode > 07777) {
 			php_error(E_WARNING, "The second parameter in session.save_path is invalid");
 			return FAILURE;
 		}
+		filemode = (int) mode;
 	}
 	used_save_path = argv[argc - 1];
 
