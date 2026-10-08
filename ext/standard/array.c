@@ -6706,6 +6706,7 @@ static zend_always_inline void php_array_binop(INTERNAL_FUNCTION_PARAMETERS, con
 	if (op == add_function) {
 		zval *entry;
 		ZEND_HASH_FOREACH_VAL(input, entry) {
+			ZVAL_DEREF(entry);
 			if (EXPECTED(Z_TYPE_P(entry) == IS_LONG) && EXPECTED(Z_TYPE_P(return_value) == IS_LONG)) {
 				fast_long_add_function(return_value, return_value, entry);
 				continue;
@@ -6715,6 +6716,7 @@ static zend_always_inline void php_array_binop(INTERNAL_FUNCTION_PARAMETERS, con
 	} else if (op == mul_function) {
 		zval *entry;
 		ZEND_HASH_FOREACH_VAL(input, entry) {
+			ZVAL_DEREF(entry);
 			if (EXPECTED(Z_TYPE_P(entry) == IS_LONG) && EXPECTED(Z_TYPE_P(return_value) == IS_LONG)) {
 				zend_long lval;
 				double dval;
@@ -6732,6 +6734,7 @@ static zend_always_inline void php_array_binop(INTERNAL_FUNCTION_PARAMETERS, con
 	} else {
 		zval *entry;
 		ZEND_HASH_FOREACH_VAL(input, entry) {
+			ZVAL_DEREF(entry);
 			php_array_binop_apply(return_value, entry, op_name, op);
 		} ZEND_HASH_FOREACH_END();
 	}
