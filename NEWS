@@ -2,6 +2,10 @@ PHP                                                                        NEWS
 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 ?? ??? ????, PHP 8.7.0alpha1
 
+- Curl:
+  . curl_multi_exec() now throws a TypeError when still_running is not an int. 
+    (arshidkv12)
+
 - FPM:
   . Use recommended TYPE, HELP order for OpenMetrics metadata.
     (Marcel Hernandez)
@@ -114,6 +118,8 @@ PHP                                                                        NEWS
     elements. (mehmetcansahin)
   . Enforce max_filter_count: limit the number of filters that can be chained
     in a php://filter URL. (Sjoerd Langkemper)
+  . Improved performance of array_chunk() when not preserving keys.
+    (mehmetcansahin)
 
 - URI:
   . Fix casing of enum cases in UriHostType and UrlHostType to match the RFC

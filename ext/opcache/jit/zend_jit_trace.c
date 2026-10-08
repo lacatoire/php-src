@@ -348,6 +348,14 @@ static int zend_jit_trace_may_exit(const zend_op_array *op_array, const zend_op 
 			// TODO: recompilation may change target ???
 			return 0;
 #endif
+		case ZEND_FETCH_OBJ_R:
+			if (opline->op2_type == IS_CONST) {
+				const zend_class_entry *ce = opline->op1_type == IS_UNUSED ? op_array->scope : NULL;
+				if (!ce || !(ce->ce_flags & ZEND_ACC_FINAL) || ce->num_hooked_props > 0) {
+					return 1;
+				}
+			}
+			break;
 		case ZEND_RETURN_BY_REF:
 		case ZEND_RETURN:
 			/* return */
@@ -481,10 +489,12 @@ static void zend_jit_trace_send_type(const zend_op *opline, zend_jit_trace_stack
 		ZEND_ASSERT(arg_num <= op_array->num_args);
 		arg_info = &op_array->arg_info[arg_num-1];
 
-		if (ZEND_TYPE_IS_SET(arg_info->type)) {
-			if (!(ZEND_TYPE_FULL_MASK(arg_info->type) & (1u << type))) {
-				return;
-			}
+		/* Record scalars and object class types, even if there's no "object" type declaration.
+		 * This allows RECV to record and skip object type checks. */
+		if (ZEND_TYPE_IS_SET(arg_info->type)
+		 && !(ZEND_TYPE_FULL_MASK(arg_info->type) & (1u << type))
+		 && !(type == IS_OBJECT && call->func->type == ZEND_USER_FUNCTION)) {
+			return;
 		}
 	}
 	SET_STACK_TYPE(stack, EX_VAR_TO_NUM(opline->result.var), type, 1);
@@ -8882,7 +8892,7 @@ int ZEND_FASTCALL zend_jit_trace_exit(uint32_t exit_num, zend_jit_registers_buf 
 				SHM_UNPROTECT();
 				zend_jit_unprotect();
 
-				((zend_op*)opline)->handler =
+				((zend_op*)(t->opline))->handler =
 					ZEND_OP_TRACE_INFO(t->opline, jit_extension->offset)->orig_handler;
 
 				ZEND_OP_TRACE_INFO(t->opline, jit_extension->offset)->trace_flags &= ~ZEND_JIT_TRACE_JITED;
