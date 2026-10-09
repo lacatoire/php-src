@@ -585,21 +585,28 @@ try_again:
 			break;
 		case IS_ARRAY:
 			tmp = (zend_hash_num_elements(Z_ARRVAL_P(op))?1:0);
-			zval_ptr_dtor(op);
-			ZVAL_LONG(op, tmp);
+			{
+				/* Destroy the old value last: a destructor may reassign the variable. */
+				zval old;
+				ZVAL_COPY_VALUE(&old, op);
+				ZVAL_LONG(op, tmp);
+				zval_ptr_dtor(&old);
+			}
 			break;
 		case IS_OBJECT:
 			{
 				zval dst;
 
 				convert_object_to_type(op, &dst, IS_LONG);
-				zval_ptr_dtor(op);
 
+				zval old;
+				ZVAL_COPY_VALUE(&old, op);
 				if (Z_TYPE(dst) == IS_LONG) {
 					ZVAL_LONG(op, Z_LVAL(dst));
 				} else {
 					ZVAL_LONG(op, 1);
 				}
+				zval_ptr_dtor(&old);
 				return;
 			}
 		case IS_REFERENCE:
@@ -644,21 +651,28 @@ try_again:
 			break;
 		case IS_ARRAY:
 			tmp = (zend_hash_num_elements(Z_ARRVAL_P(op))?1:0);
-			zval_ptr_dtor(op);
-			ZVAL_DOUBLE(op, tmp);
+			{
+				/* Destroy the old value last: a destructor may reassign the variable. */
+				zval old;
+				ZVAL_COPY_VALUE(&old, op);
+				ZVAL_DOUBLE(op, tmp);
+				zval_ptr_dtor(&old);
+			}
 			break;
 		case IS_OBJECT:
 			{
 				zval dst;
 
 				convert_object_to_type(op, &dst, IS_DOUBLE);
-				zval_ptr_dtor(op);
 
+				zval old;
+				ZVAL_COPY_VALUE(&old, op);
 				if (Z_TYPE(dst) == IS_DOUBLE) {
 					ZVAL_DOUBLE(op, Z_DVAL(dst));
 				} else {
 					ZVAL_DOUBLE(op, 1.0);
 				}
+				zval_ptr_dtor(&old);
 				break;
 			}
 		case IS_REFERENCE:
@@ -674,8 +688,11 @@ ZEND_API void ZEND_FASTCALL convert_to_null(zval *op) /* {{{ */
 	if (UNEXPECTED(Z_TYPE_P(op) == IS_DOUBLE && zend_isnan(Z_DVAL_P(op)))) {
 		zend_nan_coerced_to_type_warning(IS_NULL);
 	}
-	zval_ptr_dtor(op);
+	/* Destroy the old value last: a destructor may reassign the variable. */
+	zval old;
+	ZVAL_COPY_VALUE(&old, op);
 	ZVAL_NULL(op);
+	zval_ptr_dtor(&old);
 }
 /* }}} */
 
@@ -726,21 +743,28 @@ try_again:
 			break;
 		case IS_ARRAY:
 			tmp = (zend_hash_num_elements(Z_ARRVAL_P(op))?1:0);
-			zval_ptr_dtor(op);
-			ZVAL_BOOL(op, tmp);
+			{
+				/* Destroy the old value last: a destructor may reassign the variable. */
+				zval old;
+				ZVAL_COPY_VALUE(&old, op);
+				ZVAL_BOOL(op, tmp);
+				zval_ptr_dtor(&old);
+			}
 			break;
 		case IS_OBJECT:
 			{
 				zval dst;
 
 				convert_object_to_type(op, &dst, _IS_BOOL);
-				zval_ptr_dtor(op);
 
+				zval old;
+				ZVAL_COPY_VALUE(&old, op);
 				if (Z_TYPE_INFO(dst) == IS_FALSE || Z_TYPE_INFO(dst) == IS_TRUE) {
-					Z_TYPE_INFO_P(op) = Z_TYPE_INFO(dst);
+					ZVAL_BOOL(op, Z_TYPE_INFO(dst) == IS_TRUE);
 				} else {
 					ZVAL_TRUE(op);
 				}
+				zval_ptr_dtor(&old);
 				break;
 			}
 		case IS_REFERENCE:
@@ -848,8 +872,9 @@ try_again:
 			} else if (ZEND_STD_BUILD_OBJECT_PROPERTIES_ARRAY_COMPATIBLE(op)) {
 				/* Optimized version without rebuilding properties HashTable */
 				HashTable *ht = zend_std_build_object_properties_array(Z_OBJ_P(op));
-				OBJ_RELEASE(Z_OBJ_P(op));
+				zend_object *old = Z_OBJ_P(op);
 				ZVAL_ARR(op, ht);
+				OBJ_RELEASE(old);
 			} else {
 				HashTable *obj_ht = zend_get_properties_for(op, ZEND_PROP_PURPOSE_ARRAY_CAST);
 				if (obj_ht) {
@@ -857,13 +882,17 @@ try_again:
 						(Z_OBJCE_P(op)->default_properties_count ||
 						 Z_OBJ_P(op)->handlers != &std_object_handlers ||
 						 GC_IS_RECURSIVE(obj_ht)));
-					zval_ptr_dtor(op);
+					zval old;
+					ZVAL_COPY_VALUE(&old, op);
 					ZVAL_ARR(op, new_obj_ht);
+					zval_ptr_dtor(&old);
 					zend_release_properties(obj_ht);
 				} else {
-					zval_ptr_dtor(op);
+					zval old;
+					ZVAL_COPY_VALUE(&old, op);
 					/*ZVAL_EMPTY_ARRAY(op);*/
 					array_init(op);
+					zval_ptr_dtor(&old);
 				}
 			}
 			break;
