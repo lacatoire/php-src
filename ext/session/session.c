@@ -2693,6 +2693,10 @@ PHP_FUNCTION(session_start)
 							php_error_docref(NULL, E_WARNING, "Setting option \"%pS\" failed", str_idx);
 						}
 						zend_tmp_string_release(tmp_val);
+						/* An error handler can throw while the option is applied. */
+						if (UNEXPECTED(EG(exception))) {
+							RETURN_THROWS();
+						}
 					}
 					break;
 				default:
