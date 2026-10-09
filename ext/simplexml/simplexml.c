@@ -2203,6 +2203,11 @@ PHP_FUNCTION(simplexml_load_file)
 		RETURN_THROWS();
 	}
 
+	if (ce && (ce->ce_flags & ZEND_ACC_ABSTRACT)) {
+		zend_argument_value_error(2, "must not be an abstract class");
+		RETURN_THROWS();
+	}
+
 	if (ZEND_LONG_EXCEEDS_INT(options)) {
 		zend_argument_value_error(3, "is too large");
 		RETURN_THROWS();
@@ -2246,6 +2251,11 @@ PHP_FUNCTION(simplexml_load_string)
 	bool       isprefix = false;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "s|C!lSb", &data, &data_len, &ce, &options, &ns, &isprefix) == FAILURE) {
+		RETURN_THROWS();
+	}
+
+	if (ce && (ce->ce_flags & ZEND_ACC_ABSTRACT)) {
+		zend_argument_value_error(2, "must not be an abstract class");
 		RETURN_THROWS();
 	}
 
@@ -2568,6 +2578,11 @@ PHP_FUNCTION(simplexml_import_dom)
 	zend_function    *fptr_count;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "o|C!", &node, &ce) == FAILURE) {
+		RETURN_THROWS();
+	}
+
+	if (ce && (ce->ce_flags & ZEND_ACC_ABSTRACT)) {
+		zend_argument_value_error(2, "must not be an abstract class");
 		RETURN_THROWS();
 	}
 
