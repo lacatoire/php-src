@@ -5677,6 +5677,10 @@ static bool php_mb_check_encoding_recursive(HashTable *vars, const mbfl_encoding
 	zval *entry;
 	bool valid = true;
 
+	if (mb_check_stack_limit()) {
+		return false;
+	}
+
 	if (GC_IS_RECURSIVE(vars)) {
 		php_error_docref(NULL, E_WARNING, "Cannot not handle circular references");
 		return false;
