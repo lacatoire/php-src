@@ -1459,7 +1459,11 @@ ZEND_API zend_result zend_eval_stringl_ex(const char *str, size_t str_len, zval 
 
 	result = zend_eval_stringl(str, str_len, retval_ptr, string_name);
 	if (handle_exceptions && EG(exception)) {
-		result = zend_exception_error(EG(exception), E_ERROR);
+		/* Same order as zend_execute_script(): the user handler first, then the fatal error. */
+		zend_try_exception_handler();
+		if (EG(exception)) {
+			result = zend_exception_error(EG(exception), E_ERROR);
+		}
 	}
 	return result;
 }
