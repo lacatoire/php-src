@@ -5837,11 +5837,12 @@ static inline zend_string *php_mb_chr(zend_long cp, zend_string *enc_name, uint3
 		return NULL;
 	}
 
-	if (php_mb_is_no_encoding_utf8(no_enc)) {
-		if (cp > 0xd7ff && 0xe000 > cp) {
-			return NULL;
-		}
+	/* Surrogates are not characters: the UTF-16 and UTF-32 converters would write them out as is. */
+	if (cp > 0xd7ff && 0xe000 > cp) {
+		return NULL;
+	}
 
+	if (php_mb_is_no_encoding_utf8(no_enc)) {
 		if (cp < 0x80) {
 			ret = ZSTR_CHAR(cp);
 		} else if (cp < 0x800) {
