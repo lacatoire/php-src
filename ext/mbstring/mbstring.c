@@ -231,12 +231,31 @@ static const sapi_post_entry mbstr_post_entries[] = {
 };
 /* }}} */
 
+static void php_mb_deprecate_pseudo_encoding(const mbfl_encoding *encoding)
+{
+	if (encoding->no_encoding > mbfl_no_encoding_qprint) {
+		return;
+	}
+
+	if (encoding == &mbfl_encoding_base64) {
+		php_error_docref(NULL, E_DEPRECATED, "Handling Base64 via mbstring is deprecated; use base64_encode/base64_decode instead");
+	} else if (encoding == &mbfl_encoding_qprint) {
+		php_error_docref(NULL, E_DEPRECATED, "Handling QPrint via mbstring is deprecated; use quoted_printable_encode/quoted_printable_decode instead");
+	} else if (encoding == &mbfl_encoding_html_ent) {
+		php_error_docref(NULL, E_DEPRECATED, "Handling HTML entities via mbstring is deprecated; use htmlspecialchars, htmlentities, or mb_encode_numericentity/mb_decode_numericentity instead");
+	} else if (encoding == &mbfl_encoding_uuencode) {
+		php_error_docref(NULL, E_DEPRECATED, "Handling Uuencode via mbstring is deprecated; use convert_uuencode/convert_uudecode instead");
+	}
+}
+
 static const mbfl_encoding *php_mb_get_encoding(zend_string *encoding_name, uint32_t arg_num) {
 	if (encoding_name) {
 		const mbfl_encoding *encoding;
 		zend_string *last_encoding_name = MBSTRG(last_used_encoding_name);
 		if (last_encoding_name && (last_encoding_name == encoding_name
 				|| zend_string_equals_ci(encoding_name, last_encoding_name))) {
+			/* The deprecation is due on every use, not only when the name is first resolved. */
+			php_mb_deprecate_pseudo_encoding(MBSTRG(last_used_encoding));
 			return MBSTRG(last_used_encoding);
 		}
 
@@ -244,17 +263,8 @@ static const mbfl_encoding *php_mb_get_encoding(zend_string *encoding_name, uint
 		if (!encoding) {
 			zend_argument_value_error(arg_num, "must be a valid encoding, \"%s\" given", ZSTR_VAL(encoding_name));
 			return NULL;
-		} else if (encoding->no_encoding <= mbfl_no_encoding_qprint) {
-			if (encoding == &mbfl_encoding_base64) {
-				php_error_docref(NULL, E_DEPRECATED, "Handling Base64 via mbstring is deprecated; use base64_encode/base64_decode instead");
-			} else if (encoding == &mbfl_encoding_qprint) {
-				php_error_docref(NULL, E_DEPRECATED, "Handling QPrint via mbstring is deprecated; use quoted_printable_encode/quoted_printable_decode instead");
-			} else if (encoding == &mbfl_encoding_html_ent) {
-				php_error_docref(NULL, E_DEPRECATED, "Handling HTML entities via mbstring is deprecated; use htmlspecialchars, htmlentities, or mb_encode_numericentity/mb_decode_numericentity instead");
-			} else if (encoding == &mbfl_encoding_uuencode) {
-				php_error_docref(NULL, E_DEPRECATED, "Handling Uuencode via mbstring is deprecated; use convert_uuencode/convert_uudecode instead");
-			}
 		}
+		php_mb_deprecate_pseudo_encoding(encoding);
 
 		if (last_encoding_name) {
 			zend_string_release(last_encoding_name);
