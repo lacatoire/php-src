@@ -336,11 +336,16 @@ PHP_FUNCTION(shm_get_var)
 		RETURN_FALSE;
 	}
 	shm_var = (sysvshm_chunk*) ((char *)shm_list_ptr->ptr + shm_varpos);
-	shm_data = &shm_var->mem;
+
+	/* Unserializing can run user code (autoloader, __wakeup()) that detaches the segment or
+	 * rewrites it, so parse a private copy. */
+	zend_string *copy = zend_string_init(&shm_var->mem, shm_var->length, false);
+	shm_data = ZSTR_VAL(copy);
 
 	PHP_VAR_UNSERIALIZE_INIT(var_hash);
-	int res = php_var_unserialize(return_value, (const unsigned char **) &shm_data, (unsigned char *) shm_data + shm_var->length, &var_hash);
+	int res = php_var_unserialize(return_value, (const unsigned char **) &shm_data, (unsigned char *) shm_data + ZSTR_LEN(copy), &var_hash);
 	PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
+	zend_string_release_ex(copy, false);
 	if (res != 1) {
 		php_error_docref(NULL, E_WARNING, "Variable data in shared memory is corrupted");
 		zval_ptr_dtor(return_value);
