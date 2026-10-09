@@ -1403,10 +1403,14 @@ PHPAPI int php_stream_seek(php_stream *stream, zend_off_t offset, int whence)
 		ret = stream->ops->seek(stream, offset, whence, &stream->position);
 
 		if (((stream->flags & PHP_STREAM_FLAG_NO_SEEK) == 0) || ret == 0) {
-			if (ret == 0) {
-				stream->eof = 0;
-				stream->fatal_error = 0;
+			if (ret != 0) {
+				/* The seek failed and the position did not change, so the buffered data
+				 * is still the data that follows it. */
+				return ret;
 			}
+
+			stream->eof = 0;
+			stream->fatal_error = 0;
 
 			/* invalidate the buffer contents */
 			stream->readpos = stream->writepos = 0;
