@@ -242,6 +242,10 @@ static zend_result php_head_parse_cookie_options_array(HashTable *options, zend_
 			zend_value_error("%s(): option \"%s\" is invalid", get_active_function_name(), ZSTR_VAL(key));
 			return FAILURE;
 		}
+		/* Converting the value can throw, e.g. an object without __toString(). */
+		if (UNEXPECTED(EG(exception))) {
+			return FAILURE;
+		}
 	} ZEND_HASH_FOREACH_END();
 	return SUCCESS;
 }
