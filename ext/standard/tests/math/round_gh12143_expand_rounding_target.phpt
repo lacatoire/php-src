@@ -1,7 +1,7 @@
 --TEST--
 Feature GH-12143: Extend the maximum precision round can handle by one digit
 --INI--
-serialize_precisiion=17
+serialize_precision=-1
 --FILE--
 <?php
 
