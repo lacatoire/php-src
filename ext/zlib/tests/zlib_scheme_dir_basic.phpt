@@ -17,4 +17,6 @@ bool(false)
 
 Warning: opendir(): Failed to open directory: not implemented in %s on line %d
 bool(false)
+
+Warning: rmdir(): ZLIB does not allow removing directories in %s on line %d
 bool(false)
