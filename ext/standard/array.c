@@ -3187,6 +3187,11 @@ PHPAPI bool php_array_data_shuffle(php_random_algo_with_state engine, zval *arra
 				j++;
 			}
 		}
+		/* Hide the stale tail left by the compaction before the engine can throw, as the
+		 * array is destroyed with the values still in it. */
+		hash->nNumUsed = n_elems;
+		hash->nInternalPointer = 0;
+		hash->nNextFreeElement = n_elems;
 		while (--n_left) {
 			rnd_idx = algo->range(state, 0, n_left);
 			if (EG(exception)) {
@@ -3215,6 +3220,9 @@ PHPAPI bool php_array_data_shuffle(php_random_algo_with_state engine, zval *arra
 				j++;
 			}
 		}
+		hash->nNumUsed = n_elems;
+		hash->nInternalPointer = 0;
+		hash->nNextFreeElement = n_elems;
 		while (--n_left) {
 			rnd_idx = algo->range(state, 0, n_left);
 			if (EG(exception)) {
@@ -3228,9 +3236,6 @@ PHPAPI bool php_array_data_shuffle(php_random_algo_with_state engine, zval *arra
 			}
 		}
 	}
-	hash->nNumUsed = n_elems;
-	hash->nInternalPointer = 0;
-	hash->nNextFreeElement = n_elems;
 
 	return true;
 }
