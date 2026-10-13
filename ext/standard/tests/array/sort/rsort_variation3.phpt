@@ -1,9 +1,5 @@
 --TEST--
 Test rsort() function : usage variations - numeric values
---SKIPIF--
-<?php
-if (PHP_INT_SIZE != 4) die("skip this test is for 32bit platform only");
-?>
 --FILE--
 <?php
 /*
@@ -54,7 +50,7 @@ foreach ($various_arrays as $array) {
 
 echo "Done";
 ?>
---EXPECT--
+--EXPECTF--
 *** Testing rsort() : variation ***
 
 -- Iteration 1 --
@@ -266,7 +262,7 @@ array(11) {
 bool(true)
 array(7) {
   [0]=>
-  float(2147483648)
+  %s(2147483648)
   [1]=>
   int(2147483647)
   [2]=>
@@ -276,15 +272,15 @@ array(7) {
   [4]=>
   int(-2147483647)
   [5]=>
-  float(-2147483648)
+  %s(-2147483648)
   [6]=>
-  float(-2147483649)
+  %s(-2147483649)
 }
 - Sort flag = SORT_REGULAR -
 bool(true)
 array(7) {
   [0]=>
-  float(2147483648)
+  %s(2147483648)
   [1]=>
   int(2147483647)
   [2]=>
@@ -294,15 +290,15 @@ array(7) {
   [4]=>
   int(-2147483647)
   [5]=>
-  float(-2147483648)
+  %s(-2147483648)
   [6]=>
-  float(-2147483649)
+  %s(-2147483649)
 }
 - Sort flag = SORT_NUMERIC -
 bool(true)
 array(7) {
   [0]=>
-  float(2147483648)
+  %s(2147483648)
   [1]=>
   int(2147483647)
   [2]=>
@@ -312,8 +308,8 @@ array(7) {
   [4]=>
   int(-2147483647)
   [5]=>
-  float(-2147483648)
+  %s(-2147483648)
   [6]=>
-  float(-2147483649)
+  %s(-2147483649)
 }
 Done
