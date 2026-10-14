@@ -241,6 +241,7 @@ static zend_function *curl_get_constructor(zend_object *object);
 static zend_object *curl_clone_obj(zend_object *object);
 php_curl *init_curl_handle_into_zval(zval *curl);
 static inline zend_result build_mime_structure_from_hash(php_curl *ch, zval *zpostfields);
+static void curl_mime_cb_arg_addref(void **cb_arg_p);
 
 struct php_curl_feature {
 	const char *name;
@@ -435,6 +436,16 @@ static zend_object *curl_clone_obj(zend_object *object) {
 		zend_throw_exception(NULL, "Failed to clone CurlHandle", 0);
 		return &clone_ch->std;
 	}
+
+	/* curl_easy_duphandle() does not deep copy a CURLOPT_MIMEPOST mime
+	   structure that references CURLFile data: the duplicated handle's
+	   mime part shares its read/seek/free callback argument with the
+	   original's still-active part (see mime_data_cb_arg). The mime
+	   rebuild below replaces (and so frees) whatever mimepost duphandle
+	   just attached to the clone, which would otherwise close the
+	   original's stream out from under it. Account for that extra,
+	   invisible reference before anything can free it. */
+	zend_llist_apply(&ch->to_free->stream, (llist_apply_func_t) curl_mime_cb_arg_addref);
 
 	init_curl_handle(clone_ch);
 	clone_ch->cp = cp;
@@ -1037,7 +1048,25 @@ static void curl_free_post(void **post)
 struct mime_data_cb_arg {
 	zend_string *filename;
 	php_stream *stream;
+	/* curl_easy_duphandle() does not deep copy a CURLOPT_MIMEPOST mime
+	   structure: the duplicated handle's mime part ends up invoking the
+	   same read/seek/free callbacks with this same arg as the original's
+	   still-active part. Any curl_easy_setopt(CURLOPT_MIMEPOST, ...) that
+	   later replaces either handle's mimepost frees the one it replaces,
+	   which would call free_cb() on this shared arg and close the stream
+	   out from under whichever handle is still using it. Refcount it so
+	   the stream is only closed once nothing references it anymore. */
+	uint32_t refcount;
 };
+
+/* {{{ curl_mime_cb_arg_addref */
+static void curl_mime_cb_arg_addref(void **cb_arg_p)
+{
+	struct mime_data_cb_arg *cb_arg = (struct mime_data_cb_arg *) *cb_arg_p;
+
+	cb_arg->refcount++;
+}
+/* }}} */
 
 /* {{{ curl_free_cb_arg */
 static void curl_free_cb_arg(void **cb_arg_p)
@@ -1382,6 +1411,9 @@ static void free_cb(void *arg) /* {{{ */
 {
 	struct mime_data_cb_arg *cb_arg = (struct mime_data_cb_arg *) arg;
 
+	if (--cb_arg->refcount > 0) {
+		return;
+	}
 	if (cb_arg->stream != NULL) {
 		php_stream_close(cb_arg->stream);
 		cb_arg->stream = NULL;
@@ -1496,6 +1528,7 @@ static inline zend_result build_mime_structure_from_hash(php_curl *ch, zval *zpo
 				cb_arg = emalloc(sizeof *cb_arg);
 				cb_arg->filename = zend_string_copy(postval);
 				cb_arg->stream = stream;
+				cb_arg->refcount = 1;
 
 				if ((form_error = curl_mime_name(part, ZSTR_VAL(string_key))) != CURLE_OK
 					|| (form_error = curl_mime_data_cb(part, filesize, read_cb, seekfunc, free_cb, cb_arg)) != CURLE_OK
