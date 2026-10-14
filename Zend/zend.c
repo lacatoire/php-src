@@ -1447,6 +1447,7 @@ ZEND_API ZEND_COLD void zend_error_zstr_at(
 	zval params[4];
 	zval retval;
 	zval orig_user_error_handler;
+	int orig_handlers_count;
 	bool in_compilation;
 	zend_class_entry *saved_class_entry = NULL;
 	zend_stack loop_var_stack;
@@ -1564,6 +1565,7 @@ ZEND_API ZEND_COLD void zend_error_zstr_at(
 
 			ZVAL_COPY_VALUE(&orig_user_error_handler, &EG(user_error_handler));
 			ZVAL_UNDEF(&EG(user_error_handler));
+			orig_handlers_count = zend_stack_count(&EG(user_error_handlers));
 
 			/* User error handler may include() additional PHP files.
 			 * If an error was generated during compilation PHP will compile
@@ -1612,7 +1614,10 @@ ZEND_API ZEND_COLD void zend_error_zstr_at(
 			zval_ptr_dtor(&params[2]);
 			zval_ptr_dtor(&params[1]);
 
-			if (Z_TYPE(EG(user_error_handler)) == IS_UNDEF) {
+			/* The handler slot is UNDEF while the handler runs. If the stack shrank,
+			 * restore_error_handler() removed the running handler, so do not reinstall it. */
+			if (Z_TYPE(EG(user_error_handler)) == IS_UNDEF
+				&& zend_stack_count(&EG(user_error_handlers)) >= orig_handlers_count) {
 				ZVAL_COPY_VALUE(&EG(user_error_handler), &orig_user_error_handler);
 			} else {
 				zval_ptr_dtor(&orig_user_error_handler);
