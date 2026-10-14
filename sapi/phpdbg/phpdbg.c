@@ -254,7 +254,7 @@ PHP_FUNCTION(phpdbg_exec)
 {
 	zend_string *exec;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "S", &exec) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "P", &exec) == FAILURE) {
 		RETURN_THROWS();
 	}
 
@@ -263,7 +263,7 @@ PHP_FUNCTION(phpdbg_exec)
 		bool result = 1;
 
 		if (VCWD_STAT(ZSTR_VAL(exec), &sb) != FAILURE) {
-			if (sb.st_mode & (S_IFREG|S_IFLNK)) {
+			if (S_ISREG(sb.st_mode)) {
 				if (PHPDBG_G(exec)) {
 					ZVAL_STRINGL(return_value, PHPDBG_G(exec), PHPDBG_G(exec_len));
 					free(PHPDBG_G(exec));

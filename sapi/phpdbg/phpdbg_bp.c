@@ -282,7 +282,7 @@ PHPDBG_API void phpdbg_set_breakpoint_file(const char *path, size_t path_len, ze
 			path = original_path;
 			path_len = strlen(path);
 			pending = 1;
-		} else if (!(ssb.sb.st_mode & (S_IFREG|S_IFLNK))) {
+		} else if (!S_ISREG(ssb.sb.st_mode)) {
 			phpdbg_error("Cannot set breakpoint in %s, it is not a regular file", path);
 			return;
 		} else {
