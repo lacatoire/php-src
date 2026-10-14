@@ -652,7 +652,7 @@ PHP_FUNCTION(posix_mknod)
 		RETURN_FALSE;
 	}
 
-	if ((mode & S_IFCHR) || (mode & S_IFBLK)) {
+	if ((mode & S_IFMT) == S_IFCHR || (mode & S_IFMT) == S_IFBLK) {
 		if (major == 0) {
 			zend_argument_value_error(3, "cannot be 0 for the POSIX_S_IFCHR and POSIX_S_IFBLK modes");
 			RETURN_THROWS();
