@@ -135,6 +135,12 @@ typedef struct {
 static void user_shutdown_function_dtor(zval *zv);
 static void user_tick_function_dtor(user_tick_function_entry *tick_function_entry);
 
+#if defined(ZTS) && (defined(HAVE_GETPROTOBYNAME) || defined(HAVE_GETPROTOBYNUMBER))
+/* getprotobyname()/getprotobynumber() return a pointer into process-wide
+ * static storage and are not reentrant; no portable *_r variant exists. */
+static MUTEX_T proto_ent_mutex = NULL;
+#endif
+
 static const zend_module_dep standard_deps[] = { /* {{{ */
 	ZEND_MOD_REQUIRED("random")
 	ZEND_MOD_REQUIRED("uri")
@@ -310,6 +316,10 @@ PHP_MINIT_FUNCTION(basic) /* {{{ */
 	BASIC_MINIT_SUBMODULE(localeconv)
 #endif
 
+#if defined(ZTS) && (defined(HAVE_GETPROTOBYNAME) || defined(HAVE_GETPROTOBYNUMBER))
+	proto_ent_mutex = tsrm_mutex_alloc();
+#endif
+
 #ifdef ZEND_INTRIN_SSE4_2_FUNC_PTR
 	BASIC_MINIT_SUBMODULE(string_intrin)
 #endif
@@ -377,6 +387,12 @@ PHP_MSHUTDOWN_FUNCTION(basic) /* {{{ */
 #ifdef ZTS
 	BASIC_MSHUTDOWN_SUBMODULE(localeconv)
 #endif
+
+#if defined(ZTS) && (defined(HAVE_GETPROTOBYNAME) || defined(HAVE_GETPROTOBYNUMBER))
+	tsrm_mutex_free(proto_ent_mutex);
+	proto_ent_mutex = NULL;
+#endif
+
 	BASIC_MSHUTDOWN_SUBMODULE(crypt)
 	BASIC_MSHUTDOWN_SUBMODULE(password)
 	BASIC_MSHUTDOWN_SUBMODULE(image)
@@ -2235,18 +2251,30 @@ PHP_FUNCTION(getprotobyname)
 	char *name;
 	size_t name_len;
 	struct protoent *ent;
+	zend_long p_proto;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
 		Z_PARAM_PATH(name, name_len)
 	ZEND_PARSE_PARAMETERS_END();
 
-	ent = getprotobyname(name);
+#ifdef ZTS
+	tsrm_mutex_lock(proto_ent_mutex);
+#endif
 
+	ent = getprotobyname(name);
 	if (ent == NULL) {
+#ifdef ZTS
+		tsrm_mutex_unlock(proto_ent_mutex);
+#endif
 		RETURN_FALSE;
 	}
+	p_proto = ent->p_proto;
 
-	RETURN_LONG(ent->p_proto);
+#ifdef ZTS
+	tsrm_mutex_unlock(proto_ent_mutex);
+#endif
+
+	RETURN_LONG(p_proto);
 }
 /* }}} */
 #endif
@@ -2257,18 +2285,30 @@ PHP_FUNCTION(getprotobynumber)
 {
 	zend_long proto;
 	struct protoent *ent;
+	zend_string *p_name;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
 		Z_PARAM_LONG(proto)
 	ZEND_PARSE_PARAMETERS_END();
 
-	ent = getprotobynumber((int)proto);
+#ifdef ZTS
+	tsrm_mutex_lock(proto_ent_mutex);
+#endif
 
+	ent = getprotobynumber((int)proto);
 	if (ent == NULL) {
+#ifdef ZTS
+		tsrm_mutex_unlock(proto_ent_mutex);
+#endif
 		RETURN_FALSE;
 	}
+	p_name = zend_string_init(ent->p_name, strlen(ent->p_name), 0);
 
-	RETURN_STRING(ent->p_name);
+#ifdef ZTS
+	tsrm_mutex_unlock(proto_ent_mutex);
+#endif
+
+	RETURN_STR(p_name);
 }
 /* }}} */
 #endif
