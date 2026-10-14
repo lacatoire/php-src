@@ -3847,6 +3847,10 @@ static bool mb_recursive_convert_variable(uint32_t arg_num, zval *var, const mbf
 			if (UNEXPECTED(EG(exception))) {
 				return true;
 			}
+			/* Enum cases are shared immutable singletons. */
+			if (Z_OBJCE_P(var)->ce_flags & ZEND_ACC_ENUM) {
+				return false;
+			}
 		}
 		HashTable *ht = HASH_OF(var);
 		HashTable *orig_ht = ht;
@@ -3876,6 +3880,11 @@ static bool mb_recursive_convert_variable(uint32_t arg_num, zval *var, const mbf
 					ZEND_ASSERT(Z_TYPE_P(var) == IS_OBJECT);
 
 					entry = Z_INDIRECT_P(entry);
+					/* Readonly properties cannot be modified. */
+					zend_property_info *prop_info = zend_get_property_info_for_slot(Z_OBJ_P(var), entry);
+					if (prop_info && (prop_info->flags & ZEND_ACC_READONLY)) {
+						continue;
+					}
 					if (Z_ISREF_P(entry) && Z_TYPE_P(Z_REFVAL_P(entry)) == IS_STRING) {
 						zend_property_info *info = zend_get_typed_property_info_for_slot(Z_OBJ_P(var), entry);
 						if (info) {
