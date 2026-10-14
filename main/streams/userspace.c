@@ -1095,6 +1095,9 @@ static int user_wrapper_unlink(php_stream_wrapper *wrapper, const char *url, int
 	zval args[1];
 	int ret = 0;
 
+	/* The constructor or destructor can unregister the wrapper, which frees uwrap. */
+	zend_string *class_name = uwrap->ce->name;
+
 	/* create an instance of our class */
 	zend_object *object = user_stream_create_object(uwrap, context);
 	if (object == NULL) {
@@ -1113,7 +1116,7 @@ static int user_wrapper_unlink(php_stream_wrapper *wrapper, const char *url, int
 
 	if (UNEXPECTED(call_result == FAILURE)) {
 		php_stream_wrapper_warn(wrapper, context, REPORT_ERRORS, NotImplemented,
-				"%s::" USERSTREAM_UNLINK " is not implemented!", ZSTR_VAL(uwrap->ce->name));
+				"%s::" USERSTREAM_UNLINK " is not implemented!", ZSTR_VAL(class_name));
 	} else if (Z_TYPE(zretval) == IS_FALSE || Z_TYPE(zretval) == IS_TRUE) {
 		ret = Z_TYPE(zretval) == IS_TRUE;
 	}
@@ -1131,6 +1134,9 @@ static int user_wrapper_rename(php_stream_wrapper *wrapper, const char *url_from
 	zval zretval;
 	zval args[2];
 	int ret = 0;
+
+	/* The constructor or destructor can unregister the wrapper, which frees uwrap. */
+	zend_string *class_name = uwrap->ce->name;
 
 	/* create an instance of our class */
 	zend_object *object = user_stream_create_object(uwrap, context);
@@ -1151,7 +1157,7 @@ static int user_wrapper_rename(php_stream_wrapper *wrapper, const char *url_from
 
 	if (UNEXPECTED(call_result == FAILURE)) {
 		php_stream_wrapper_warn(wrapper, context, REPORT_ERRORS, NotImplemented,
-				"%s::" USERSTREAM_RENAME " is not implemented!", ZSTR_VAL(uwrap->ce->name));
+				"%s::" USERSTREAM_RENAME " is not implemented!", ZSTR_VAL(class_name));
 	} else if (Z_TYPE(zretval) == IS_FALSE || Z_TYPE(zretval) == IS_TRUE) {
 		ret = Z_TYPE(zretval) == IS_TRUE;
 	}
@@ -1169,6 +1175,9 @@ static int user_wrapper_mkdir(php_stream_wrapper *wrapper, const char *url, int 
 	zval zretval;
 	zval args[3];
 	int ret = 0;
+
+	/* The constructor or destructor can unregister the wrapper, which frees uwrap. */
+	zend_string *class_name = uwrap->ce->name;
 
 	/* create an instance of our class */
 	zend_object *object = user_stream_create_object(uwrap, context);
@@ -1189,7 +1198,7 @@ static int user_wrapper_mkdir(php_stream_wrapper *wrapper, const char *url, int 
 
 	if (UNEXPECTED(call_result == FAILURE)) {
 		php_stream_wrapper_warn(wrapper, context, REPORT_ERRORS, NotImplemented,
-				"%s::" USERSTREAM_MKDIR " is not implemented!", ZSTR_VAL(uwrap->ce->name));
+				"%s::" USERSTREAM_MKDIR " is not implemented!", ZSTR_VAL(class_name));
 	} else if (Z_TYPE(zretval) == IS_FALSE || Z_TYPE(zretval) == IS_TRUE) {
 		ret = Z_TYPE(zretval) == IS_TRUE;
 	}
@@ -1207,6 +1216,9 @@ static int user_wrapper_rmdir(php_stream_wrapper *wrapper, const char *url,
 	zval zretval;
 	zval args[2];
 	int ret = 0;
+
+	/* The constructor or destructor can unregister the wrapper, which frees uwrap. */
+	zend_string *class_name = uwrap->ce->name;
 
 	/* create an instance of our class */
 	zend_object *object = user_stream_create_object(uwrap, context);
@@ -1226,7 +1238,7 @@ static int user_wrapper_rmdir(php_stream_wrapper *wrapper, const char *url,
 
 	if (UNEXPECTED(call_result == FAILURE)) {
 		php_stream_wrapper_warn(wrapper, context, REPORT_ERRORS, NotImplemented,
-				"%s::" USERSTREAM_RMDIR " is not implemented!", ZSTR_VAL(uwrap->ce->name));
+				"%s::" USERSTREAM_RMDIR " is not implemented!", ZSTR_VAL(class_name));
 	} else if (Z_TYPE(zretval) == IS_FALSE || Z_TYPE(zretval) == IS_TRUE) {
 		ret = Z_TYPE(zretval) == IS_TRUE;
 	}
@@ -1270,6 +1282,9 @@ static int user_wrapper_metadata(php_stream_wrapper *wrapper, const char *url, i
 			return ret;
 	}
 
+	/* The constructor or destructor can unregister the wrapper, which frees uwrap. */
+	zend_string *class_name = uwrap->ce->name;
+
 	/* create an instance of our class */
 	zend_object *object = user_stream_create_object(uwrap, context);
 	if (object == NULL) {
@@ -1290,7 +1305,7 @@ static int user_wrapper_metadata(php_stream_wrapper *wrapper, const char *url, i
 
 	if (UNEXPECTED(call_result == FAILURE)) {
 		php_stream_wrapper_warn(wrapper, context, REPORT_ERRORS, NotImplemented,
-				"%s::" USERSTREAM_METADATA " is not implemented!", ZSTR_VAL(uwrap->ce->name));
+				"%s::" USERSTREAM_METADATA " is not implemented!", ZSTR_VAL(class_name));
 	} else if (Z_TYPE(zretval) == IS_FALSE || Z_TYPE(zretval) == IS_TRUE) {
 		ret = Z_TYPE(zretval) == IS_TRUE;
 	}
@@ -1310,6 +1325,9 @@ static int user_wrapper_stat_url(php_stream_wrapper *wrapper, const char *url, i
 	zval args[2];
 	int ret = -1;
 
+	/* The constructor or destructor can unregister the wrapper, which frees uwrap. */
+	zend_string *class_name = uwrap->ce->name;
+
 	/* create an instance of our class */
 	zend_object *object = user_stream_create_object(uwrap, context);
 	if (object == NULL) {
@@ -1328,7 +1346,7 @@ static int user_wrapper_stat_url(php_stream_wrapper *wrapper, const char *url, i
 
 	if (UNEXPECTED(call_result == FAILURE)) {
 		php_stream_wrapper_warn(wrapper, context, REPORT_ERRORS, NotImplemented,
-			"%s::" USERSTREAM_STATURL " is not implemented!", ZSTR_VAL(uwrap->ce->name));
+			"%s::" USERSTREAM_STATURL " is not implemented!", ZSTR_VAL(class_name));
 		return -1;
 	}
 	if (UNEXPECTED(Z_ISUNDEF(zretval))) {
