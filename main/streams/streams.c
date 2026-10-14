@@ -2012,7 +2012,13 @@ PHPAPI int php_stream_rmdir(const char *path, int options, php_stream_context *c
 	php_stream_wrapper *wrapper = NULL;
 
 	wrapper = php_stream_locate_url_wrapper(path, NULL, 0);
-	if (!wrapper || !wrapper->wops || !wrapper->wops->stream_rmdir) {
+	if (!wrapper || !wrapper->wops) {
+		return 0;
+	}
+	if (!wrapper->wops->stream_rmdir) {
+		if (options & REPORT_ERRORS) {
+			php_error_docref(NULL, E_WARNING, "%s does not allow removing directories", wrapper->wops->label ? wrapper->wops->label : "Wrapper");
+		}
 		return 0;
 	}
 
