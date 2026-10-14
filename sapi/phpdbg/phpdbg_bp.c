@@ -408,9 +408,14 @@ PHPDBG_API void phpdbg_set_breakpoint_symbol(const char *name, size_t name_len) 
 		name_len--;
 	}
 
+	if (name_len == 0) {
+		phpdbg_error("Invalid empty function name");
+		return;
+	}
+
 	lcname = zend_str_tolower_dup(name, name_len);
 
-	if (!zend_hash_str_exists(&PHPDBG_G(bp)[PHPDBG_BREAK_SYM], name, name_len)) {
+	if (!zend_hash_str_exists(&PHPDBG_G(bp)[PHPDBG_BREAK_SYM], lcname, name_len)) {
 		phpdbg_breaksymbol_t new_break;
 
 		PHPDBG_G(flags) |= PHPDBG_HAS_SYM_BP;
