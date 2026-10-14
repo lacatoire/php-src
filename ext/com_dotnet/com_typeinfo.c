@@ -635,6 +635,8 @@ bool php_com_process_typeinfo(ITypeInfo *typeinfo, HashTable *id_to_name, bool p
 		}
 	} else {
 		zend_throw_error(NULL, "Type kind must be dispatchable, %08x given", attr->typekind);
+		ITypeInfo_ReleaseTypeAttr(typeinfo, attr);
+		return false;
 	}
 
 	ITypeInfo_ReleaseTypeAttr(typeinfo, attr);
