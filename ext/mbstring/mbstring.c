@@ -6716,6 +6716,8 @@ static unsigned char* mime_header_decode_encoded_word(unsigned char *p, unsigned
 					p--;
 					continue;
 				}
+				/* Not an escape sequence: keep the "=" and re-read the two characters. */
+				p -= 2;
 			}
 			*bufp++ = c;
 		}
