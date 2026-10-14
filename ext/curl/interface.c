@@ -2416,6 +2416,11 @@ PHP_FUNCTION(curl_exec)
 
 	ch = Z_CURL_P(zid);
 
+	if (ch->in_callback) {
+		zend_throw_error(NULL, "%s(): Attempt to execute cURL handle already being executed from a callback", get_active_function_name());
+		RETURN_THROWS();
+	}
+
 	_php_curl_verify_handlers(ch, /* reporterror */ true);
 
 	_php_curl_cleanup_handle(ch);

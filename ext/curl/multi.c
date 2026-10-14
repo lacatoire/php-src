@@ -89,6 +89,11 @@ PHP_FUNCTION(curl_multi_add_handle)
 	mh = Z_CURL_MULTI_P(z_mh);
 	ch = Z_CURL_P(z_ch);
 
+	if (ch->in_callback) {
+		zend_throw_error(NULL, "%s(): Attempt to add cURL handle already being executed from a callback", get_active_function_name());
+		RETURN_THROWS();
+	}
+
 	_php_curl_verify_handlers(ch, /* reporterror */ true);
 
 	_php_curl_cleanup_handle(ch);
