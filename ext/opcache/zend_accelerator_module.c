@@ -960,6 +960,10 @@ ZEND_FUNCTION(opcache_jit_blacklist)
 		RETURN_THROWS();
 	}
 
+	if (!validate_api_restriction()) {
+		return;
+	}
+
 #ifdef HAVE_JIT
 	const zend_function *func = zend_get_closure_method_def(Z_OBJ_P(closure));
 	if (ZEND_USER_CODE(func->type)) {
@@ -978,6 +982,10 @@ ZEND_FUNCTION(opcache_compile_file)
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "S", &script_name) == FAILURE) {
 		RETURN_THROWS();
+	}
+
+	if (!validate_api_restriction()) {
+		RETURN_FALSE;
 	}
 
 	if (!accel_startup_ok) {
