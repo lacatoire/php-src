@@ -1306,12 +1306,22 @@ static php_stream *php_plain_files_stream_opener(php_stream_wrapper *wrapper, co
 	return php_stream_fopen_rel(path, mode, opened_path, options);
 }
 
+/* Skips "file://", and the "localhost" host that php_stream_locate_url_wrapper() also accepts. */
+static const char *php_plain_files_strip_file_scheme(const char *url)
+{
+	if (strncasecmp(url, "file://", sizeof("file://") - 1) == 0) {
+		url += sizeof("file://") - 1;
+		if (strncasecmp(url, "localhost/", sizeof("localhost/") - 1) == 0) {
+			url += sizeof("localhost") - 1;
+		}
+	}
+	return url;
+}
+
 static int php_plain_files_url_stater(php_stream_wrapper *wrapper, const char *url, int flags, php_stream_statbuf *ssb, php_stream_context *context)
 {
 	if (!(flags & PHP_STREAM_URL_STAT_IGNORE_OPEN_BASEDIR)) {
-		if (strncasecmp(url, "file://", sizeof("file://") - 1) == 0) {
-			url += sizeof("file://") - 1;
-		}
+		url = php_plain_files_strip_file_scheme(url);
 
 		if (php_check_open_basedir_ex(url, (flags & PHP_STREAM_URL_STAT_QUIET) ? 0 : 1)) {
 			return -1;
@@ -1336,9 +1346,7 @@ static int php_plain_files_unlink(php_stream_wrapper *wrapper, const char *url, 
 {
 	int ret;
 
-	if (strncasecmp(url, "file://", sizeof("file://") - 1) == 0) {
-		url += sizeof("file://") - 1;
-	}
+	url = php_plain_files_strip_file_scheme(url);
 
 	if (php_check_open_basedir(url)) {
 		return 0;
@@ -1380,13 +1388,9 @@ static int php_plain_files_rename(php_stream_wrapper *wrapper, const char *url_f
 	}
 #endif
 
-	if (strncasecmp(url_from, "file://", sizeof("file://") - 1) == 0) {
-		url_from += sizeof("file://") - 1;
-	}
+	url_from = php_plain_files_strip_file_scheme(url_from);
 
-	if (strncasecmp(url_to, "file://", sizeof("file://") - 1) == 0) {
-		url_to += sizeof("file://") - 1;
-	}
+	url_to = php_plain_files_strip_file_scheme(url_to);
 
 	if (php_check_open_basedir(url_from) || php_check_open_basedir(url_to)) {
 		return 0;
@@ -1473,9 +1477,7 @@ static int php_plain_files_rename(php_stream_wrapper *wrapper, const char *url_f
 
 static int php_plain_files_mkdir(php_stream_wrapper *wrapper, const char *dir, int mode, int options, php_stream_context *context)
 {
-	if (strncasecmp(dir, "file://", sizeof("file://") - 1) == 0) {
-		dir += sizeof("file://") - 1;
-	}
+	dir = php_plain_files_strip_file_scheme(dir);
 
 	if (!(options & PHP_STREAM_MKDIR_RECURSIVE)) {
 		if (php_check_open_basedir(dir)) {
@@ -1582,9 +1584,7 @@ static int php_plain_files_mkdir(php_stream_wrapper *wrapper, const char *dir, i
 
 static int php_plain_files_rmdir(php_stream_wrapper *wrapper, const char *url, int options, php_stream_context *context)
 {
-	if (strncasecmp(url, "file://", sizeof("file://") - 1) == 0) {
-		url += sizeof("file://") - 1;
-	}
+	url = php_plain_files_strip_file_scheme(url);
 
 	if (php_check_open_basedir(url)) {
 		return 0;
@@ -1633,9 +1633,7 @@ static int php_plain_files_metadata(php_stream_wrapper *wrapper, const char *url
 	}
 #endif
 
-	if (strncasecmp(url, "file://", sizeof("file://") - 1) == 0) {
-		url += sizeof("file://") - 1;
-	}
+	url = php_plain_files_strip_file_scheme(url);
 
 	if (php_check_open_basedir(url)) {
 		return 0;
