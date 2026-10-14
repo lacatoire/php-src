@@ -49,7 +49,7 @@ $db = pg_connect($conn_str);
 pg_query($db, "DROP TABLE IF EXISTS {$table_name}");
 ?>
 --EXPECTF--
-pg_insert(): Field "t" must be of type string|null, time given
+pg_insert(): Field "t" must be of type string|null, string given
 string(8) "13:31:00"
 string(8) "13:31:13"
 string(8) "01:02:03"
