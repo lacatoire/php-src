@@ -2682,6 +2682,13 @@ PHP_FUNCTION(curl_getinfo)
 					RETURN_FALSE;
 				}
 				break;
+			case CURLINFO_TLS_SESSION:
+			case CURLINFO_TLS_SSL_PTR:
+				/* libcurl writes a struct curl_tlssessioninfo* for these,
+				 * not the struct curl_slist* the generic CURLINFO_SLIST
+				 * handling below assumes for every other CURLINFO_PTR
+				 * option; there is no safe way to expose it to PHP. */
+				RETURN_FALSE;
 			default: {
 				int type = CURLINFO_TYPEMASK & option;
 				switch (type) {
