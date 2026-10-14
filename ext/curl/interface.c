@@ -1716,7 +1716,6 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 		case CURLOPT_FTP_USE_EPRT:
 		case CURLOPT_FTP_USE_EPSV:
 		case CURLOPT_HEADER:
-		case CURLOPT_HTTPGET:
 		case CURLOPT_HTTPPROXYTUNNEL:
 		case CURLOPT_HTTP_VERSION:
 		case CURLOPT_INFILESIZE:
@@ -1725,11 +1724,9 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 		case CURLOPT_MAXCONNECTS:
 		case CURLOPT_MAXREDIRS:
 		case CURLOPT_NETRC:
-		case CURLOPT_NOBODY:
 		case CURLOPT_NOPROGRESS:
 		case CURLOPT_NOSIGNAL:
 		case CURLOPT_PORT:
-		case CURLOPT_POST:
 		case CURLOPT_PROXYPORT:
 		case CURLOPT_PROXYTYPE:
 		case CURLOPT_PUT:
@@ -1851,6 +1848,16 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 #if LIBCURL_VERSION_NUM >= 0x080900 /* Available since 8.9.0 */
 		case CURLOPT_TCP_KEEPCNT:
 #endif
+		case CURLOPT_HTTPGET:
+		case CURLOPT_NOBODY:
+		case CURLOPT_POST:
+			/* Switching the request method away from the POSTFIELDS this
+			   handle was last configured with makes any cached mime
+			   structure stale; drop it so a later curl_copy_handle()/clone
+			   does not resurrect fields the handle no longer sends. */
+			zval_ptr_dtor(&ch->postfields);
+			ZVAL_UNDEF(&ch->postfields);
+			ZEND_FALLTHROUGH;
 		case CURLOPT_FOLLOWLOCATION:
 			lval = zval_get_long(zvalue);
 			if ((option == CURLOPT_PROTOCOLS || option == CURLOPT_REDIR_PROTOCOLS) &&
@@ -2186,6 +2193,8 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 				if (zend_hash_num_elements(Z_ARRVAL_P(zvalue)) == 0) {
 					/* no need to build the mime structure for empty hashtables;
 					   also works around https://github.com/curl/curl/issues/6455 */
+					zval_ptr_dtor(&ch->postfields);
+					ZVAL_UNDEF(&ch->postfields);
 					curl_easy_setopt(ch->cp, CURLOPT_POSTFIELDS, "");
 					error = curl_easy_setopt(ch->cp, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t) 0);
 				} else {
@@ -2195,6 +2204,8 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 				zend_string *tmp_str;
 				zend_string *str = zval_get_tmp_string(zvalue, &tmp_str);
 				/* with curl 7.17.0 and later, we can use COPYPOSTFIELDS, but we have to provide size before */
+				zval_ptr_dtor(&ch->postfields);
+				ZVAL_UNDEF(&ch->postfields);
 				error = curl_easy_setopt(ch->cp, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t) ZSTR_LEN(str));
 				error = curl_easy_setopt(ch->cp, CURLOPT_COPYPOSTFIELDS, ZSTR_VAL(str));
 				zend_tmp_string_release(tmp_str);
@@ -3006,6 +3017,13 @@ PHP_FUNCTION(curl_reset)
 	curl_easy_reset(ch->cp);
 	_php_curl_reset_handlers(ch);
 	_php_curl_set_default_options(ch);
+
+	/* Drop the cached POSTFIELDS mime structure: curl_easy_reset() clears
+	   the corresponding libcurl options, so a later curl_copy_handle()/
+	   clone must not rebuild a mime structure the reset handle no longer
+	   sends. */
+	zval_ptr_dtor(&ch->postfields);
+	ZVAL_UNDEF(&ch->postfields);
 }
 /* }}} */
 
