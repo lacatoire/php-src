@@ -151,7 +151,6 @@ PHP_FUNCTION(apache_lookup_uri)
 		ADD_LONG(allowed);
 		ADD_LONG(sent_bodyct);
 		ADD_LONG(bytes_sent);
-		ADD_LONG(mtime);
 		ADD_TIME(request_time);
 
 		ap_destroy_sub_req(rr);
