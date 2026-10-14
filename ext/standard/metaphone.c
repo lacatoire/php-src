@@ -180,8 +180,9 @@ static void metaphone(unsigned char *word, size_t word_len, zend_long max_phonem
 		max_buffer_len = word_len;
 		*phoned_word = zend_string_alloc(sizeof(char) * word_len + 1, 0);
 	} else {
-		max_buffer_len = max_phonemes;
-		*phoned_word = zend_string_alloc(sizeof(char) * max_phonemes + 1, 0);
+		/* The limit may be huge: size the buffer from the input, Phonize() grows it. */
+		max_buffer_len = MIN((size_t) max_phonemes, word_len);
+		*phoned_word = zend_string_alloc(sizeof(char) * max_buffer_len + 1, 0);
 	}
 
 
