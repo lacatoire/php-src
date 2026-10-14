@@ -63,6 +63,12 @@ ZEND_GET_MODULE(php_gettext)
 		RETURN_THROWS(); \
 	}
 
+#define PHP_GETTEXT_MSGID_NUL_CHECK(_arg_num, msgid_str) \
+	if (UNEXPECTED(zend_str_has_nul_byte(msgid_str))) { \
+		zend_argument_value_error(_arg_num, "must not contain any null bytes"); \
+		RETURN_THROWS(); \
+	}
+
 #define PHP_DCGETTEXT_CATEGORY_CHECK(_arg_num, category) \
 	if (category == LC_ALL) { \
 		zend_argument_value_error(_arg_num, "cannot be LC_ALL"); \
@@ -118,6 +124,7 @@ PHP_FUNCTION(gettext)
 	ZEND_PARSE_PARAMETERS_END();
 
 	PHP_GETTEXT_LENGTH_CHECK(1, ZSTR_LEN(msgid))
+	PHP_GETTEXT_MSGID_NUL_CHECK(1, msgid)
 	msgstr = gettext(ZSTR_VAL(msgid));
 
 	if (msgstr != ZSTR_VAL(msgid)) {
@@ -141,6 +148,7 @@ PHP_FUNCTION(dgettext)
 
 	PHP_GETTEXT_DOMAIN_LENGTH_CHECK(1, ZSTR_LEN(domain))
 	PHP_GETTEXT_LENGTH_CHECK(2, ZSTR_LEN(msgid))
+	PHP_GETTEXT_MSGID_NUL_CHECK(2, msgid)
 
 	msgstr = dgettext(ZSTR_VAL(domain), ZSTR_VAL(msgid));
 
@@ -167,6 +175,7 @@ PHP_FUNCTION(dcgettext)
 
 	PHP_GETTEXT_DOMAIN_LENGTH_CHECK(1, ZSTR_LEN(domain))
 	PHP_GETTEXT_LENGTH_CHECK(2, ZSTR_LEN(msgid))
+	PHP_GETTEXT_MSGID_NUL_CHECK(2, msgid)
 	PHP_DCGETTEXT_CATEGORY_CHECK(3, category)
 
 	msgstr = dcgettext(ZSTR_VAL(domain), ZSTR_VAL(msgid), category);
