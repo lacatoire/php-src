@@ -247,20 +247,24 @@ PHPAPI zval *php_get_session_var_str(const char *name, size_t name_len)
 
 static void php_session_track_init(void)
 {
-	zval session_vars;
+	zval session_vars, old_vars;
 	zend_string *var_name = ZSTR_INIT_LITERAL("_SESSION", false);
 	/* Unconditionally destroy existing array -- possible dirty data */
 	zend_delete_global_variable(var_name);
 
-	if (!Z_ISUNDEF(PS(http_session_vars))) {
-		zval_ptr_dtor(&PS(http_session_vars));
-	}
+	ZVAL_COPY_VALUE(&old_vars, &PS(http_session_vars));
 
 	array_init(&session_vars);
 	ZVAL_NEW_REF(&PS(http_session_vars), &session_vars);
 	Z_ADDREF_P(&PS(http_session_vars));
 	zend_hash_update_ind(&EG(symbol_table), var_name, &PS(http_session_vars));
 	zend_string_release_ex(var_name, false);
+
+	/* Released last: destructors of the old objects can call session functions,
+	 * which must not find the array being destroyed. */
+	if (!Z_ISUNDEF(old_vars)) {
+		zval_ptr_dtor(&old_vars);
+	}
 }
 
 static zend_string *php_session_encode(void)
