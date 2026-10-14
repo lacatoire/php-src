@@ -1119,13 +1119,24 @@ static void _php_mb_regex_ereg_replace_exec(INTERNAL_FUNCTION_PARAMETERS, OnigOp
 			}
 
 			n = regs->end[0];
-			if ((pos - (OnigUChar *)string) < n) {
-				pos = (OnigUChar *)string + n;
-			} else {
-				if (pos < string_lim) {
-					smart_str_appendl(&out_buf, (char *)pos, 1);
+			if (regs->beg[0] == n) {
+				/* Empty match: copy one whole character and resume after it, so that the
+				 * same empty match is not found again and multibyte characters are not split. */
+				OnigUChar *match_pos = (OnigUChar *)string + n;
+				if (match_pos < string_lim) {
+					size_t char_len = (size_t) onig_enc_len(onig_get_encoding(re), match_pos, string_lim);
+					if (char_len < 1) {
+						char_len = 1;
+					} else if (char_len > (size_t)(string_lim - match_pos)) {
+						char_len = string_lim - match_pos;
+					}
+					smart_str_appendl(&out_buf, (char *)match_pos, char_len);
+					pos = match_pos + char_len;
+				} else {
+					pos = match_pos + 1;
 				}
-				pos++;
+			} else {
+				pos = (OnigUChar *)string + n;
 			}
 		} else { /* nomatch */
 			/* stick that last bit of string on our output */
