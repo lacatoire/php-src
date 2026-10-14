@@ -2436,17 +2436,23 @@ PHP_FUNCTION(curl_exec)
 		}
 	}
 
+	/* flush the file handles, so any remaining data is synced to disk before curl_exec()
+	 * reports success; a failed flush (e.g. disk full) must surface as CURLE_WRITE_ERROR,
+	 * so this has to run before the RETURNTRANSFER string is returned below, not after */
+	if (ch->handlers.write->method == PHP_CURL_FILE && ch->handlers.write->fp && fflush(ch->handlers.write->fp) != 0) {
+		SAVE_CURL_ERROR(ch, CURLE_WRITE_ERROR);
+		smart_str_free(&ch->handlers.write->buf);
+		RETURN_FALSE;
+	}
+	if (ch->handlers.write_header->method == PHP_CURL_FILE && ch->handlers.write_header->fp && fflush(ch->handlers.write_header->fp) != 0) {
+		SAVE_CURL_ERROR(ch, CURLE_WRITE_ERROR);
+		smart_str_free(&ch->handlers.write->buf);
+		RETURN_FALSE;
+	}
+
 	if (ch->handlers.write->method == PHP_CURL_RETURN && ch->handlers.write->buf.s) {
 		smart_str_0(&ch->handlers.write->buf);
 		RETURN_STR_COPY(ch->handlers.write->buf.s);
-	}
-
-	/* flush the file handle, so any remaining data is synched to disk */
-	if (ch->handlers.write->method == PHP_CURL_FILE && ch->handlers.write->fp) {
-		fflush(ch->handlers.write->fp);
-	}
-	if (ch->handlers.write_header->method == PHP_CURL_FILE && ch->handlers.write_header->fp) {
-		fflush(ch->handlers.write_header->fp);
 	}
 
 	if (ch->handlers.write->method == PHP_CURL_RETURN) {
