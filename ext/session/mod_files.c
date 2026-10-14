@@ -328,8 +328,11 @@ static int ps_files_cleanup_dir(const zend_string *dirname, zend_long maxlifetim
 			}
 			time(&now);
 			if ((now - sbuf.st_mtime) > maxlifetime) {
-				VCWD_UNLINK(buf);
-				nrdels++;
+				/* Count only what was removed: an entry that cannot be unlinked, or
+				 * that a concurrent call already removed, is not a deleted session. */
+				if (VCWD_UNLINK(buf) == 0) {
+					nrdels++;
+				}
 			}
 		} else {
 			/* intermediate depth: recurse into subdirectories */
