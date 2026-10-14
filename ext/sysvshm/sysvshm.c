@@ -407,12 +407,18 @@ static bool php_put_shm_data(sysvshm_chunk_head *ptr, zend_long key, const zend_
 
 	size_t total_size = ((zend_long) (ZSTR_LEN(data) + sizeof(sysvshm_chunk) - 1) / sizeof(zend_long)) * sizeof(zend_long) + sizeof(zend_long); /* zend_long alligment */
 
+	size_t available = ptr->free;
 	if ((shm_varpos = php_check_shm_data(ptr, key)) > 0) {
-		php_remove_shm_data(ptr, shm_varpos);
+		available += ((sysvshm_chunk *) ((char *) ptr + shm_varpos))->next;
 	}
 
-	if (ptr->free < total_size) {
+	/* Check before removing the old value, a failed update must leave it in place. */
+	if (available < total_size) {
 		return false; /* not enough memory */
+	}
+
+	if (shm_varpos > 0) {
+		php_remove_shm_data(ptr, shm_varpos);
 	}
 
 	shm_var = (sysvshm_chunk *) ((char *) ptr + ptr->end);
