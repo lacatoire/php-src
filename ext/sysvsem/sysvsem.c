@@ -243,6 +243,9 @@ PHP_FUNCTION(sem_get)
 		semarg.val = max_acquire;
 		if (semctl(semid, SYSVSEM_SEM, SETVAL, semarg) == -1) {
 			php_error_docref(NULL, E_WARNING, "Failed for key 0x" ZEND_XLONG_FMT ": %s", key_arg, strerror(errno));
+			/* Nobody else uses the set, and without a valid maximum it could never be acquired. */
+			semctl(semid, 0, IPC_RMID, semarg);
+			RETURN_FALSE;
 		}
 	}
 
@@ -347,8 +350,12 @@ PHP_FUNCTION(sem_remove)
 
 	un.buf = &buf;
 	if (semctl(sem_ptr->semid, 0, IPC_STAT, un) < 0) {
-		php_error_docref(NULL, E_WARNING, "SysV semaphore for key 0x%x does not (any longer) exist", sem_ptr->key);
-		RETURN_FALSE;
+		if (errno == EINVAL || errno == EIDRM) {
+			php_error_docref(NULL, E_WARNING, "SysV semaphore for key 0x%x does not (any longer) exist", sem_ptr->key);
+			RETURN_FALSE;
+		}
+		/* Any other failure (e.g. EACCES on a set without read permission) says nothing about
+		 * the set existing, and its owner can still remove it. */
 	}
 
 	if (semctl(sem_ptr->semid, 0, IPC_RMID, un) < 0) {
