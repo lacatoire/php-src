@@ -6448,6 +6448,11 @@ PHP_FUNCTION(array_multisort)
 					repack = false;
 				}
 			}
+			/* Only the integer keys were renumbered above (0..n-1), so the next
+			 * free element is n, not array_size (which also counts string
+			 * keys). ZEND_LONG_MIN matches the "no integer key" state of a
+			 * freshly created array when there is none. */
+			hash->nNextFreeElement = n ? (zend_long) n : ZEND_LONG_MIN;
 			if (repack) {
 				zend_hash_to_packed(hash);
 			} else {
