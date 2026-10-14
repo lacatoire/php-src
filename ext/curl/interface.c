@@ -604,8 +604,11 @@ static size_t curl_write(char *data, size_t size, size_t nmemb, void *ctx)
 			ZVAL_STRINGL(&argv[1], data, length);
 
 			php_curl_call_callback(ch, &write_handler->fcc, &retval, /* argc */ 2, argv);
+			/* Verify unconditionally: a callback that throws also leaves
+			   retval undefined, but may already have closed a stream this
+			   handle still holds a raw FILE* for. */
+			_php_curl_verify_handlers(ch, /* reporterror */ true);
 			if (!Z_ISUNDEF(retval)) {
-				_php_curl_verify_handlers(ch, /* reporterror */ true);
 				/* TODO Check callback returns an int or something castable to int */
 				length = php_curl_get_long(&retval);
 			} else {
@@ -640,9 +643,9 @@ static int curl_fnmatch(void *ctx, const char *pattern, const char *string)
 	ZVAL_STRING(&argv[2], string);
 
 	php_curl_call_callback(ch, &ch->handlers.fnmatch, &retval, /* argc */ 3, argv);
+	_php_curl_verify_handlers(ch, /* reporterror */ true);
 
 	if (!Z_ISUNDEF(retval)) {
-		_php_curl_verify_handlers(ch, /* reporterror */ true);
 		/* TODO Check callback returns an int or something castable to int */
 		rval = php_curl_get_long(&retval);
 	}
@@ -678,9 +681,9 @@ static int curl_progress(void *clientp, double dltotal, double dlnow, double ult
 	ZVAL_LONG(&args[4], (zend_long)ulnow);
 
 	php_curl_call_callback(ch, &ch->handlers.progress, &retval, /* argc */ 5, args);
+	_php_curl_verify_handlers(ch, /* reporterror */ true);
 
 	if (!Z_ISUNDEF(retval)) {
-		_php_curl_verify_handlers(ch, /* reporterror */ true);
 		/* TODO Check callback returns an int or something castable to int */
 		if (0 == php_curl_get_long(&retval)) {
 			rval = 0; // ok
@@ -717,9 +720,9 @@ static int curl_xferinfo(void *clientp, curl_off_t dltotal, curl_off_t dlnow, cu
 	ZVAL_LONG(&argv[4], ulnow);
 
 	php_curl_call_callback(ch, &ch->handlers.xferinfo, &retval, /* argc */ 5, argv);
+	_php_curl_verify_handlers(ch, /* reporterror */ true);
 
 	if (!Z_ISUNDEF(retval)) {
-		_php_curl_verify_handlers(ch, /* reporterror */ true);
 		/* TODO Check callback returns an int or something castable to int */
 		if (0 == php_curl_get_long(&retval)) {
 			rval = 0; // ok
@@ -760,9 +763,9 @@ static int curl_prereqfunction(void *clientp, char *conn_primary_ip, char *conn_
 	ZVAL_LONG(&args[4], conn_local_port);
 
 	php_curl_call_callback(ch, &ch->handlers.prereq, &retval, /* argc */ 5, args);
+	_php_curl_verify_handlers(ch, /* reporterror */ true);
 
 	if (!Z_ISUNDEF(retval)) {
-		_php_curl_verify_handlers(ch, /* reporterror */ true);
 		if (Z_TYPE(retval) == IS_LONG) {
 			zend_long retval_long = Z_LVAL(retval);
 			if (retval_long == CURL_PREREQFUNC_OK || retval_long == CURL_PREREQFUNC_ABORT) {
@@ -805,9 +808,9 @@ static int curl_ssh_hostkeyfunction(void *clientp, int keytype, const char *key,
 	ZVAL_LONG(&args[3], keylen);
 
 	php_curl_call_callback(ch, &ch->handlers.sshhostkey, &retval, /* argc */ 4, args);
+	_php_curl_verify_handlers(ch, /* reporterror */ true);
 
 	if (!Z_ISUNDEF(retval)) {
-		_php_curl_verify_handlers(ch, /* reporterror */ true);
 		if (Z_TYPE(retval) == IS_LONG) {
 			zend_long retval_long = Z_LVAL(retval);
 			if (retval_long == CURLKHMATCH_OK || retval_long == CURLKHMATCH_MISMATCH) {
@@ -857,8 +860,8 @@ static size_t curl_read(char *data, size_t size, size_t nmemb, void *ctx)
 			ZVAL_LONG(&argv[2], (zend_long) nmemb);
 
 			php_curl_call_callback(ch, &read_handler->fcc, &retval, /* argc */ 3, argv);
+			_php_curl_verify_handlers(ch, /* reporterror */ true);
 			if (!Z_ISUNDEF(retval)) {
-				_php_curl_verify_handlers(ch, /* reporterror */ true);
 				if (Z_TYPE(retval) == IS_STRING) {
 					length = MIN(nmemb, Z_STRLEN(retval));
 					memcpy(data, Z_STRVAL(retval), length);
@@ -912,9 +915,9 @@ static int curl_seek(void *clientp, curl_off_t offset, int origin)
 	ch->in_callback = true;
 	zend_call_known_fcc(&ch->handlers.seek, &retval, /* param_count */ 3, args, /* named_params */ NULL);
 	ch->in_callback = false;
+	_php_curl_verify_handlers(ch, /* reporterror */ true);
 
 	if (!Z_ISUNDEF(retval)) {
-		_php_curl_verify_handlers(ch, /* reporterror */ true);
 		if (Z_TYPE(retval) == IS_LONG) {
 			zend_long retval_long = Z_LVAL(retval);
 			if (retval_long == CURL_SEEKFUNC_OK || retval_long == CURL_SEEKFUNC_FAIL || retval_long == CURL_SEEKFUNC_CANTSEEK) {
@@ -963,9 +966,9 @@ static size_t curl_write_header(char *data, size_t size, size_t nmemb, void *ctx
 			ZVAL_STRINGL(&argv[1], data, length);
 
 			php_curl_call_callback(ch, &write_handler->fcc, &retval, /* argc */ 2, argv);
+			_php_curl_verify_handlers(ch, /* reporterror */ true);
 			if (!Z_ISUNDEF(retval)) {
 				// TODO: Check for valid int type for return value
-				_php_curl_verify_handlers(ch, /* reporterror */ true);
 				length = php_curl_get_long(&retval);
 			} else {
 				length = -1;
@@ -1019,6 +1022,12 @@ static int curl_debug(CURL *handle, curl_infotype type, char *data, size_t size,
 	ZVAL_STRINGL(&args[2], data, size);
 
 	php_curl_call_callback(ch, &ch->handlers.debug, NULL, /* argc */ 3, args);
+	/* Unlike the other callbacks, curl_debug() can fire many times per
+	   transfer with no return value to gate on: always re-check, since the
+	   callback may have closed a stream this handle still holds a raw
+	   FILE* for (CURLOPT_FILE, CURLOPT_INFILE, CURLOPT_WRITEHEADER,
+	   CURLOPT_STDERR). */
+	_php_curl_verify_handlers(ch, /* reporterror */ true);
 
 	zval_ptr_dtor(&args[0]);
 	zval_ptr_dtor(&args[2]);
