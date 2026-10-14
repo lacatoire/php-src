@@ -168,6 +168,7 @@ ZEND_API void zend_strip(void)
 	zval token;
 	int token_type;
 	int prev_space = 0;
+	int need_tokens = -1;
 
 	while ((token_type=lex_scan(&token, NULL))) {
 		switch (token_type) {
@@ -215,6 +216,18 @@ ZEND_API void zend_strip(void)
 		}
 		prev_space = 0;
 		ZVAL_UNDEF(&token);
+
+		/* Everything after __halt_compiler(); is raw data, keep it verbatim. */
+		if (need_tokens != -1) {
+			if (--need_tokens == 0) {
+				if (LANG_SCNG(yy_cursor) < LANG_SCNG(yy_limit)) {
+					zend_write((char*)LANG_SCNG(yy_cursor), LANG_SCNG(yy_limit) - LANG_SCNG(yy_cursor));
+				}
+				break;
+			}
+		} else if (token_type == T_HALT_COMPILER) {
+			need_tokens = 3;
+		}
 	}
 
 	/* Discard parse errors thrown during tokenization */
