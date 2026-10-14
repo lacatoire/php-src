@@ -142,6 +142,7 @@ typedef struct _php_ps_globals {
 	bool use_strict_mode; /* whether or not PHP accepts unknown session ids */
 	bool lazy_write; /* omit session write when it is possible */
 	bool in_save_handler; /* state if session is in save handler or not */
+	bool in_regenerate; /* session_regenerate_id() is running the handler callbacks of the new session */
 	bool set_handler;     /* state if session module i setting handler or not */
 	zend_string *session_started_filename;
 	uint32_t session_started_lineno;
