@@ -4048,6 +4048,10 @@ PHP_FUNCTION(imagescale)
 				RETURN_THROWS();
 			}
 			tmp_h = tmp_w * src_y / src_x;
+			if (tmp_h < 1) {
+				/* A valid width must not fail on the height it implies */
+				tmp_h = 1;
+			}
 		}
 		if (src_y && tmp_w < 0) {
 			if (tmp_h > (ZEND_LONG_MAX / src_x)) {
@@ -4055,6 +4059,9 @@ PHP_FUNCTION(imagescale)
 				RETURN_THROWS();
 			}
 			tmp_w = tmp_h * src_x / src_y;
+			if (tmp_w < 1) {
+				tmp_w = 1;
+			}
 		}
 	}
 
