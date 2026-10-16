@@ -82,6 +82,7 @@ PHPAPI int php_getopt(int argc, char* const *argv, const opt_struct opts[], char
 			return EOF;
 		}
 	}
+	bool long_with_equal = false;
 	if ((argv[*optind][0] == '-') && (argv[*optind][1] == '-')) {
 		const char *pos;
 		size_t arg_end = strlen(argv[*optind])-1;
@@ -95,9 +96,10 @@ PHPAPI int php_getopt(int argc, char* const *argv, const opt_struct opts[], char
 		arg_start = 2;
 
 		/* Check for <arg>=<val> */
-		if ((pos = memchr(&argv[*optind][arg_start], '=', arg_end - arg_start)) != NULL) {
+		if ((pos = memchr(&argv[*optind][arg_start], '=', arg_end - arg_start + 1)) != NULL) {
 			arg_end = pos-&argv[*optind][arg_start];
 			arg_start++;
+			long_with_equal = true;
 		} else {
 			arg_end--;
 		}
@@ -152,7 +154,7 @@ PHPAPI int php_getopt(int argc, char* const *argv, const opt_struct opts[], char
 		/* Check for cases where the value of the argument
 		is in the form -<arg> <val>, -<arg>=<varl> or -<arg><val> */
 		dash = 0;
-		if (!argv[*optind][arg_start]) {
+		if (!argv[*optind][arg_start] && !long_with_equal) {
 			(*optind)++;
 			if (*optind == argc) {
 				/* Was the value required or is it optional? */
