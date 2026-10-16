@@ -5554,7 +5554,7 @@ static void php_do_date_sunrise_sunset(INTERNAL_FUNCTION_PARAMETERS, bool calc_s
 	}
 	altitude = 90 - zenith;
 
-	if (!zend_finite(latitude) || !zend_finite(longitude)) {
+	if (!zend_finite(latitude) || !zend_finite(longitude) || !zend_finite(zenith) || (!gmt_offset_is_null && !zend_finite(gmt_offset))) {
 		RETURN_FALSE;
 	}
 
@@ -5567,11 +5567,12 @@ static void php_do_date_sunrise_sunset(INTERNAL_FUNCTION_PARAMETERS, bool calc_s
 	t->tz_info = tzi;
 	t->zone_type = TIMELIB_ZONETYPE_ID;
 
+	timelib_unixtime2local(t, time);
+
+	/* The offset of the requested date, not the one of the epoch */
 	if (gmt_offset_is_null) {
 		gmt_offset = timelib_get_current_offset(t) / 3600.0;
 	}
-
-	timelib_unixtime2local(t, time);
 	rs = timelib_astro_rise_set_altitude(t, longitude, latitude, altitude, 1, &h_rise, &h_set, &rise, &set, &transit);
 	timelib_time_dtor(t);
 
