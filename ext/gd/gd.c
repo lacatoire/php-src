@@ -2899,7 +2899,7 @@ static void php_imagepolygon(INTERNAL_FUNCTION_PARAMETERS, int filled)
 		RETURN_THROWS();
 	}
 
-	if (nelem < npoints * 2) {
+	if (nelem < (zend_long) npoints * 2) {
 		zend_value_error("Trying to use %d points in array with only %d points", npoints, nelem/2);
 		RETURN_THROWS();
 	}
@@ -2909,9 +2909,17 @@ static void php_imagepolygon(INTERNAL_FUNCTION_PARAMETERS, int filled)
 	for (int i = 0; i < npoints; i++) {
 		if ((var = zend_hash_index_find(Z_ARRVAL_P(POINTS), (i * 2))) != NULL) {
 			points[i].x = zval_get_long(var);
+		} else {
+			efree(points);
+			zend_argument_value_error(2, "must have the integer keys 0 to %d", npoints * 2 - 1);
+			RETURN_THROWS();
 		}
 		if ((var = zend_hash_index_find(Z_ARRVAL_P(POINTS), (i * 2) + 1)) != NULL) {
 			points[i].y = zval_get_long(var);
+		} else {
+			efree(points);
+			zend_argument_value_error(2, "must have the integer keys 0 to %d", npoints * 2 - 1);
+			RETURN_THROWS();
 		}
 	}
 
