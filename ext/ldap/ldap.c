@@ -2208,7 +2208,12 @@ PHP_FUNCTION(ldap_explode_dn)
 		RETURN_THROWS();
 	}
 
-	if (!(ldap_value = ldap_explode_dn(dn, with_attrib))) {
+	if (ZEND_LONG_EXCEEDS_INT(with_attrib)) {
+		zend_argument_value_error(2, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+
+	if (!(ldap_value = ldap_explode_dn(dn, (int) with_attrib))) {
 		/* Invalid parameters were passed to ldap_explode_dn */
 		RETURN_FALSE;
 	}
