@@ -54,6 +54,7 @@ PHPAPI void php_statpage(void)
 			BG(page_gid)   = pstat->st_gid;
 			BG(page_inode) = pstat->st_ino;
 			BG(page_mtime) = pstat->st_mtime;
+			BG(page_mtime_valid) = true;
 		} else { /* handler for situations where there is no source file, ex. php -r */
 			BG(page_uid) = getuid();
 			BG(page_gid) = getgid();
@@ -147,15 +148,13 @@ PHPAPI time_t php_getlastmod(void)
 /* {{{ Get time of last page modification */
 PHP_FUNCTION(getlastmod)
 {
-	zend_long lm;
-
 	ZEND_PARSE_PARAMETERS_NONE();
 
-	lm = php_getlastmod();
-	if (lm < 0) {
+	/* A negative time is valid, for a file older than 1970 */
+	php_statpage();
+	if (!BG(page_mtime_valid)) {
 		RETURN_FALSE;
-	} else {
-		RETURN_LONG(lm);
 	}
+	RETURN_LONG(BG(page_mtime));
 }
 /* }}} */
