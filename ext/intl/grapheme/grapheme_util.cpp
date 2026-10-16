@@ -235,7 +235,7 @@ finish:
 /* {{{ grapheme_ascii_check: ASCII check */
 U_CFUNC zend_long grapheme_ascii_check(const unsigned char *day, size_t len)
 {
-	int ret_len = len;
+	zend_long ret_len = len;
 	while ( len-- ) {
 	if ( *day++ > 0x7f || (*day == '\n' && *(day - 1) == '\r') )
 		return -1;
