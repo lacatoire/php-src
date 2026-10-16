@@ -777,12 +777,16 @@ static xmlParserInputPtr php_libxml_external_entity_loader(const char *URL,
 
 #undef ADD_NULL_OR_STRING_KEY
 
-	zend_call_known_fcc(&LIBXML(entity_loader_callback), &retval, 3, params, /* named_params */ NULL);
+	/* The callback may replace or remove the loader, work on a copy */
+	zend_fcall_info_cache callback;
+	zend_fcc_dup(&callback, &LIBXML(entity_loader_callback));
+
+	zend_call_known_fcc(&callback, &retval, 3, params, /* named_params */ NULL);
 
 	if (Z_ISUNDEF(retval)) {
 		php_libxml_ctx_error(context,
 				"Call to user entity loader callback '%s' has failed",
-				ZSTR_VAL(LIBXML(entity_loader_callback).function_handler->common.function_name));
+				ZSTR_VAL(callback.function_handler->common.function_name));
 	} else {
 		if (Z_TYPE(retval) == IS_STRING) {
 is_string:
@@ -791,7 +795,7 @@ is_string:
 			php_stream *stream = (php_stream*)zend_fetch_resource2_ex(&retval, NULL, php_file_le_stream(), php_file_le_pstream());
 			if (UNEXPECTED(stream == NULL)) {
 				zval callable;
-				zend_get_callable_zval_from_fcc(&LIBXML(entity_loader_callback), &callable);
+				zend_get_callable_zval_from_fcc(&callback, &callable);
 				zend_string *callable_name = zend_get_callable_name(&callable);
 				zend_string *func_name = get_active_function_or_method_name();
 				zend_type_error(
@@ -853,6 +857,7 @@ is_string:
 		}
 	}
 
+	zend_fcc_dtor(&callback);
 	zval_ptr_dtor(&params[0]);
 	zval_ptr_dtor(&params[1]);
 	zval_ptr_dtor(&params[2]);
