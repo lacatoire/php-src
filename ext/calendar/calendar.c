@@ -491,7 +491,7 @@ PHP_FUNCTION(jdtojewish)
 		RETURN_NEW_STR(zend_strpprintf(0, "%i/%i/%i", month, day, year));
 	} else {
 		if (year <= 0 || year > 9999) {
-			zend_value_error("Year out of range (0-9999)");
+			zend_value_error("Year out of range (1-9999)");
 			RETURN_THROWS();
 		}
 
