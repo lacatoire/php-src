@@ -2038,11 +2038,11 @@ PHP_FUNCTION(imagewebp)
 		RETURN_THROWS();
 	}
 
-	gdImageWebpCtx(im, ctx, (int) quality);
+	int failed = gdImageWebpCtx(im, ctx, (int) quality);
 
 	ctx->gd_free(ctx);
 
-	RETURN_TRUE;
+	RETURN_BOOL(!failed);
 }
 /* }}} */
 #endif /* HAVE_GD_WEBP */

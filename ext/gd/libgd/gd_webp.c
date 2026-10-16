@@ -737,9 +737,9 @@ freeargb:
 
         Nothing.
 */
-BGD_DECLARE(void) gdImageWebpCtx(gdImagePtr im, gdIOCtx *outfile, int quality)
+BGD_DECLARE(int) gdImageWebpCtx(gdImagePtr im, gdIOCtx *outfile, int quality)
 {
-    _gdImageWebpCtx(im, outfile, quality);
+    return _gdImageWebpCtx(im, outfile, quality);
 }
 
 /*
@@ -1144,12 +1144,13 @@ BGD_DECLARE(gdImagePtr) gdImageCreateFromWebpCtx(gdIOCtx *infile)
     return NULL;
 }
 
-BGD_DECLARE(void) gdImageWebpCtx(gdImagePtr im, gdIOCtx *outfile, int quality)
+BGD_DECLARE(int) gdImageWebpCtx(gdImagePtr im, gdIOCtx *outfile, int quality)
 {
     ARG_NOT_USED(im);
     ARG_NOT_USED(outfile);
     ARG_NOT_USED(quality);
     _noWebpError();
+    return 1;
 }
 
 BGD_DECLARE(void) gdImageWebpEx(gdImagePtr im, FILE *outFile, int quality)
