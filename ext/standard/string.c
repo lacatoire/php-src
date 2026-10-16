@@ -1125,35 +1125,14 @@ PHP_FUNCTION(implode)
 
 ZEND_FRAMELESS_FUNCTION(implode, 1)
 {
-	zval *pieces;
-
-	/* Manual parsing for more accurate error message. */
-	if (!zend_parse_arg_array(arg1, &pieces, /* null_check */ false, /* or_object */ false)) { \
-		zend_type_error(
-			"%s(): If argument #1 ($separator) is of type string, "
-			"argument #2 ($array) must be of type array, null given",
-			get_active_function_name()
-		);
-		goto flf_clean; \
-	}
-
-	zend_string *str = ZSTR_EMPTY_ALLOC();
-
-	php_implode(str, Z_ARR_P(pieces), return_value);
-
-flf_clean:;
-}
-
-ZEND_FRAMELESS_FUNCTION(implode, 2)
-{
 	zval str_tmp;
-	zend_string *str;
-	zval *pieces;
+	zend_string *arg1_str;
+	HashTable *arg1_array;
 
-	Z_FLF_PARAM_STR(1, str, str_tmp);
-	Z_FLF_PARAM_ARRAY_OR_NULL(2, pieces);
+	/* Same parsing and errors as implode() called without the fast path */
+	Z_FLF_PARAM_ARRAY_HT_OR_STR(1, arg1_array, arg1_str, str_tmp);
 
-	if (!pieces) {
+	if (arg1_array == NULL) {
 		zend_type_error(
 			"%s(): If argument #1 ($separator) is of type string, "
 			"argument #2 ($array) must be of type array, null given",
@@ -1162,7 +1141,42 @@ ZEND_FRAMELESS_FUNCTION(implode, 2)
 		goto flf_clean;
 	}
 
-	php_implode(str, Z_ARR_P(pieces), return_value);
+	php_implode(ZSTR_EMPTY_ALLOC(), arg1_array, return_value);
+
+flf_clean:;
+	Z_FLF_PARAM_FREE_STR(1, str_tmp);
+}
+
+ZEND_FRAMELESS_FUNCTION(implode, 2)
+{
+	zval str_tmp;
+	zend_string *arg1_str;
+	HashTable *arg1_array;
+	zval *pieces;
+
+	/* Same parsing and errors as implode() called without the fast path */
+	Z_FLF_PARAM_ARRAY_HT_OR_STR(1, arg1_array, arg1_str, str_tmp);
+	Z_FLF_PARAM_ARRAY_OR_NULL(2, pieces);
+
+	if (!pieces) {
+		if (arg1_array == NULL) {
+			zend_type_error(
+				"%s(): If argument #1 ($separator) is of type string, "
+				"argument #2 ($array) must be of type array, null given",
+				get_active_function_name()
+			);
+			goto flf_clean;
+		}
+
+		php_implode(ZSTR_EMPTY_ALLOC(), arg1_array, return_value);
+	} else {
+		if (arg1_str == NULL) {
+			zend_argument_type_error(1, "must be of type string, array given");
+			goto flf_clean;
+		}
+
+		php_implode(arg1_str, Z_ARR_P(pieces), return_value);
+	}
 
 flf_clean:;
 	Z_FLF_PARAM_FREE_STR(1, str_tmp);
