@@ -122,6 +122,18 @@ static gdIOCtx *create_stream_context(php_stream *stream, int close_stream);
 static gdIOCtx *create_output_context(zval *to_zval, uint32_t arg_num);
 static int _php_image_type(zend_string *data);
 
+/* The libgd drawing functions take int: clamp instead of wrapping around into the image */
+static inline int php_gd_clamp_coord(zend_long v)
+{
+	if (v < INT_MIN) {
+		return INT_MIN;
+	}
+	if (v > INT_MAX) {
+		return INT_MAX;
+	}
+	return (int) v;
+}
+
 /*********************************************************
  *
  * GD Object Representation
@@ -2586,7 +2598,7 @@ PHP_FUNCTION(imagesetpixel)
 
 	im = php_gd_libgdimageptr_from_zval_p(IM);
 
-	gdImageSetPixel(im, x, y, col);
+	gdImageSetPixel(im, php_gd_clamp_coord(x), php_gd_clamp_coord(y), col);
 	RETURN_TRUE;
 }
 /* }}} */
@@ -2614,7 +2626,7 @@ PHP_FUNCTION(imageline)
 		gdImageSetAntiAliased(im, col);
 		col = gdAntiAliased;
 	}
-	gdImageLine(im, x1, y1, x2, y2, col);
+	gdImageLine(im, php_gd_clamp_coord(x1), php_gd_clamp_coord(y1), php_gd_clamp_coord(x2), php_gd_clamp_coord(y2), col);
 	RETURN_TRUE;
 }
 /* }}} */
@@ -2708,17 +2720,24 @@ PHP_FUNCTION(imagearc)
 
 	im = php_gd_libgdimageptr_from_zval_p(IM);
 
-	e = E;
+	/* An angle that does not fit an int is reduced, not wrapped around */
+	if (E > INT_MAX || E < INT_MIN) {
+		E %= 360;
+	}
+	e = (int) E;
 	if (e < 0) {
 		e %= 360;
 	}
 
-	st = ST;
+	if (ST > INT_MAX || ST < INT_MIN) {
+		ST %= 360;
+	}
+	st = (int) ST;
 	if (st < 0) {
 		st %= 360;
 	}
 
-	gdImageArc(im, cx, cy, w, h, st, e, col);
+	gdImageArc(im, php_gd_clamp_coord(cx), php_gd_clamp_coord(cy), php_gd_clamp_coord(w), php_gd_clamp_coord(h), st, e, col);
 	RETURN_TRUE;
 }
 /* }}} */
