@@ -668,6 +668,11 @@ static zend_ulong zend_ini_parse_quantity_internal(const zend_string *value, zen
 			return 0;
 		}
 
+		/* Whitespace before a multiplier suffix, as for any other quantity */
+		if (zend_is_whitespace(digits[1])) {
+			goto evaluation;
+		}
+
 		switch (digits[1]) {
 			/* Multiplier suffixes */
 			case 'g':
