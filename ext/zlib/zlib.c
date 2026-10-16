@@ -388,17 +388,36 @@ static zend_string *php_zlib_encode(const char *in_buf, size_t in_len, int encod
 	if (Z_OK == (status = deflateInit2(&Z, level, Z_DEFLATED, encoding, MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY))) {
 		out = zend_string_alloc(PHP_ZLIB_BUFFER_SIZE_GUESS(in_len), 0);
 
-		Z.next_in = (Bytef *) in_buf;
-		Z.next_out = (Bytef *) ZSTR_VAL(out);
-		Z.avail_in = in_len;
-		Z.avail_out = ZSTR_LEN(out);
+		size_t left = in_len;
+		size_t out_used = 0;
 
-		status = deflate(&Z, Z_FINISH);
+		Z.next_in = (Bytef *) in_buf;
+
+		/* avail_in and avail_out are 32 bits wide: feed the input and offer the output in slices */
+		do {
+			uInt chunk = left > UINT_MAX ? UINT_MAX : (uInt) left;
+			int flush = (left - chunk) ? Z_NO_FLUSH : Z_FINISH;
+
+			left -= chunk;
+			Z.avail_in = chunk;
+
+			do {
+				size_t room = ZSTR_LEN(out) - out_used;
+				if (room == 0) {
+					status = Z_BUF_ERROR;
+					break;
+				}
+				Z.avail_out = room > UINT_MAX ? UINT_MAX : (uInt) room;
+				Z.next_out = (Bytef *) ZSTR_VAL(out) + out_used;
+				status = deflate(&Z, flush);
+				out_used += (room > UINT_MAX ? UINT_MAX : room) - Z.avail_out;
+			} while (status == Z_OK && (Z.avail_in > 0 || flush == Z_FINISH));
+		} while (left > 0 && status == Z_OK);
 		deflateEnd(&Z);
 
 		if (Z_STREAM_END == status) {
 			/* size buffer down to actual length */
-			out = zend_string_truncate(out, Z.total_out, 0);
+			out = zend_string_truncate(out, out_used, 0);
 			ZSTR_VAL(out)[ZSTR_LEN(out)] = '\0';
 			return out;
 		} else {
