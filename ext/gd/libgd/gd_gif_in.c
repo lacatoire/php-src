@@ -1499,34 +1499,18 @@ static int ReadImage(gdImagePtr im, gdIOCtx *fd, int len, int height, unsigned c
         if (xpos == len) {
             xpos = 0;
             if (interlace) {
-                switch (pass) {
-                case 0:
-                case 1:
-                    ypos += 8;
-                    break;
-                case 2:
-                    ypos += 4;
-                    break;
-                case 3:
-                    ypos += 2;
-                    break;
-                }
+                static const int pass_step[4] = {8, 8, 4, 2};
+                static const int pass_start[4] = {0, 4, 2, 1};
 
-                if (ypos >= height) {
+                ypos += pass_step[pass];
+
+                /* A pass whose first row is not in the image has no data in the stream */
+                while (ypos >= height) {
                     ++pass;
-                    switch (pass) {
-                    case 1:
-                        ypos = 4;
-                        break;
-                    case 2:
-                        ypos = 2;
-                        break;
-                    case 3:
-                        ypos = 1;
-                        break;
-                    default:
+                    if (pass > 3) {
                         goto fini;
                     }
+                    ypos = pass_start[pass];
                 }
             } else {
                 ++ypos;

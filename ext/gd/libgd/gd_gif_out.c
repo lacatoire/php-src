@@ -1005,35 +1005,14 @@ static void BumpPixel(GifCtx *ctx)
         if (!ctx->Interlace) {
             ++(ctx->cury);
         } else {
-            switch (ctx->Pass) {
+            /* A pass whose first row is not in the image has no data: skip it */
+            static const int pass_step[4] = {8, 8, 4, 2};
+            static const int pass_start[4] = {0, 4, 2, 1};
 
-            case 0:
-                ctx->cury += 8;
-                if (ctx->cury >= ctx->Height) {
-                    ++(ctx->Pass);
-                    ctx->cury = 4;
-                }
-                break;
-
-            case 1:
-                ctx->cury += 8;
-                if (ctx->cury >= ctx->Height) {
-                    ++(ctx->Pass);
-                    ctx->cury = 2;
-                }
-                break;
-
-            case 2:
-                ctx->cury += 4;
-                if (ctx->cury >= ctx->Height) {
-                    ++(ctx->Pass);
-                    ctx->cury = 1;
-                }
-                break;
-
-            case 3:
-                ctx->cury += 2;
-                break;
+            ctx->cury += pass_step[ctx->Pass];
+            while (ctx->cury >= ctx->Height && ctx->Pass < 3) {
+                ++(ctx->Pass);
+                ctx->cury = pass_start[ctx->Pass];
             }
         }
     }
