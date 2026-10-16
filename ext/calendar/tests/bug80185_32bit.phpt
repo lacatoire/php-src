@@ -21,6 +21,6 @@ try {
 }
 ?>
 --EXPECT--
-ValueError: jdtounix(): Argument #1 ($julian_day) jday must be between 2440588 and 2465443
+ValueError: jdtounix(): Argument #1 ($julian_day) must be between 2440588 and 2465443
 int(2147472000)
-ValueError: jdtounix(): Argument #1 ($julian_day) jday must be between 2440588 and 2465443
+ValueError: jdtounix(): Argument #1 ($julian_day) must be between 2440588 and 2465443
