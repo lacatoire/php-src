@@ -1366,7 +1366,7 @@ typedef struct {
 BGD_DECLARE(void) gdImagePngToSink(gdImagePtr im, gdSinkPtr out);
 BGD_DECLARE(void) gdImageQoiToSink(gdImagePtr im, gdSinkPtr out);
 
-BGD_DECLARE(void) gdImageGd2(gdImagePtr im, FILE *out, int cs, int fmt);
+BGD_DECLARE(int) gdImageGd2(gdImagePtr im, FILE *out, int cs, int fmt);
 
 /* Best to free this memory with gdFree(), not free() */
 BGD_DECLARE(void *) gdImageGd2Ptr(gdImagePtr im, int cs, int fmt, int *size);
