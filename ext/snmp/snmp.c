@@ -542,7 +542,9 @@ retry:
 									strcat(buf2, buf);
 									count++;
 								}
-								buf2[strlen(buf2) - 1] = '\0'; /* remove trailing '.' */
+								if (buf2[0] != '\0') {
+									buf2[strlen(buf2) - 1] = '\0'; /* remove trailing '.' */
+								}
 							}
 							add_assoc_zval(return_value, buf2, &snmpval);
 						} else {
