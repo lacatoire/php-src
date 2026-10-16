@@ -1005,6 +1005,8 @@ PHP_FUNCTION(inflate_add)
 			RETURN_THROWS();
 	}
 
+	bool was_ended = ctx->status == Z_STREAM_END;
+
 	/* Lazy-resetting the zlib stream so ctx->total_in remains available until the next inflate_add() call. */
 	if (ctx->status == Z_STREAM_END)
 	{
@@ -1048,6 +1050,12 @@ PHP_FUNCTION(inflate_add)
 					ctx->Z.avail_out = CHUNK_SIZE;
 					ctx->Z.next_out = (Bytef *) ZSTR_VAL(out) + buffer_used;
 					break;
+				} else if (flush_type == Z_FINISH && !(was_ended && in_len == 0)) {
+					/* The caller said this is the last chunk, but the stream did not end. An empty
+					 * call finishing a stream that already ended has nothing left to inflate. */
+					zend_string_release_ex(out, 0);
+					php_error_docref(NULL, E_WARNING, "%s", zError(status));
+					RETURN_FALSE;
 				} else {
 					/* No more input data; we're finished */
 					goto complete;
