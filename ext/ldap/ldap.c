@@ -3814,9 +3814,8 @@ static int _ldap_rebind_proc(LDAP *ldap, const char *url, ber_tag_t req, ber_int
 	int retval;
 	zval cb_args[2];
 	zval cb_retval;
-	zval *cb_link = (zval *) params;
 
-	ld = Z_LDAP_LINK_P(cb_link);
+	ld = (ldap_linkdata *) params;
 	if (!ld->link) {
 		zend_throw_error(NULL, "LDAP connection has already been closed");
 		return LDAP_OTHER;
@@ -3829,7 +3828,7 @@ static int _ldap_rebind_proc(LDAP *ldap, const char *url, ber_tag_t req, ber_int
 	}
 
 	/* callback */
-	ZVAL_COPY_VALUE(&cb_args[0], cb_link);
+	ZVAL_OBJ(&cb_args[0], &ld->std);
 	ZVAL_STRING(&cb_args[1], url);
 	zend_call_known_fcc(&ld->rebind_proc_fcc, &cb_retval, 2, cb_args, NULL);
 	if (EXPECTED(!Z_ISUNDEF(cb_retval))) {
@@ -3870,7 +3869,7 @@ PHP_FUNCTION(ldap_set_rebind_proc)
 	}
 	if (ZEND_FCC_INITIALIZED(fcc)) {
 		/* register rebind procedure */
-		ldap_set_rebind_proc(ld->link, _ldap_rebind_proc, (void *) link);
+		ldap_set_rebind_proc(ld->link, _ldap_rebind_proc, (void *) ld);
 		zend_fcc_dup(&ld->rebind_proc_fcc, &fcc);
 	} else {
 		/* unregister rebind procedure */
