@@ -719,6 +719,11 @@ static bool php_snmp_parse_oid(
 			objid_query->vars[objid_query->count].oid = ZSTR_VAL(tmp);
 			if (st & SNMP_CMD_SET) {
 				if (type_str) {
+					if (ZSTR_LEN(type_str) != 1) {
+						zend_argument_value_error(type_arg_num, "must be a single character");
+						php_free_objid_query(objid_query, oid_ht, value_ht, st);
+						return false;
+					}
 					pptr = ZSTR_VAL(type_str);
 					objid_query->vars[objid_query->count].type = *pptr;
 				} else if (type_ht) {
