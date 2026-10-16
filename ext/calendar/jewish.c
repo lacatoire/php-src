@@ -269,6 +269,7 @@
 
 #define JEWISH_SDN_OFFSET 347997
 #define JEWISH_SDN_MAX 324542846L /* 12/13/887605, greater value raises integer overflow */
+#define JEWISH_YEAR_MAX 887605 /* year of JEWISH_SDN_MAX */
 #define NEW_MOON_OF_CREATION 31524
 
 #define SUNDAY    0
@@ -710,10 +711,10 @@ zend_long JewishToSdn(
 	int yearLength;
 	int lengthOfAdarIAndII;
 
-	if (year <= 0 || year >= INT_MAX - 1 || day <= 0 || day > 30) {
+	if (year <= 0 || year > JEWISH_YEAR_MAX || day <= 0 || day > 30) {
 		return (0);
 	}
-	/* The check above leaves both year and year + 1 within int range. */
+	/* The check above keeps year, year + 1 and every start of year within int range. */
 	int int_year = (int) year;
 
 	switch (month) {
@@ -805,5 +806,10 @@ zend_long JewishToSdn(
 					return (0);
 			}
 	}
-	return (sdn + JEWISH_SDN_OFFSET);
+	sdn += JEWISH_SDN_OFFSET;
+	/* Dates SdnToJewish() cannot convert back are invalid too */
+	if (sdn > JEWISH_SDN_MAX) {
+		return (0);
+	}
+	return (sdn);
 }
