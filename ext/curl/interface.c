@@ -1622,6 +1622,46 @@ out_mime:
 }
 /* }}} */
 
+static int curl_is_cb_arg(void *element, void *cb_arg)
+{
+	return *(void **) element == cb_arg;
+}
+
+/* Builds a new mime structure for CURLOPT_POSTFIELDS. When the previous one is released by
+ * build_mime_structure_from_hash(), the callback arguments that belonged to it are released too. */
+static zend_result replace_mime_structure_from_hash(php_curl *ch, zval *zpostfields)
+{
+	void **old_args = NULL;
+	size_t old_count = 0;
+
+	if ((*ch->clone) == 1) {
+		old_count = zend_llist_count(&ch->to_free->stream);
+		if (old_count > 0) {
+			zend_llist_position pos;
+			void **cb_arg_p;
+			size_t i = 0;
+
+			old_args = safe_emalloc(old_count, sizeof(void *), 0);
+			for (cb_arg_p = zend_llist_get_first_ex(&ch->to_free->stream, &pos); cb_arg_p; cb_arg_p = zend_llist_get_next_ex(&ch->to_free->stream, &pos)) {
+				old_args[i++] = *cb_arg_p;
+			}
+		}
+	}
+
+	zend_result result = build_mime_structure_from_hash(ch, zpostfields);
+
+	if (old_args) {
+		if (result == SUCCESS) {
+			for (size_t i = 0; i < old_count; i++) {
+				zend_llist_del_element(&ch->to_free->stream, old_args[i], curl_is_cb_arg);
+			}
+		}
+		efree(old_args);
+	}
+
+	return result;
+}
+
 /* {{{ Copy a cURL handle along with all of it's preferences */
 PHP_FUNCTION(curl_copy_handle)
 {
@@ -2213,7 +2253,7 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 					curl_easy_setopt(ch->cp, CURLOPT_POSTFIELDS, "");
 					error = curl_easy_setopt(ch->cp, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t) 0);
 				} else {
-					return build_mime_structure_from_hash(ch, zvalue);
+					return replace_mime_structure_from_hash(ch, zvalue);
 				}
 			} else {
 				zend_string *tmp_str;
