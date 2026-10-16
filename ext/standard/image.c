@@ -1274,7 +1274,12 @@ PHP_FUNCTION(image_type_to_mime_type)
 		Z_PARAM_LONG(p_image_type)
 	ZEND_PARSE_PARAMETERS_END();
 
-	ZVAL_STRING(return_value, php_image_type_to_mime_type(p_image_type));
+	/* A value outside the int range must not wrap to a known type */
+	if (ZEND_LONG_EXCEEDS_INT(p_image_type)) {
+		p_image_type = IMAGE_FILETYPE_UNKNOWN;
+	}
+
+	ZVAL_STRING(return_value, php_image_type_to_mime_type((int) p_image_type));
 }
 /* }}} */
 
