@@ -122,6 +122,19 @@ static gdIOCtx *create_stream_context(php_stream *stream, int close_stream);
 static gdIOCtx *create_output_context(zval *to_zval, uint32_t arg_num);
 static int _php_image_type(zend_string *data);
 
+/* The writers read the pixels back through gdImageGetPixel(), which returns 0 outside the clipping
+ * rectangle: lift the clip while writing, it only limits drawing. */
+static void php_gd_lift_clip(gdImagePtr im, int clip[4])
+{
+	gdImageGetClip(im, &clip[0], &clip[1], &clip[2], &clip[3]);
+	gdImageSetClip(im, 0, 0, gdImageSX(im) - 1, gdImageSY(im) - 1);
+}
+
+static void php_gd_restore_clip(gdImagePtr im, const int clip[4])
+{
+	gdImageSetClip(im, clip[0], clip[1], clip[2], clip[3]);
+}
+
 /*********************************************************
  *
  * GD Object Representation
@@ -1902,7 +1915,10 @@ PHP_FUNCTION(imagexbm)
 		foreground_color = i;
 	}
 
+	int clip[4];
+	php_gd_lift_clip(im, clip);
 	gdImageXbmCtx(im, file ? file : "", (int) foreground_color, ctx);
+	php_gd_restore_clip(im, clip);
 
 	ctx->gd_free(ctx);
 
@@ -2162,7 +2178,10 @@ PHP_FUNCTION(imagewbmp)
 		foreground_color = i;
 	}
 
+	int clip[4];
+	php_gd_lift_clip(im, clip);
 	gdImageWBMPCtx(im, foreground_color, ctx);
+	php_gd_restore_clip(im, clip);
 
 	ctx->gd_free(ctx);
 
@@ -2207,7 +2226,10 @@ PHP_FUNCTION(imagebmp)
 		RETURN_FALSE;
 	}
 
+	int clip[4];
+	php_gd_lift_clip(im, clip);
 	gdImageBmpCtx(im, ctx, (int) compressed);
+	php_gd_restore_clip(im, clip);
 
 	ctx->gd_free(ctx);
 
