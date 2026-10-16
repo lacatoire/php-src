@@ -230,7 +230,17 @@ PHPAPI zval *php_set_session_var(zend_string *name, zval *state_val, php_unseria
 	IF_SESSION_VARS() {
 		zval *sess_var = Z_REFVAL(PS(http_session_vars));
 		SEPARATE_ARRAY(sess_var);
-		return zend_hash_update(Z_ARRVAL_P(sess_var), name, state_val);
+		zval *existing = zend_hash_find(Z_ARRVAL_P(sess_var), name);
+		if (!existing) {
+			return zend_hash_add_new(Z_ARRVAL_P(sess_var), name, state_val);
+		}
+		/* Store the new value before releasing the old one: its destructor may run user
+		 * code that replaces $_SESSION. */
+		zval old;
+		ZVAL_COPY_VALUE(&old, existing);
+		ZVAL_COPY_VALUE(existing, state_val);
+		zval_ptr_dtor(&old);
+		return php_get_session_var(name);
 	}
 	return NULL;
 }
@@ -1062,9 +1072,10 @@ PS_SERIALIZER_DECODE_FUNC(php_serialize)
 		ZVAL_NULL(&session_vars);
 	}
 
-	if (!Z_ISUNDEF(PS(http_session_vars))) {
-		zval_ptr_dtor(&PS(http_session_vars));
-	}
+	/* Release the old value last: its destructors may run user code. */
+	zval old_vars;
+	ZVAL_COPY_VALUE(&old_vars, &PS(http_session_vars));
+	ZVAL_UNDEF(&PS(http_session_vars));
 	if (Z_TYPE(session_vars) == IS_NULL) {
 		array_init(&session_vars);
 	}
@@ -1072,6 +1083,9 @@ PS_SERIALIZER_DECODE_FUNC(php_serialize)
 	Z_ADDREF_P(&PS(http_session_vars));
 	zend_hash_update_ind(&EG(symbol_table), var_name, &PS(http_session_vars));
 	zend_string_release_ex(var_name, false);
+	if (!Z_ISUNDEF(old_vars)) {
+		zval_ptr_dtor(&old_vars);
+	}
 	return result || !vallen ? SUCCESS : FAILURE;
 }
 
