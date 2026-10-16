@@ -783,10 +783,8 @@ static php_iconv_err_t _php_iconv_strpos(size_t *pretval,
 	size_t cnt;
 
 	zend_string *ndl_buf;
-	const char *ndl_buf_p;
-	size_t ndl_buf_left;
-
-	size_t match_ofs;
+	size_t *fail = NULL;
+	size_t ndl_chars, matched = 0;
 	bool more;
 
 	*pretval = (size_t)-1;
@@ -813,10 +811,23 @@ static php_iconv_err_t _php_iconv_strpos(size_t *pretval,
 		}
 	}
 
-	ndl_buf_p = ZSTR_VAL(ndl_buf);
-	ndl_buf_left = ZSTR_LEN(ndl_buf);
-	match_ofs = (size_t)-1;
-	more = haystk_nbytes > 0;
+	ndl_chars = ZSTR_LEN(ndl_buf) / GENERIC_SUPERSET_NBYTES;
+	more = haystk_nbytes > 0 && ndl_chars > 0;
+
+	/* Failure function of the needle (Knuth-Morris-Pratt), in characters */
+	if (ndl_chars > 0) {
+		fail = safe_emalloc(ndl_chars, sizeof(size_t), 0);
+		fail[0] = 0;
+		for (size_t q = 1, k = 0; q < ndl_chars; q++) {
+			while (k > 0 && !_php_iconv_memequal(&ZSTR_VAL(ndl_buf)[q * GENERIC_SUPERSET_NBYTES], &ZSTR_VAL(ndl_buf)[k * GENERIC_SUPERSET_NBYTES], GENERIC_SUPERSET_NBYTES)) {
+				k = fail[k - 1];
+			}
+			if (_php_iconv_memequal(&ZSTR_VAL(ndl_buf)[q * GENERIC_SUPERSET_NBYTES], &ZSTR_VAL(ndl_buf)[k * GENERIC_SUPERSET_NBYTES], GENERIC_SUPERSET_NBYTES)) {
+				k++;
+			}
+			fail[q] = k;
+		}
+	}
 
 	for (in_p = haystk, in_left = haystk_nbytes, cnt = 0; more; ++cnt) {
 		out_p = buf;
@@ -847,54 +858,26 @@ static php_iconv_err_t _php_iconv_strpos(size_t *pretval,
 			}
 		}
 		if (cnt >= offset) {
-			if (_php_iconv_memequal(buf, ndl_buf_p, sizeof(buf))) {
-				if (match_ofs == (size_t)-1) {
-					match_ofs = cnt;
+			while (matched > 0 && !_php_iconv_memequal(buf, &ZSTR_VAL(ndl_buf)[matched * GENERIC_SUPERSET_NBYTES], sizeof(buf))) {
+				matched = fail[matched - 1];
+			}
+			if (_php_iconv_memequal(buf, &ZSTR_VAL(ndl_buf)[matched * GENERIC_SUPERSET_NBYTES], sizeof(buf))) {
+				matched++;
+			}
+			if (matched == ndl_chars) {
+				*pretval = cnt + 1 - ndl_chars;
+				if (!reverse) {
+					/* If searching forward, stop at first match. */
+					break;
 				}
-				ndl_buf_p += GENERIC_SUPERSET_NBYTES;
-				ndl_buf_left -= GENERIC_SUPERSET_NBYTES;
-				if (ndl_buf_left == 0) {
-					*pretval = match_ofs;
-					if (reverse) {
-						/* If searching backward, continue trying to find a later match. */
-						ndl_buf_p = ZSTR_VAL(ndl_buf);
-						ndl_buf_left = ZSTR_LEN(ndl_buf);
-						match_ofs = -1;
-					} else {
-						/* If searching forward, stop at first match. */
-						break;
-					}
-				}
-			} else {
-				size_t i, j, lim;
-
-				i = 0;
-				j = GENERIC_SUPERSET_NBYTES;
-				lim = (size_t)(ndl_buf_p - ZSTR_VAL(ndl_buf));
-
-				while (j < lim) {
-					if (_php_iconv_memequal(&ZSTR_VAL(ndl_buf)[j], &ZSTR_VAL(ndl_buf)[i],
-							   GENERIC_SUPERSET_NBYTES)) {
-						i += GENERIC_SUPERSET_NBYTES;
-					} else {
-						j -= i;
-						i = 0;
-					}
-					j += GENERIC_SUPERSET_NBYTES;
-				}
-
-				if (_php_iconv_memequal(buf, &ZSTR_VAL(ndl_buf)[i], sizeof(buf))) {
-					match_ofs += (lim - i) / GENERIC_SUPERSET_NBYTES;
-					i += GENERIC_SUPERSET_NBYTES;
-					ndl_buf_p = &ZSTR_VAL(ndl_buf)[i];
-					ndl_buf_left = ZSTR_LEN(ndl_buf) - i;
-				} else {
-					match_ofs = (size_t)-1;
-					ndl_buf_p = ZSTR_VAL(ndl_buf);
-					ndl_buf_left = ZSTR_LEN(ndl_buf);
-				}
+				/* If searching backward, continue to find a later match, which may overlap */
+				matched = fail[matched - 1];
 			}
 		}
+	}
+
+	if (fail) {
+		efree(fail);
 	}
 
 	if (ndl_buf) {
