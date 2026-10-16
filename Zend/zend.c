@@ -1947,6 +1947,8 @@ ZEND_API ZEND_COLD void zend_user_exception_handler(void) /* {{{ */
 	ZVAL_COPY_VALUE(&orig_user_exception_handler, &EG(user_exception_handler));
 	zend_stack_push(&EG(user_exception_handlers), &orig_user_exception_handler);
 	ZVAL_UNDEF(&EG(user_exception_handler));
+	/* The handler may restore the previous handler twice, which drops the reference held by the stack */
+	Z_TRY_ADDREF(orig_user_exception_handler);
 
 	if (call_user_function(CG(function_table), NULL, &orig_user_exception_handler, &retval2, 1, params) == SUCCESS) {
 		zval_ptr_dtor(&retval2);
@@ -1958,6 +1960,7 @@ ZEND_API ZEND_COLD void zend_user_exception_handler(void) /* {{{ */
 	} else {
 		EG(exception) = old_exception;
 	}
+	zval_ptr_dtor(&orig_user_exception_handler);
 
 	if (Z_TYPE(EG(user_exception_handler)) == IS_UNDEF) {
 		zval *tmp = zend_stack_top(&EG(user_exception_handlers));
