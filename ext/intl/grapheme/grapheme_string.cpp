@@ -46,6 +46,8 @@ U_CFUNC PHP_FUNCTION(grapheme_strlen)
 	zend_long ret_len;
 	UErrorCode status;
 
+	intl_error_reset(nullptr);
+
 	ZEND_PARSE_PARAMETERS_START(1, 1)
 		Z_PARAM_STRING(string, string_len)
 	ZEND_PARSE_PARAMETERS_END();
@@ -95,6 +97,8 @@ U_CFUNC PHP_FUNCTION(grapheme_strpos)
 	int32_t offset = 0;
 	size_t noffset = 0;
 	zend_long ret_pos;
+
+	intl_error_reset(nullptr);
 
 	ZEND_PARSE_PARAMETERS_START(2, 4)
 		Z_PARAM_STRING(haystack, haystack_len)
@@ -151,6 +155,8 @@ U_CFUNC PHP_FUNCTION(grapheme_stripos)
 	int32_t offset = 0;
 	zend_long ret_pos;
 	int is_ascii;
+
+	intl_error_reset(nullptr);
 
 	ZEND_PARSE_PARAMETERS_START(2, 4)
 		Z_PARAM_STRING(haystack, haystack_len)
@@ -218,6 +224,8 @@ U_CFUNC PHP_FUNCTION(grapheme_strrpos)
 	zend_long ret_pos;
 	int is_ascii;
 
+	intl_error_reset(nullptr);
+
 	ZEND_PARSE_PARAMETERS_START(2, 4)
 		Z_PARAM_STRING(haystack, haystack_len)
 		Z_PARAM_STRING(needle, needle_len)
@@ -276,6 +284,8 @@ U_CFUNC PHP_FUNCTION(grapheme_strripos)
 	int32_t offset = 0;
 	zend_long ret_pos;
 	int is_ascii;
+
+	intl_error_reset(nullptr);
 
 	ZEND_PARSE_PARAMETERS_START(2, 4)
 		Z_PARAM_STRING(haystack, haystack_len)
@@ -351,6 +361,8 @@ U_CFUNC PHP_FUNCTION(grapheme_substr)
 	int sub_str_start_pos, sub_str_end_pos;
 	int32_t (*iter_func)(UBreakIterator *);
 	bool no_length = true;
+
+	intl_error_reset(nullptr);
 
 	ZEND_PARSE_PARAMETERS_START(2, 4)
 		Z_PARAM_STRING(str, str_len)
@@ -557,6 +569,8 @@ static void strstr_common_handler(INTERNAL_FUNCTION_PARAMETERS, int f_ignore_cas
 	int32_t ret_pos, uchar_pos;
 	bool part = false;
 
+	intl_error_reset(nullptr);
+
 	ZEND_PARSE_PARAMETERS_START(2, 4)
 		Z_PARAM_STRING(haystack, haystack_len)
 		Z_PARAM_STRING(needle, needle_len)
@@ -733,6 +747,8 @@ U_CFUNC PHP_FUNCTION(grapheme_extract)
 	int ret_pos;
 	zval *next = nullptr; /* return offset of next part of the string */
 
+	intl_error_reset(nullptr);
+
 	ZEND_PARSE_PARAMETERS_START(2, 5)
 		Z_PARAM_STRING(str, str_len)
 		Z_PARAM_LONG(size)
@@ -859,6 +875,8 @@ U_CFUNC PHP_FUNCTION(grapheme_str_split)
 	UBreakIterator* bi;
 	UText *ut = nullptr;
 
+	intl_error_reset(nullptr);
+
 	ZEND_PARSE_PARAMETERS_START(1, 2)
 		Z_PARAM_STR(str)
 		Z_PARAM_OPTIONAL
@@ -933,6 +951,8 @@ U_CFUNC PHP_FUNCTION(grapheme_levenshtein)
 	zend_long cost_del = 1;
 	char *locale = "";
 	size_t locale_len = 0;
+
+	intl_error_reset(nullptr);
 
 	ZEND_PARSE_PARAMETERS_START(2, 6)
 		Z_PARAM_STR(string1)
@@ -1140,6 +1160,8 @@ U_CFUNC PHP_FUNCTION(grapheme_strrev)
 	char *pstr, *end, *p;
 	zend_string *ret;
 	int32_t pos = 0, current = 0, end_len = 0;
+
+	intl_error_reset(nullptr);
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
 		Z_PARAM_STR(string)
