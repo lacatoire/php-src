@@ -509,6 +509,16 @@ PHP_FUNCTION(gd_info)
 
 #define FLIPWORD(a) (((a & 0xff000000) >> 24) | ((a & 0x00ff0000) >> 8) | ((a & 0x0000ff00) << 8) | ((a & 0x000000ff) << 24))
 
+/* Whether nchars * h * w is a positive int, without the warning of overflow2() */
+static bool php_gd_font_body_fits(const gdFont *font)
+{
+	if (font->nchars <= 0 || font->h <= 0 || font->w <= 0) {
+		return false;
+	}
+	zend_long chars_height = (zend_long) font->nchars * font->h;
+	return chars_height <= INT_MAX && chars_height * font->w <= INT_MAX;
+}
+
 /* {{{ Load a new font */
 PHP_FUNCTION(imageloadfont)
 {
@@ -560,28 +570,26 @@ PHP_FUNCTION(imageloadfont)
 	body_size_check = php_stream_tell(stream) - hdr_size;
 	php_stream_seek(stream, i, SEEK_SET);
 
-	if (overflow2(font->nchars, font->h) || overflow2(font->nchars * font->h, font->w )) {
-		php_error_docref(NULL, E_WARNING, "Error reading font, invalid font header");
-		efree(font);
-		php_stream_close(stream);
-		RETURN_FALSE;
-	}
-
-	body_size = font->w * font->h * font->nchars;
-	if (body_size != body_size_check) {
+	/* The header is in the byte order of the machine that wrote the file: try it as read, then
+	 * with the four integers swapped. */
+	bool size_ok = php_gd_font_body_fits(font);
+	body_size = size_ok ? font->w * font->h * font->nchars : -1;
+	if (!size_ok || body_size != body_size_check) {
+		font->offset = FLIPWORD(font->offset);
 		font->w = FLIPWORD(font->w);
 		font->h = FLIPWORD(font->h);
 		font->nchars = FLIPWORD(font->nchars);
-		if (overflow2(font->nchars, font->h) || overflow2(font->nchars * font->h, font->w )) {
+		size_ok = !(overflow2(font->nchars, font->h) || overflow2(font->nchars * font->h, font->w));
+		body_size = size_ok ? font->w * font->h * font->nchars : -1;
+		if (!size_ok) {
 			php_error_docref(NULL, E_WARNING, "Error reading font, invalid font header");
 			efree(font);
 			php_stream_close(stream);
 			RETURN_FALSE;
 		}
-		body_size = font->w * font->h * font->nchars;
 	}
 
-	if (body_size != body_size_check) {
+	if (body_size <= 0 || body_size != body_size_check) {
 		php_error_docref(NULL, E_WARNING, "Error reading font");
 		efree(font);
 		php_stream_close(stream);
