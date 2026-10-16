@@ -259,7 +259,7 @@ long_dim:
 		test = sxe->iter.name != NULL;
 	} else if (sxe->iter.type != SXE_ITER_CHILD) {
 		node = php_sxe_get_first_node_non_destructive(sxe, node);
-		attr = node ? node->properties : NULL;
+		attr = (node && node->type != XML_ENTITY_DECL) ? node->properties : NULL;
 		test = 0;
 		if (!member && node && node->parent &&
 		    node->parent->type == XML_DOCUMENT_NODE) {
@@ -441,7 +441,7 @@ long_dim:
 	} else if (sxe->iter.type != SXE_ITER_CHILD) {
 		mynode = node;
 		node = php_sxe_get_first_node_non_destructive(sxe, node);
-		attr = node ? node->properties : NULL;
+		attr = (node && node->type != XML_ENTITY_DECL) ? node->properties : NULL;
 		test = 0;
 		if (!member && node && node->parent &&
 		    node->parent->type == XML_DOCUMENT_NODE) {
@@ -707,7 +707,7 @@ static int sxe_prop_dim_exists(zend_object *object, zval *member, int check_empt
 		test = sxe->iter.name != NULL;
 	} else if (sxe->iter.type != SXE_ITER_CHILD) {
 		node = php_sxe_get_first_node_non_destructive(sxe, node);
-		attr = node ? node->properties : NULL;
+		attr = (node && node->type != XML_ENTITY_DECL) ? node->properties : NULL;
 		test = 0;
 	}
 
@@ -825,7 +825,7 @@ static void sxe_prop_dim_delete(zend_object *object, zval *member, sxe_access_mo
 		test = sxe->iter.name != NULL;
 	} else if (sxe->iter.type != SXE_ITER_CHILD) {
 		node = php_sxe_get_first_node_non_destructive(sxe, node);
-		attr = node ? node->properties : NULL;
+		attr = (node && node->type != XML_ENTITY_DECL) ? node->properties : NULL;
 		test = 0;
 	}
 
@@ -2409,7 +2409,8 @@ static xmlNodePtr php_sxe_reset_iterator_no_clear_iter_data(php_sxe_object *sxe,
 				node = node->children;
 				break;
 			case SXE_ITER_ATTRLIST:
-				node = (xmlNodePtr) node->properties;
+				/* An entity declaration has no attribute list in this slot */
+				node = node->type == XML_ENTITY_DECL ? NULL : (xmlNodePtr) node->properties;
 		}
 		if (use_data) {
 			ZEND_ASSERT(Z_ISUNDEF(sxe->iter.data));
