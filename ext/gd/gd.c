@@ -2291,15 +2291,18 @@ PHP_FUNCTION(imagecolorat)
 
 	im = php_gd_libgdimageptr_from_zval_p(IM);
 
+	/* The clipping rectangle only limits drawing, not reading */
+	const bool in_image = x >= 0 && x < gdImageSX(im) && y >= 0 && y < gdImageSY(im);
+
 	if (gdImageTrueColor(im)) {
-		if (im->tpixels && gdImageBoundsSafe(im, x, y)) {
+		if (im->tpixels && in_image) {
 			RETURN_LONG(gdImageTrueColorPixel(im, x, y));
 		} else {
 			php_error_docref(NULL, E_NOTICE, "" ZEND_LONG_FMT "," ZEND_LONG_FMT " is out of bounds", x, y);
 			RETURN_FALSE;
 		}
 	} else {
-		if (im->pixels && gdImageBoundsSafe(im, x, y)) {
+		if (im->pixels && in_image) {
 			RETURN_LONG(im->pixels[y][x]);
 		} else {
 			php_error_docref(NULL, E_NOTICE, "" ZEND_LONG_FMT "," ZEND_LONG_FMT " is out of bounds", x, y);
