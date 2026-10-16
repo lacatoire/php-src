@@ -2170,6 +2170,12 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 				ZVAL_DEREF(current);
 				val = zval_get_tmp_string(current, &tmp_val);
 
+				if (UNEXPECTED(EG(exception))) {
+					curl_slist_free_all(slist);
+					zend_tmp_string_release(tmp_val);
+					return FAILURE;
+				}
+
 				if (zend_str_has_nul_byte(val)) {
 					curl_slist_free_all(slist);
 					zend_tmp_string_release(tmp_val);
