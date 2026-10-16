@@ -659,20 +659,45 @@ static zend_result convert_zstr_to_gmp(mpz_t gmp_number, const zend_string *val,
 		--num_len;
 	}
 
-	if (num_len >= 2 && num_str[0] == '0') {
-		if ((base == 0 || base == 16) && (num_str[1] == 'x' || num_str[1] == 'X')) {
+	/* A sign goes before the prefix: -0x10 */
+	const char *unsigned_str = num_str;
+	size_t unsigned_len = num_len;
+	bool negative = false;
+	if (unsigned_len >= 1 && unsigned_str[0] == '-') {
+		unsigned_str++;
+		unsigned_len--;
+		negative = true;
+	}
+
+	if (unsigned_len >= 2 && unsigned_str[0] == '0') {
+		if ((base == 0 || base == 16) && (unsigned_str[1] == 'x' || unsigned_str[1] == 'X')) {
 			base = 16;
 			skip_lead = true;
-		} else if ((base == 0 || base == 8) && (num_str[1] == 'o' || num_str[1] == 'O')) {
+		} else if ((base == 0 || base == 8) && (unsigned_str[1] == 'o' || unsigned_str[1] == 'O')) {
 			base = 8;
 			skip_lead = true;
-		} else if ((base == 0 || base == 2) && (num_str[1] == 'b' || num_str[1] == 'B')) {
+		} else if ((base == 0 || base == 2) && (unsigned_str[1] == 'b' || unsigned_str[1] == 'B')) {
 			base = 2;
 			skip_lead = true;
 		}
 	}
 
-	int gmp_ret = mpz_set_str(gmp_number, (skip_lead ? &num_str[2] : num_str), (int) base);
+	if (skip_lead) {
+		num_str = unsigned_str + 2;
+		/* No second sign after the prefix */
+		if (*num_str == '-' || *num_str == '+') {
+			if (arg_pos == 0) {
+				zend_value_error("Number is not an integer string");
+			} else {
+				zend_argument_value_error(arg_pos, "is not an integer string");
+			}
+			return FAILURE;
+		}
+	} else {
+		negative = false;
+	}
+
+	int gmp_ret = mpz_set_str(gmp_number, num_str, (int) base);
 	if (-1 == gmp_ret) {
 		if (arg_pos == 0) {
 			zend_value_error("Number is not an integer string");
@@ -680,6 +705,10 @@ static zend_result convert_zstr_to_gmp(mpz_t gmp_number, const zend_string *val,
 			zend_argument_value_error(arg_pos, "is not an integer string");
 		}
 		return FAILURE;
+	}
+
+	if (negative) {
+		mpz_neg(gmp_number, gmp_number);
 	}
 
 	return SUCCESS;
