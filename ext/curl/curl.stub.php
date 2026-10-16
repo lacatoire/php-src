@@ -1089,6 +1089,47 @@ const CURLM_OUT_OF_MEMORY = UNKNOWN;
  * @cvalue CURLM_ADDED_ALREADY
  */
 const CURLM_ADDED_ALREADY = UNKNOWN;
+/**
+ * @var int
+ * @cvalue CURLM_BAD_SOCKET
+ */
+const CURLM_BAD_SOCKET = UNKNOWN;
+/**
+ * @var int
+ * @cvalue CURLM_UNKNOWN_OPTION
+ */
+const CURLM_UNKNOWN_OPTION = UNKNOWN;
+/**
+ * @var int
+ * @cvalue CURLM_RECURSIVE_API_CALL
+ */
+const CURLM_RECURSIVE_API_CALL = UNKNOWN;
+#if LIBCURL_VERSION_NUM >= 0x074400 /* Available since 7.68.0 */
+/**
+ * @var int
+ * @cvalue CURLM_WAKEUP_FAILURE
+ */
+const CURLM_WAKEUP_FAILURE = UNKNOWN;
+#endif
+#if LIBCURL_VERSION_NUM >= 0x074500 /* Available since 7.69.0 */
+/**
+ * @var int
+ * @cvalue CURLM_BAD_FUNCTION_ARGUMENT
+ */
+const CURLM_BAD_FUNCTION_ARGUMENT = UNKNOWN;
+#endif
+/**
+ * @var int
+ * @cvalue CURLM_ABORTED_BY_CALLBACK
+ */
+const CURLM_ABORTED_BY_CALLBACK = UNKNOWN;
+#if LIBCURL_VERSION_NUM >= 0x074d00 /* Available since 7.77.0 */
+/**
+ * @var int
+ * @cvalue CURLM_UNRECOVERABLE_POLL
+ */
+const CURLM_UNRECOVERABLE_POLL = UNKNOWN;
+#endif
 
 /* Curl proxy constants */
 /**
