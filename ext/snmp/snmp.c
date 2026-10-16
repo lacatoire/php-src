@@ -378,6 +378,38 @@ static void php_snmp_getvalue(struct variable_list *vars, zval *snmpval, int val
 }
 /* }}} */
 
+/* net-snmp 5.9 writes the bits of a BITS value into a 256 byte buffer and grows it only once:
+ * refuse bit numbers that would not fit in the initial size. */
+#define PHP_SNMP_BITS_MAX_BIT 2048
+
+static int php_snmp_add_var(netsnmp_pdu *pdu, const oid *name, size_t name_length, char type, const char *value)
+{
+	if (type == 'b') {
+		const char *cp = value;
+		while (*cp) {
+			while (*cp == ' ' || *cp == ',' || *cp == '\t') {
+				cp++;
+			}
+			if (!*cp) {
+				break;
+			}
+			char *end;
+			unsigned long bit = strtoul(cp, &end, 0);
+			if (end != cp && (*end == '\0' || *end == ' ' || *end == ',' || *end == '\t')) {
+				if (*cp == '-' || bit >= PHP_SNMP_BITS_MAX_BIT) {
+					return SNMPERR_RANGE;
+				}
+			}
+			while (*end && *end != ' ' && *end != ',' && *end != '\t') {
+				end++;
+			}
+			cp = end;
+		}
+	}
+
+	return snmp_add_var(pdu, name, name_length, type, value);
+}
+
 /* {{{ php_snmp_internal
 *
 * SNMP object fetcher/setter for all SNMP versions
@@ -448,7 +480,7 @@ static void php_snmp_internal(INTERNAL_FUNCTION_PARAMETERS, int st,
 			}
 			for (count = 0; objid_query->offset < objid_query->count && count < objid_query->step; objid_query->offset++, count++){
 				if (st & SNMP_CMD_SET) {
-					if ((snmp_errno = snmp_add_var(pdu, objid_query->vars[objid_query->offset].name, objid_query->vars[objid_query->offset].name_length, objid_query->vars[objid_query->offset].type, objid_query->vars[objid_query->offset].value))) {
+					if ((snmp_errno = php_snmp_add_var(pdu, objid_query->vars[objid_query->offset].name, objid_query->vars[objid_query->offset].name_length, objid_query->vars[objid_query->offset].type, objid_query->vars[objid_query->offset].value))) {
 						snprint_objid(buf, sizeof(buf), objid_query->vars[objid_query->offset].name, objid_query->vars[objid_query->offset].name_length);
 						php_snmp_error(getThis(), PHP_SNMP_ERRNO_OID_PARSING_ERROR, "Could not add variable: OID='%s' type='%c' value='%s': %s", buf, objid_query->vars[objid_query->offset].type, objid_query->vars[objid_query->offset].value, snmp_api_errstring(snmp_errno));
 						snmp_free_pdu(pdu);
