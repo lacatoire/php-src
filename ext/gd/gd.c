@@ -807,9 +807,14 @@ PHP_FUNCTION(imagesetthickness)
 		Z_PARAM_LONG(thick)
 	ZEND_PARSE_PARAMETERS_END();
 
+	if (thick < 0 || ZEND_LONG_INT_OVFL(thick)) {
+		zend_argument_value_error(2, "must be between 0 and %d", INT_MAX);
+		RETURN_THROWS();
+	}
+
 	im = php_gd_libgdimageptr_from_zval_p(IM);
 
-	gdImageSetThickness(im, thick);
+	gdImageSetThickness(im, (int) thick);
 
 	RETURN_TRUE;
 }
