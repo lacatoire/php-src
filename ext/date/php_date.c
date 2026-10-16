@@ -3337,6 +3337,9 @@ static bool php_date_modify(zval *object, char *modify, size_t modify_len, const
 
 	if (tmp_time->us != TIMELIB_UNSET) {
 		dateobj->time->us = tmp_time->us;
+	} else if (tmp_time->h != TIMELIB_UNSET) {
+		/* An absolute time of day such as "1400" does not keep the previous microseconds */
+		dateobj->time->us = 0;
 	}
 
 	/* Reset timezone to UTC if we detect a "@<ts>" modification */
