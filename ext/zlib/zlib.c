@@ -1005,8 +1005,9 @@ PHP_FUNCTION(inflate_add)
 			RETURN_THROWS();
 	}
 
-	/* Lazy-resetting the zlib stream so ctx->total_in remains available until the next inflate_add() call. */
-	if (ctx->status == Z_STREAM_END)
+	/* Lazy-resetting the zlib stream so ctx->total_in remains available until the next inflate_add() call
+	 * with data: an empty call must not erase the status of the finished stream. */
+	if (ctx->status == Z_STREAM_END && in_len > 0)
 	{
 		ctx->status = Z_OK;
 		inflateReset(&ctx->Z);
