@@ -4228,17 +4228,17 @@ PHP_FUNCTION(ldap_exop_passwd)
 	}
 
 	/* return */
-	if (lnewpw.bv_len == 0) {
+	if (err != LDAP_SUCCESS) {
+		php_error_docref(NULL, E_WARNING, "Passwd modify extended operation failed: %s (%d)", (errmsg ? errmsg : ldap_err2string(err)), err);
+		RETVAL_FALSE;
+	} else if (lnewpw.bv_len == 0) {
 		if (lgenpasswd.bv_len == 0) {
 			RETVAL_EMPTY_STRING();
 		} else {
 			RETVAL_STRINGL(lgenpasswd.bv_val, lgenpasswd.bv_len);
 		}
-	} else if (err == LDAP_SUCCESS) {
-		RETVAL_TRUE;
 	} else {
-		php_error_docref(NULL, E_WARNING, "Passwd modify extended operation failed: %s (%d)", (errmsg ? errmsg : ldap_err2string(err)), err);
-		RETVAL_FALSE;
+		RETVAL_TRUE;
 	}
 
 cleanup:
