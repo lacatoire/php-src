@@ -933,9 +933,14 @@ PHP_FUNCTION(imagelayereffect)
 		Z_PARAM_LONG(effect)
 	ZEND_PARSE_PARAMETERS_END();
 
+	if (effect < gdEffectReplace || effect > gdEffectMultiply) {
+		zend_argument_value_error(2, "must be one of the IMG_EFFECT_* constants");
+		RETURN_THROWS();
+	}
+
 	im = php_gd_libgdimageptr_from_zval_p(IM);
 
-	gdImageAlphaBlending(im, effect);
+	gdImageAlphaBlending(im, (int) effect);
 
 	RETURN_TRUE;
 }
