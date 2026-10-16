@@ -2916,6 +2916,9 @@ PHP_FUNCTION(socket_addrinfo_lookup)
 			res = Z_ADDRESS_INFO_P(&zaddr);
 
 			memcpy(&res->addrinfo, rp, sizeof(struct addrinfo));
+			/* The libc pointers must not reach address_info_free_obj() if an allocation below fails */
+			res->addrinfo.ai_addr = NULL;
+			res->addrinfo.ai_canonname = NULL;
 
 			res->addrinfo.ai_addr = emalloc(rp->ai_addrlen);
 			memcpy(res->addrinfo.ai_addr, rp->ai_addr, rp->ai_addrlen);
