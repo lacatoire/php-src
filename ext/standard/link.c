@@ -125,6 +125,14 @@ PHP_FUNCTION(symlink)
 		Z_PARAM_PATH(frompath, frompath_len)
 	ZEND_PARSE_PARAMETERS_END();
 
+	/* The check has to precede the expansion, which hides the scheme of a URL */
+	if (php_stream_locate_url_wrapper(frompath, NULL, STREAM_LOCATE_WRAPPERS_ONLY) ||
+		php_stream_locate_url_wrapper(topath, NULL, STREAM_LOCATE_WRAPPERS_ONLY) )
+	{
+		php_error_docref(NULL, E_WARNING, "Unable to symlink to a URL");
+		RETURN_FALSE;
+	}
+
 	if (!expand_filepath(frompath, source_p)) {
 		php_error_docref(NULL, E_WARNING, "No such file or directory");
 		RETURN_FALSE;
@@ -135,13 +143,6 @@ PHP_FUNCTION(symlink)
 
 	if (!expand_filepath_ex(topath, dest_p, dirname, len)) {
 		php_error_docref(NULL, E_WARNING, "No such file or directory");
-		RETURN_FALSE;
-	}
-
-	if (php_stream_locate_url_wrapper(source_p, NULL, STREAM_LOCATE_WRAPPERS_ONLY) ||
-		php_stream_locate_url_wrapper(dest_p, NULL, STREAM_LOCATE_WRAPPERS_ONLY) )
-	{
-		php_error_docref(NULL, E_WARNING, "Unable to symlink to a URL");
 		RETURN_FALSE;
 	}
 
@@ -181,15 +182,16 @@ PHP_FUNCTION(link)
 		Z_PARAM_PATH(frompath, frompath_len)
 	ZEND_PARSE_PARAMETERS_END();
 
-	if (!expand_filepath(frompath, source_p) || !expand_filepath(topath, dest_p)) {
-		php_error_docref(NULL, E_WARNING, "No such file or directory");
+	/* The check has to precede the expansion, which hides the scheme of a URL */
+	if (php_stream_locate_url_wrapper(frompath, NULL, STREAM_LOCATE_WRAPPERS_ONLY) ||
+		php_stream_locate_url_wrapper(topath, NULL, STREAM_LOCATE_WRAPPERS_ONLY) )
+	{
+		php_error_docref(NULL, E_WARNING, "Unable to link to a URL");
 		RETURN_FALSE;
 	}
 
-	if (php_stream_locate_url_wrapper(source_p, NULL, STREAM_LOCATE_WRAPPERS_ONLY) ||
-		php_stream_locate_url_wrapper(dest_p, NULL, STREAM_LOCATE_WRAPPERS_ONLY) )
-	{
-		php_error_docref(NULL, E_WARNING, "Unable to link to a URL");
+	if (!expand_filepath(frompath, source_p) || !expand_filepath(topath, dest_p)) {
+		php_error_docref(NULL, E_WARNING, "No such file or directory");
 		RETURN_FALSE;
 	}
 
