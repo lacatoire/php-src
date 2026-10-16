@@ -48,6 +48,8 @@ typedef struct dba_info {
 	int flags; /* whether and how dba did locking and other flags*/
 	const struct dba_handler *hnd;
 	dba_lock lock;
+	/* number of connection objects using this (persistent) info */
+	uint32_t users;
 } dba_info;
 
 typedef struct dba_connection {
