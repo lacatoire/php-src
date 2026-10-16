@@ -1624,7 +1624,7 @@ gdImageRotateInterpolated(const gdImagePtr src, const float angle, int bgcolor)
     /* round to two decimals and keep the 100x multiplication to use it in the
        common square angles case later. Keep the two decimal precisions so
        smaller rotation steps can be done, useful for slow animations, f.e. */
-    const int angle_rounded = fmod((int)floorf(angle * 100), 360 * 100);
+    const int angle_rounded = fmod((int)roundf(angle * 100), 360 * 100);
     gdImagePtr src_tc = src;
     int src_cloned = 0;
     if (src == NULL || bgcolor < 0) {
