@@ -1326,7 +1326,7 @@ BGD_DECLARE(void) gdImageWebp(gdImagePtr im, FILE *outFile);
 BGD_DECLARE(void *) gdImageWebpPtr(gdImagePtr im, int *size);
 BGD_DECLARE(void *)
 gdImageWebpPtrEx(gdImagePtr im, int *size, int quantization);
-BGD_DECLARE(void)
+BGD_DECLARE(int)
 gdImageWebpCtx(gdImagePtr im, gdIOCtxPtr outfile, int quantization);
 
 
