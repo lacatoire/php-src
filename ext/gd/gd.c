@@ -1966,15 +1966,14 @@ PHP_FUNCTION(imagepng)
 
 	im = php_gd_libgdimageptr_from_zval_p(imgind);
 
+	if (quality < -1 || quality > 9) {
+		zend_argument_value_error(3, "must be between -1 and 9");
+		RETURN_THROWS();
+	}
+
 	ctx = create_output_context(to_zval, 2);
 	if (!ctx) {
 		RETURN_FALSE;
-	}
-
-	if (quality < -1 || quality > 9) {
-		zend_argument_value_error(3, "must be between -1 and 9");
-		ctx->gd_free(ctx);
-		RETURN_THROWS();
 	}
 
 #ifdef HAVE_GD_BUNDLED
@@ -2027,15 +2026,14 @@ PHP_FUNCTION(imagewebp)
 
 	im = php_gd_libgdimageptr_from_zval_p(imgind);
 
+	if (quality < -1) {
+		zend_argument_value_error(3, "must be greater than or equal to -1");
+		RETURN_THROWS();
+	}
+
 	ctx = create_output_context(to_zval, 2);
 	if (!ctx) {
 		RETURN_FALSE;
-	}
-
-	if (quality < -1) {
-		zend_argument_value_error(3, "must be greater than or equal to -1");
-		ctx->gd_free(ctx);
-		RETURN_THROWS();
 	}
 
 	gdImageWebpCtx(im, ctx, (int) quality);
@@ -2063,23 +2061,21 @@ PHP_FUNCTION(imageavif)
 
 	im = php_gd_libgdimageptr_from_zval_p(imgind);
 
-	ctx = create_output_context(to_zval, 2);
-	if (!ctx) {
-		RETURN_FALSE;
-	}
-
 	if (quality < -1 || quality > 100) {
 		zend_argument_value_error(3, "must be between -1 and 100");
-		ctx->gd_free(ctx);
 		RETURN_THROWS();
 	}
 
 	if (speed < -1 || speed > 10) {
 		zend_argument_value_error(4, "must be between -1 and 10");
-		ctx->gd_free(ctx);
 		RETURN_THROWS();
 	} else if (speed == -1) {
 		speed = 6;
+	}
+
+	ctx = create_output_context(to_zval, 2);
+	if (!ctx) {
+		RETURN_FALSE;
 	}
 
 	gdImageAvifCtx(im, ctx, (int) quality, (int) speed);
@@ -2107,15 +2103,14 @@ PHP_FUNCTION(imagejpeg)
 
 	im = php_gd_libgdimageptr_from_zval_p(imgind);
 
+	if (quality < -1 || quality > 100) {
+		zend_argument_value_error(3, "must be at between -1 and 100");
+		RETURN_THROWS();
+	}
+
 	ctx = create_output_context(to_zval, 2);
 	if (!ctx) {
 		RETURN_FALSE;
-	}
-
-	if (quality < -1 || quality > 100) {
-		zend_argument_value_error(3, "must be at between -1 and 100");
-		ctx->gd_free(ctx);
-		RETURN_THROWS();
 	}
 
 	gdImageJpegCtx(im, ctx, (int) quality);
