@@ -3610,6 +3610,7 @@ static void php_date_timezone_set(zval *object, zval *timezone_object, zval *ret
 	dateobj = Z_PHPDATE_P(object);
 	DATE_CHECK_INITIALIZED(dateobj->time, Z_OBJCE_P(object));
 	tzobj = Z_PHPTIMEZONE_P(timezone_object);
+	DATE_CHECK_INITIALIZED(tzobj->initialized, Z_OBJCE_P(timezone_object));
 
 	switch (tzobj->type) {
 		case TIMELIB_ZONETYPE_OFFSET:
