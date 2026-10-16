@@ -2976,6 +2976,16 @@ static void _php_curl_reset_handlers(php_curl *ch)
 		ZVAL_UNDEF(&ch->handlers.std_err);
 	}
 
+	if (ZEND_FCC_INITIALIZED(ch->handlers.write->fcc)) {
+		zend_fcc_dtor(&ch->handlers.write->fcc);
+	}
+	if (ZEND_FCC_INITIALIZED(ch->handlers.write_header->fcc)) {
+		zend_fcc_dtor(&ch->handlers.write_header->fcc);
+	}
+	if (ZEND_FCC_INITIALIZED(ch->handlers.read->fcc)) {
+		zend_fcc_dtor(&ch->handlers.read->fcc);
+	}
+
 	if (ZEND_FCC_INITIALIZED(ch->handlers.seek)) {
 		zend_fcc_dtor(&ch->handlers.seek);
 	}
