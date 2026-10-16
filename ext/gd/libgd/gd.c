@@ -2272,6 +2272,10 @@ BGD_DECLARE(void) gdImageFillToBorder(gdImagePtr im, int x, int y, int border, i
     int leftLimit, rightLimit;
     int i;
     int restoreAlphaBlending = 0;
+    /* Seeds of the spans still to paint: a recursion per span overflows the C stack on a
+     * long corridor. */
+    int *seeds = NULL;
+    size_t seed_count = 0, seed_alloc = 0;
 
     if (border < 0 || color < 0) {
         /* Refuse to fill to a non-solid border */
@@ -2283,8 +2287,6 @@ BGD_DECLARE(void) gdImageFillToBorder(gdImagePtr im, int x, int y, int border, i
             return;
         }
     }
-
-    leftLimit = (-1);
 
     restoreAlphaBlending = im->alphaBlendingFlag;
     im->alphaBlendingFlag = 0;
@@ -2300,57 +2302,85 @@ BGD_DECLARE(void) gdImageFillToBorder(gdImagePtr im, int x, int y, int border, i
         y = 0;
     }
 
-    for (i = x; (i >= 0); i--) {
-        if (gdImageGetPixel(im, i, y) == border) {
-            break;
+#define FILL_TO_BORDER_PUSH(sx_, sy_)                                                              \
+    do {                                                                                           \
+        if (seed_count == seed_alloc) {                                                            \
+            size_t new_alloc = seed_alloc ? seed_alloc * 2 : 64;                                   \
+            int *new_seeds = (int *)gdReallocEx(seeds, new_alloc * 2 * sizeof(int));               \
+            if (new_seeds == NULL) {                                                               \
+                goto out_of_memory;                                                                \
+            }                                                                                      \
+            seeds = new_seeds;                                                                     \
+            seed_alloc = new_alloc;                                                                \
+        }                                                                                          \
+        seeds[seed_count * 2] = (sx_);                                                             \
+        seeds[seed_count * 2 + 1] = (sy_);                                                         \
+        seed_count++;                                                                              \
+    } while (0)
+
+    FILL_TO_BORDER_PUSH(x, y);
+
+    while (seed_count > 0) {
+        seed_count--;
+        x = seeds[seed_count * 2];
+        y = seeds[seed_count * 2 + 1];
+
+        leftLimit = (-1);
+        for (i = x; (i >= 0); i--) {
+            if (gdImageGetPixel(im, i, y) == border) {
+                break;
+            }
+            gdImageSetPixel(im, i, y, color);
+            leftLimit = i;
         }
-        gdImageSetPixel(im, i, y, color);
-        leftLimit = i;
-    }
-    if (leftLimit == (-1)) {
-        im->alphaBlendingFlag = restoreAlphaBlending;
-        return;
-    }
-    /* Seek right */
-    rightLimit = x;
-    for (i = (x + 1); (i < im->sx); i++) {
-        if (gdImageGetPixel(im, i, y) == border) {
-            break;
+        if (leftLimit == (-1)) {
+            continue;
         }
-        gdImageSetPixel(im, i, y, color);
-        rightLimit = i;
-    }
-    /* Look at lines above and below and start paints */
-    /* Above */
-    if (y > 0) {
-        lastBorder = 1;
-        for (i = leftLimit; (i <= rightLimit); i++) {
-            int c = gdImageGetPixel(im, i, y - 1);
-            if (lastBorder) {
-                if ((c != border) && (c != color)) {
-                    gdImageFillToBorder(im, i, y - 1, border, color);
-                    lastBorder = 0;
+        /* Seek right */
+        rightLimit = x;
+        for (i = (x + 1); (i < im->sx); i++) {
+            if (gdImageGetPixel(im, i, y) == border) {
+                break;
+            }
+            gdImageSetPixel(im, i, y, color);
+            rightLimit = i;
+        }
+        /* Look at lines above and below and start paints */
+        /* Above */
+        if (y > 0) {
+            lastBorder = 1;
+            for (i = leftLimit; (i <= rightLimit); i++) {
+                int c = gdImageGetPixel(im, i, y - 1);
+                if (lastBorder) {
+                    if ((c != border) && (c != color)) {
+                        FILL_TO_BORDER_PUSH(i, y - 1);
+                        lastBorder = 0;
+                    }
+                } else if ((c == border) || (c == color)) {
+                    lastBorder = 1;
                 }
-            } else if ((c == border) || (c == color)) {
-                lastBorder = 1;
+            }
+        }
+        /* Below */
+        if (y < ((im->sy) - 1)) {
+            lastBorder = 1;
+            for (i = leftLimit; (i <= rightLimit); i++) {
+                int c = gdImageGetPixel(im, i, y + 1);
+                if (lastBorder) {
+                    if ((c != border) && (c != color)) {
+                        FILL_TO_BORDER_PUSH(i, y + 1);
+                        lastBorder = 0;
+                    }
+                } else if ((c == border) || (c == color)) {
+                    lastBorder = 1;
+                }
             }
         }
     }
-    /* Below */
-    if (y < ((im->sy) - 1)) {
-        lastBorder = 1;
-        for (i = leftLimit; (i <= rightLimit); i++) {
-            int c = gdImageGetPixel(im, i, y + 1);
-            if (lastBorder) {
-                if ((c != border) && (c != color)) {
-                    gdImageFillToBorder(im, i, y + 1, border, color);
-                    lastBorder = 0;
-                }
-            } else if ((c == border) || (c == color)) {
-                lastBorder = 1;
-            }
-        }
-    }
+
+out_of_memory:
+#undef FILL_TO_BORDER_PUSH
+    gdFree(seeds);
     im->alphaBlendingFlag = restoreAlphaBlending;
 }
 
