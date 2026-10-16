@@ -5557,6 +5557,9 @@ static void php_do_date_sunrise_sunset(INTERNAL_FUNCTION_PARAMETERS, bool calc_s
 	if (!zend_finite(latitude) || !zend_finite(longitude)) {
 		RETURN_FALSE;
 	}
+	if (latitude < -90.0 || latitude > 90.0 || longitude < -180.0 || longitude > 180.0) {
+		RETURN_FALSE;
+	}
 
 	/* Initialize time struct */
 	tzi = get_timezone_info();
@@ -5639,6 +5642,14 @@ PHP_FUNCTION(date_sun_info)
 	}
 	if (!zend_finite(longitude)) {
 		zend_argument_value_error(3, "must be finite");
+		RETURN_THROWS();
+	}
+	if (latitude < -90.0 || latitude > 90.0) {
+		zend_argument_value_error(2, "must be between -90 and 90");
+		RETURN_THROWS();
+	}
+	if (longitude < -180.0 || longitude > 180.0) {
+		zend_argument_value_error(3, "must be between -180 and 180");
 		RETURN_THROWS();
 	}
 
