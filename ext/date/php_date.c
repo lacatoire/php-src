@@ -3806,6 +3806,7 @@ static void php_date_isodate_set(zval *object, zend_long y, zend_long w, zend_lo
 	dateobj->time->have_relative = 1;
 
 	timelib_update_ts(dateobj->time, NULL);
+	timelib_update_from_sse(dateobj->time);
 } /* }}} */
 
 /* {{{ Sets the ISO date. */
