@@ -8,8 +8,8 @@ mbstring
 <?php
 
 // Regression test; the old implementation could only emit hexadecimal entities with about 5 digits
-$convmap = [0xffffffff, 0xffffffff, 0x540a0af7, 0x5a485054];
-echo "13: " . mb_encode_numericentity("\xFF", $convmap, "ASCII", true) . "\n";
+$convmap = [0x41, 0x41, 0x540a0ab5, 0x5a485054];
+echo "13: " . mb_encode_numericentity("A", $convmap, "ASCII", true) . "\n";
 
 ?>
 --EXPECT--
