@@ -41,6 +41,11 @@ PHP_FUNCTION(header)
 		Z_PARAM_LONG(ctr.response_code)
 	ZEND_PARSE_PARAMETERS_END();
 
+	if (ctr.response_code != 0 && (ctr.response_code < 100 || ctr.response_code > 599)) {
+		zend_argument_value_error(3, "must be 0 or between 100 and 599");
+		RETURN_THROWS();
+	}
+
 	ctr.line = line;
 	ctr.line_len = len;
 	sapi_header_op(rep ? SAPI_HEADER_REPLACE:SAPI_HEADER_ADD, &ctr);
@@ -375,6 +380,11 @@ PHP_FUNCTION(http_response_code)
 		Z_PARAM_OPTIONAL
 		Z_PARAM_LONG(response_code)
 	ZEND_PARSE_PARAMETERS_END();
+
+	if (response_code != 0 && (response_code < 100 || response_code > 599)) {
+		zend_argument_value_error(1, "must be 0 or between 100 and 599");
+		RETURN_THROWS();
+	}
 
 	if (response_code)
 	{
