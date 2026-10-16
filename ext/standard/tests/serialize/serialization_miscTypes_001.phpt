@@ -2,12 +2,6 @@
 Test serialize() & unserialize() functions: many types
 --INI--
 serialize_precision=17
---SKIPIF--
-<?php
-if (PHP_INT_SIZE != 4) {
-    die("skip this test is for 32bit platform only");
-}
-?>
 --FILE--
 <?php
 echo "--- Testing Various Types ---\n";
@@ -106,12 +100,12 @@ after serialization => string(14) "i:-2147483647;"
 after unserialization => int(-2147483647)
 
 -- Iteration 2 --
-after serialization => string(13) "d:2147483648;"
-after unserialization => float(2147483648)
+after serialization => string(13) "%c:2147483648;"
+after unserialization => %s(2147483648)
 
 -- Iteration 3 --
-after serialization => string(14) "d:-2147483648;"
-after unserialization => float(-2147483648)
+after serialization => string(14) "%c:-2147483648;"
+after unserialization => %s(-2147483648)
 
 -- Iteration 4 --
 after serialization => string(12) "i:267387171;"
@@ -130,12 +124,12 @@ after serialization => string(14) "i:-2147483647;"
 after unserialization => int(-2147483647)
 
 -- Iteration 8 --
-after serialization => string(13) "d:2147483648;"
-after unserialization => float(2147483648)
+after serialization => string(13) "%c:2147483648;"
+after unserialization => %s(2147483648)
 
 -- Iteration 9 --
-after serialization => string(14) "d:-2147483648;"
-after unserialization => float(-2147483648)
+after serialization => string(14) "%c:-2147483648;"
+after unserialization => %s(-2147483648)
 
 -- Iteration 10 --
 after serialization => string(9) "i:342391;"
