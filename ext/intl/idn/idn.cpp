@@ -63,18 +63,27 @@ static void php_intl_idn_to_46(INTERNAL_FUNCTION_PARAMETERS,
 		RETURN_FALSE;
 	}
 
-	if (mode == INTL_IDN_TO_ASCII) {
-		buffer_capac = 255;
+	buffer_capac = mode == INTL_IDN_TO_ASCII ? 255 : 252*4;
+	buffer = zend_string_alloc(buffer_capac, 0);
+	for (;;) {
+		if (mode == INTL_IDN_TO_ASCII) {
+			len = uidna_nameToASCII_UTF8(uts46, ZSTR_VAL(domain), ZSTR_LEN(domain),
+					ZSTR_VAL(buffer), buffer_capac, &info, &status);
+		} else {
+			len = uidna_nameToUnicodeUTF8(uts46, ZSTR_VAL(domain), ZSTR_LEN(domain),
+					ZSTR_VAL(buffer), buffer_capac, &info, &status);
+		}
+		if (status != U_BUFFER_OVERFLOW_ERROR && status != U_STRING_NOT_TERMINATED_WARNING) {
+			break;
+		}
+		/* ICU reports the needed length: retry with a buffer that holds it and the terminator */
+		zend_string_efree(buffer);
+		buffer_capac = len + 1;
 		buffer = zend_string_alloc(buffer_capac, 0);
-		len = uidna_nameToASCII_UTF8(uts46, ZSTR_VAL(domain), ZSTR_LEN(domain),
-				ZSTR_VAL(buffer), buffer_capac, &info, &status);
-	} else {
-		buffer_capac = 252*4;
-		buffer = zend_string_alloc(buffer_capac, 0);
-		len = uidna_nameToUnicodeUTF8(uts46, ZSTR_VAL(domain), ZSTR_LEN(domain),
-				ZSTR_VAL(buffer), buffer_capac, &info, &status);
+		status = U_ZERO_ERROR;
+		info = UIDNA_INFO_INITIALIZER;
 	}
-	if (UNEXPECTED(len >= buffer_capac || php_intl_idn_check_status(status, "failed to convert name") == FAILURE)) {
+	if (UNEXPECTED(php_intl_idn_check_status(status, "failed to convert name") == FAILURE)) {
 		uidna_close(uts46);
 		zend_string_efree(buffer);
 		RETURN_FALSE;
