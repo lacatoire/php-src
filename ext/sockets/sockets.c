@@ -258,12 +258,14 @@ static bool php_open_listen_sock(php_socket *sock, unsigned short port, int back
 	if (bind(sock->bsd_socket, (struct sockaddr *)&la, sizeof(la)) != 0) {
 		PHP_SOCKET_ERROR(sock, "unable to bind to given address", errno);
 		close(sock->bsd_socket);
+		sock->bsd_socket = -1;
 		return false;
 	}
 
 	if (listen(sock->bsd_socket, backlog) != 0) {
 		PHP_SOCKET_ERROR(sock, "unable to listen on socket", errno);
 		close(sock->bsd_socket);
+		sock->bsd_socket = -1;
 		return false;
 	}
 
@@ -2968,6 +2970,7 @@ PHP_FUNCTION(socket_addrinfo_bind)
 	if (bind(php_sock->bsd_socket, ai->addrinfo.ai_addr, ai->addrinfo.ai_addrlen) != 0) {
 		PHP_SOCKET_ERROR(php_sock, "Unable to bind address", errno);
 		close(php_sock->bsd_socket);
+		php_sock->bsd_socket = -1;
 		zval_ptr_dtor(return_value);
 		RETURN_FALSE;
 	}
@@ -3010,6 +3013,7 @@ PHP_FUNCTION(socket_addrinfo_connect)
 	if (connect(php_sock->bsd_socket, ai->addrinfo.ai_addr, ai->addrinfo.ai_addrlen) != 0) {
 		PHP_SOCKET_ERROR(php_sock, "Unable to connect address", errno);
 		close(php_sock->bsd_socket);
+		php_sock->bsd_socket = -1;
 		zval_ptr_dtor(return_value);
 		RETURN_FALSE;
 	}
