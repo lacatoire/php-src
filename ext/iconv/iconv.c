@@ -1740,12 +1740,18 @@ static php_iconv_err_t _php_iconv_mime_decode(smart_str *pretval, const char *st
 			}
 		}
 		switch (scan_stat) {
-			case 0: case 8: case 11: case 12:
+			case 0: case 7: case 8: case 11: case 12:
 				break;
 			default:
 				if ((mode & PHP_ICONV_MIME_DECODE_CONTINUE_ON_ERROR)) {
 					if (scan_stat == 1) {
 						_php_iconv_appendc(pretval, '=', cd_pl);
+					} else if (encoded_word != NULL && p1 > encoded_word) {
+						/* an unterminated encoded-word is passed through like the other malformed chunks */
+						err = _php_iconv_appendl(pretval, encoded_word, (size_t)(p1 - encoded_word), cd_pl);
+						if (err != PHP_ICONV_ERR_SUCCESS) {
+							goto out_try;
+						}
 					}
 					err = PHP_ICONV_ERR_SUCCESS;
 				} else {
