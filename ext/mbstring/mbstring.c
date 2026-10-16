@@ -4685,13 +4685,13 @@ PHP_FUNCTION(mb_send_mail)
 	if (to_len > 0) {
 		to_r = estrndup(to, to_len);
 		for (; to_len; to_len--) {
-			if (!isspace((unsigned char) to_r[to_len - 1])) {
+			if (!(to_r[to_len - 1] == ' ' || (to_r[to_len - 1] >= '\t' && to_r[to_len - 1] <= '\r'))) {
 				break;
 			}
 			to_r[to_len - 1] = '\0';
 		}
 		for (i = 0; to_r[i]; i++) {
-			if (iscntrl((unsigned char) to_r[i])) {
+			if ((unsigned char) to_r[i] < ' ' || to_r[i] == 0x7f) {
 				/* According to RFC 822, section 3.1.1 long headers may be separated into
 				 * parts using CRLF followed at least one linear-white-space character ('\t' or ' ').
 				 * To prevent these separators from being replaced with a space, we skip over them. */
