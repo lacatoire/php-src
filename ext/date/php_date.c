@@ -907,7 +907,7 @@ PHPAPI zend_string *php_format_date(const char *format, size_t format_len, time_
 /* }}} */
 
 /* {{{ php_idate */
-PHPAPI bool php_idate(char format, time_t ts, bool localtime, int *result)
+PHPAPI bool php_idate(char format, time_t ts, bool localtime, zend_long *result)
 {
 	timelib_time   *t;
 	timelib_tzinfo *tzi;
@@ -969,8 +969,8 @@ PHPAPI bool php_idate(char format, time_t ts, bool localtime, int *result)
 		/* year */
 		case 'L': *result = (int) timelib_is_leap((int) t->y); break;
 		case 'y': *result = (int) (t->y % 100); break;
-		case 'Y': *result = (int) t->y; break;
-		case 'o': *result = (int) isoyear; break; /* iso year */
+		case 'Y': *result = (zend_long) t->y; break;
+		case 'o': *result = (zend_long) isoyear; break; /* iso year */
 
 		/* Swatch Beat a.k.a. Internet Time */
 		case 'B':
@@ -992,7 +992,7 @@ PHPAPI bool php_idate(char format, time_t ts, bool localtime, int *result)
 		case 'I': *result = (int) (!localtime ? offset->is_dst : 0); break;
 		case 'Z': *result = (int) (!localtime ? offset->offset : 0); break;
 
-		case 'U': *result = (int) t->sse; break;
+		case 'U': *result = (zend_long) t->sse; break;
 
 		default:
 			success = false;
@@ -1027,7 +1027,7 @@ PHP_FUNCTION(idate)
 	zend_string *format;
 	zend_long    ts;
 	bool    ts_is_null = 1;
-	int ret = 0;
+	zend_long ret = 0;
 
 	ZEND_PARSE_PARAMETERS_START(1, 2)
 		Z_PARAM_STR(format)
