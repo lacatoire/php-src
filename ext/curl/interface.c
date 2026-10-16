@@ -2295,12 +2295,10 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 
 		case CURLOPT_SHARE:
 			{
-				if (Z_TYPE_P(zvalue) != IS_OBJECT) {
-					break;
-				}
-
-				if (Z_OBJCE_P(zvalue) != curl_share_ce && Z_OBJCE_P(zvalue) != curl_share_persistent_ce) {
-					break;
+				if (Z_TYPE_P(zvalue) != IS_OBJECT
+				 || (Z_OBJCE_P(zvalue) != curl_share_ce && Z_OBJCE_P(zvalue) != curl_share_persistent_ce)) {
+					zend_type_error("%s(): The CURLOPT_SHARE option must be a CurlShareHandle or CurlSharePersistentHandle object", get_active_function_name());
+					return FAILURE;
 				}
 
 				php_curlsh *sh = Z_CURL_SHARE_P(zvalue);
