@@ -403,6 +403,7 @@ PHP_RINIT_FUNCTION(basic) /* {{{ */
 	BG(page_gid) = -1;
 	BG(page_inode) = -1;
 	BG(page_mtime) = -1;
+	BG(page_mtime_valid) = false;
 #ifdef HAVE_PUTENV
 	zend_hash_init(&BG(putenv_ht), 1, NULL, php_putenv_destructor, 0);
 #endif
