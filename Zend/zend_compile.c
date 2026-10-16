@@ -4414,6 +4414,11 @@ static zend_result zend_compile_func_defined(znode *result, const zend_ast_list 
 		return FAILURE;
 	}
 
+	/* Leave other types to the function, which applies the coercion rules and strict_types */
+	if (Z_TYPE_P(zend_ast_get_zval(args->child[0])) != IS_STRING) {
+		return FAILURE;
+	}
+
 	name = zval_get_string(zend_ast_get_zval(args->child[0]));
 	if (zend_memrchr(ZSTR_VAL(name), '\\', ZSTR_LEN(name)) || zend_memrchr(ZSTR_VAL(name), ':', ZSTR_LEN(name))) {
 		zend_string_release_ex(name, 0);
