@@ -551,7 +551,8 @@ PHP_ICONV_API php_iconv_err_t php_iconv_string(const char *in_p, size_t in_len, 
 /* {{{ _php_iconv_strlen() */
 static php_iconv_err_t _php_iconv_strlen(size_t *pretval, const char *str, size_t nbytes, const char *enc)
 {
-	char buf[GENERIC_SUPERSET_NBYTES*2];
+	/* A multiple of GENERIC_SUPERSET_NBYTES, large enough to keep the number of iconv() calls low */
+	char buf[GENERIC_SUPERSET_NBYTES * 1024];
 
 	php_iconv_err_t err = PHP_ICONV_ERR_SUCCESS;
 
