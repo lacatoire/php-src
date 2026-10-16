@@ -4976,20 +4976,20 @@ static zend_string *date_interval_format(const char *format, size_t format_len, 
 	for (i = 0; i < format_len; i++) {
 		if (have_format_spec) {
 			switch (format[i]) {
-				case 'Y': length = slprintf(buffer, sizeof(buffer), "%02d", (int) t->y); break;
-				case 'y': length = slprintf(buffer, sizeof(buffer), "%d", (int) t->y); break;
+				case 'Y': length = slprintf(buffer, sizeof(buffer), "%02" ZEND_LONG_FMT_SPEC, (zend_long) t->y); break;
+				case 'y': length = slprintf(buffer, sizeof(buffer), "%" ZEND_LONG_FMT_SPEC, (zend_long) t->y); break;
 
-				case 'M': length = slprintf(buffer, sizeof(buffer), "%02d", (int) t->m); break;
-				case 'm': length = slprintf(buffer, sizeof(buffer), "%d", (int) t->m); break;
+				case 'M': length = slprintf(buffer, sizeof(buffer), "%02" ZEND_LONG_FMT_SPEC, (zend_long) t->m); break;
+				case 'm': length = slprintf(buffer, sizeof(buffer), "%" ZEND_LONG_FMT_SPEC, (zend_long) t->m); break;
 
-				case 'D': length = slprintf(buffer, sizeof(buffer), "%02d", (int) t->d); break;
-				case 'd': length = slprintf(buffer, sizeof(buffer), "%d", (int) t->d); break;
+				case 'D': length = slprintf(buffer, sizeof(buffer), "%02" ZEND_LONG_FMT_SPEC, (zend_long) t->d); break;
+				case 'd': length = slprintf(buffer, sizeof(buffer), "%" ZEND_LONG_FMT_SPEC, (zend_long) t->d); break;
 
-				case 'H': length = slprintf(buffer, sizeof(buffer), "%02d", (int) t->h); break;
-				case 'h': length = slprintf(buffer, sizeof(buffer), "%d", (int) t->h); break;
+				case 'H': length = slprintf(buffer, sizeof(buffer), "%02" ZEND_LONG_FMT_SPEC, (zend_long) t->h); break;
+				case 'h': length = slprintf(buffer, sizeof(buffer), "%" ZEND_LONG_FMT_SPEC, (zend_long) t->h); break;
 
-				case 'I': length = slprintf(buffer, sizeof(buffer), "%02d", (int) t->i); break;
-				case 'i': length = slprintf(buffer, sizeof(buffer), "%d", (int) t->i); break;
+				case 'I': length = slprintf(buffer, sizeof(buffer), "%02" ZEND_LONG_FMT_SPEC, (zend_long) t->i); break;
+				case 'i': length = slprintf(buffer, sizeof(buffer), "%" ZEND_LONG_FMT_SPEC, (zend_long) t->i); break;
 
 				case 'S': length = slprintf(buffer, sizeof(buffer), "%02" ZEND_LONG_FMT_SPEC, (zend_long) t->s); break;
 				case 's': length = slprintf(buffer, sizeof(buffer), ZEND_LONG_FMT, (zend_long) t->s); break;
