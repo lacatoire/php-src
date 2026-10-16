@@ -2118,11 +2118,11 @@ PHP_FUNCTION(imagejpeg)
 		RETURN_THROWS();
 	}
 
-	gdImageJpegCtx(im, ctx, (int) quality);
+	int failed = gdImageJpegCtx(im, ctx, (int) quality);
 
 	ctx->gd_free(ctx);
 
-	RETURN_TRUE;
+	RETURN_BOOL(!failed);
 }
 /* }}} */
 #endif /* HAVE_GD_JPG */
