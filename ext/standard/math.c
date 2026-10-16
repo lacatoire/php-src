@@ -858,7 +858,11 @@ static double php_math_limbs_to_double(const uint32_t *limbs, int n)
 		return 0.0;
 	}
 
-	int bitlen = hi * 32 + 32 - __builtin_clz(limbs[hi]);
+	int top_bits = 0;
+	for (uint32_t v = limbs[hi]; v != 0; v >>= 1) {
+		top_bits++;
+	}
+	int bitlen = hi * 32 + top_bits;
 	if (bitlen <= 64) {
 		uint64_t v = 0;
 		for (int i = hi; i >= 0; i--) {
