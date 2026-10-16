@@ -1807,6 +1807,7 @@ static void _php_image_output(INTERNAL_FUNCTION_PARAMETERS, int image_type)
 			RETURN_FALSE;
 		}
 
+		bool failed = false;
 		switch (image_type) {
 			case PHP_GDIMG_TYPE_GD:
 				gdImageGd(im, fp);
@@ -1815,12 +1816,15 @@ static void _php_image_output(INTERNAL_FUNCTION_PARAMETERS, int image_type)
 				if (quality == -1) {
 					quality = 128;
 				}
-				gdImageGd2(im, fp, quality, type);
+				failed = gdImageGd2(im, fp, quality, type) != 0;
 				break;
 			default: ZEND_UNREACHABLE();
 		}
 		fflush(fp);
 		fclose(fp);
+		if (failed) {
+			RETURN_FALSE;
+		}
 	} else {
 		size_t b;
 		FILE *tmp;
