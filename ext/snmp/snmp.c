@@ -1824,8 +1824,10 @@ PHP_FUNCTION(snmp_read_mib)
 	}
 
 	mib_needs_reset = 1;
+	errno = 0;
 	if (!read_mib(filename)) {
-		char *error = strerror(errno);
+		/* read_mib() only sets errno when the file cannot be opened */
+		const char *error = errno ? strerror(errno) : "not a valid MIB file";
 		php_error_docref(NULL, E_WARNING, "Error while reading MIB file '%s': %s", filename, error);
 		RETURN_FALSE;
 	}
