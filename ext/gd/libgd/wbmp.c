@@ -188,6 +188,12 @@ int readwbmp(int (*getin)(void *in), void *in, Wbmp **return_wbmp)
     for (row = 0; row < wbmp->height; row++) {
         for (col = 0; col < wbmp->width;) {
             byte = getin(in);
+            if (byte == -1) {
+                /* The pixel data is cut short */
+                gdFree(wbmp->bitmap);
+                gdFree(wbmp);
+                return -1;
+            }
 
             for (pel = 7; pel >= 0; pel--) {
                 if (col++ < wbmp->width) {
