@@ -4308,6 +4308,11 @@ PHP_FUNCTION(ldap_exop_refresh)
 	ld = Z_LDAP_LINK_P(link);
 	VERIFY_LDAP_LINK_CONNECTED(ld);
 
+	if (ttl < INT32_MIN || ttl > INT32_MAX) {
+		zend_argument_value_error(3, "must be between %d and %d", INT32_MIN, INT32_MAX);
+		RETURN_THROWS();
+	}
+
 	lttl = (ber_int_t) ttl;
 
 	rc = ldap_refresh_s(ld->link, &ldn, lttl, &newttl, NULL, NULL);
