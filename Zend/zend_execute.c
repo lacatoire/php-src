@@ -4988,7 +4988,19 @@ static void cleanup_live_vars(zend_execute_data *execute_data, uint32_t op_num, 
 					zval_ptr_dtor_nogc(var);
 				} else if (kind == ZEND_LIVE_ROPE) {
 					zend_string **rope = (zend_string **)var;
-					const zend_op *last = EX(func)->op_array.opcodes + op_num;
+					const zend_op *current = EX(func)->op_array.opcodes + op_num;
+					const zend_op *last = current;
+					if ((current->opcode == ZEND_ROPE_INIT || current->opcode == ZEND_ROPE_ADD)
+							&& current->result.var == var_num) {
+						/* An interrupt handler threw before this opline wrote its part */
+						if (current->opcode == ZEND_ROPE_ADD) {
+							uint32_t j = current->extended_value;
+							while (j-- > 0) {
+								zend_string_release_ex(rope[j], 0);
+							}
+						}
+						continue;
+					}
 					while ((last->opcode != ZEND_ROPE_ADD && last->opcode != ZEND_ROPE_INIT)
 							|| last->result.var != var_num) {
 						ZEND_ASSERT(last >= EX(func)->op_array.opcodes);
