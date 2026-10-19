@@ -571,6 +571,19 @@ static void php_curl_call_callback(
 }
 
 /* {{{ curl_write */
+/* The returned buffer can be shared with a string handed out by curl_multi_getcontent() while the
+ * transfer is still running: detach it before appending, as smart_str reallocates in place. */
+static void php_curl_append_to_buf(smart_str *buf, const char *data, size_t length)
+{
+	if (buf->s && GC_REFCOUNT(buf->s) > 1) {
+		zend_string *copy = zend_string_init(ZSTR_VAL(buf->s), ZSTR_LEN(buf->s), 0);
+		GC_DELREF(buf->s);
+		buf->s = copy;
+		buf->a = ZSTR_LEN(copy);
+	}
+	smart_str_appendl(buf, data, length);
+}
+
 static size_t curl_write(char *data, size_t size, size_t nmemb, void *ctx)
 {
 	ZEND_ASSERT(size == 1);
@@ -592,7 +605,7 @@ static size_t curl_write(char *data, size_t size, size_t nmemb, void *ctx)
 			return fwrite(data, size, nmemb, write_handler->fp);
 		case PHP_CURL_RETURN:
 			if (length > 0) {
-				smart_str_appendl(&write_handler->buf, data, length);
+				php_curl_append_to_buf(&write_handler->buf, data, length);
 			}
 			break;
 		case PHP_CURL_USER: {
@@ -947,7 +960,7 @@ static size_t curl_write_header(char *data, size_t size, size_t nmemb, void *ctx
 			/* Handle special case write when we're returning the entire transfer
 			 */
 			if (ch->handlers.write->method == PHP_CURL_RETURN && length > 0) {
-				smart_str_appendl(&ch->handlers.write->buf, data, length);
+				php_curl_append_to_buf(&ch->handlers.write->buf, data, length);
 			} else {
 				PHPWRITE(data, length);
 			}
