@@ -2846,15 +2846,18 @@ static void curl_free_obj(zend_object *object)
 	fprintf(stderr, "DTOR CALLED, ch = %p\n", (void *) ch);
 #endif
 
-	if (!ch->cp) {
+	if (!ch->handlers.write) {
 		/* Can happen if constructor throws. */
 		zend_object_std_dtor(&ch->std);
 		return;
 	}
 
-	_php_curl_verify_handlers(ch, /* reporterror */ false);
+	/* cp is NULL for the handle of a denied server push, libcurl freed it */
+	if (ch->cp) {
+		_php_curl_verify_handlers(ch, /* reporterror */ false);
 
-	curl_easy_cleanup(ch->cp);
+		curl_easy_cleanup(ch->cp);
+	}
 
 	/* cURL destructors should be invoked only by last curl handle */
 	if (--(*ch->clone) == 0) {
