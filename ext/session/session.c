@@ -1963,6 +1963,35 @@ PHP_FUNCTION(session_set_cookie_params)
 		goto cleanup;
 	}
 
+	/* An entry locked with php_admin_value would otherwise be refused silently
+	 * after the previous ones were already changed. */
+	{
+		const struct {
+			const char *name;
+			size_t len;
+			bool requested;
+		} cookie_entries[] = {
+			{ ZEND_STRL("session.cookie_lifetime"), lifetime != NULL },
+			{ ZEND_STRL("session.cookie_path"), path != NULL },
+			{ ZEND_STRL("session.cookie_domain"), domain != NULL },
+			{ ZEND_STRL("session.cookie_secure"), !secure_null },
+			{ ZEND_STRL("session.cookie_partitioned"), !partitioned_null },
+			{ ZEND_STRL("session.cookie_httponly"), !httponly_null },
+			{ ZEND_STRL("session.cookie_samesite"), samesite != NULL },
+		};
+		for (size_t i = 0; i < sizeof(cookie_entries) / sizeof(cookie_entries[0]); i++) {
+			if (!cookie_entries[i].requested) {
+				continue;
+			}
+			zend_ini_entry *entry = zend_hash_str_find_ptr(EG(ini_directives), cookie_entries[i].name, cookie_entries[i].len);
+			if (entry && !(entry->modifiable & ZEND_INI_USER)) {
+				php_error_docref(NULL, E_WARNING, "Session cookie parameters cannot be changed, %s is locked", cookie_entries[i].name);
+				RETVAL_FALSE;
+				goto cleanup;
+			}
+		}
+	}
+
 	if (lifetime) {
 		ini_name = ZSTR_INIT_LITERAL("session.cookie_lifetime", false);
 		result = zend_alter_ini_entry(ini_name, lifetime, PHP_INI_USER, PHP_INI_STAGE_RUNTIME);
