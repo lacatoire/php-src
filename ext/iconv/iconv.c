@@ -980,7 +980,11 @@ static php_iconv_err_t _php_iconv_mime_encode(smart_str *pretval, const char *fn
 
 		char_cnt = max_line_len;
 
-		_php_iconv_appendl(pretval, fname, fname_nbytes, cd_pl);
+		err = _php_iconv_appendl(pretval, fname, fname_nbytes, cd_pl);
+		if (err != PHP_ICONV_ERR_SUCCESS) {
+			/* The field name is not ASCII */
+			goto out_try;
+		}
 		char_cnt -= fname_nbytes;
 		smart_str_appendl(pretval, ": ", sizeof(": ") - 1);
 		char_cnt -= 2;
