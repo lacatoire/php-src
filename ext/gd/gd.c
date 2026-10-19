@@ -675,12 +675,12 @@ PHP_FUNCTION(imagecreatetruecolor)
 	ZEND_PARSE_PARAMETERS_END();
 
 	if (x_size <= 0 || x_size >= INT_MAX) {
-		zend_argument_value_error(1, "must be greater than 0");
+		zend_argument_value_error(1, "must be greater than 0 and less than %d", INT_MAX);
 		RETURN_THROWS();
 	}
 
 	if (y_size <= 0 || y_size >= INT_MAX) {
-		zend_argument_value_error(2, "must be greater than 0");
+		zend_argument_value_error(2, "must be greater than 0 and less than %d", INT_MAX);
 		RETURN_THROWS();
 	}
 
@@ -1329,12 +1329,12 @@ PHP_FUNCTION(imagecreate)
 	ZEND_PARSE_PARAMETERS_END();
 
 	if (x_size <= 0 || x_size >= INT_MAX) {
-		zend_argument_value_error(1, "must be greater than 0");
+		zend_argument_value_error(1, "must be greater than 0 and less than %d", INT_MAX);
 		RETURN_THROWS();
 	}
 
 	if (y_size <= 0 || y_size >= INT_MAX) {
-		zend_argument_value_error(2, "must be greater than 0");
+		zend_argument_value_error(2, "must be greater than 0 and less than %d", INT_MAX);
 		RETURN_THROWS();
 	}
 
@@ -2362,7 +2362,6 @@ PHP_FUNCTION(imagecolordeallocate)
 {
 	zval *IM;
 	zend_long index;
-	int col;
 	gdImagePtr im;
 
 	ZEND_PARSE_PARAMETERS_START(2, 2)
@@ -2377,13 +2376,11 @@ PHP_FUNCTION(imagecolordeallocate)
 		RETURN_TRUE;
 	}
 
-	col = index;
-
-	if (col >= 0 && col < gdImageColorsTotal(im)) {
-		gdImageColorDeallocate(im, col);
+	if (index >= 0 && index < gdImageColorsTotal(im)) {
+		gdImageColorDeallocate(im, (int) index);
 		RETURN_TRUE;
 	} else {
-		zend_argument_value_error(2, "must be between 0 and %d", gdImageColorsTotal(im));
+		zend_argument_value_error(2, "must be between 0 and %d", gdImageColorsTotal(im) - 1);
 		RETURN_THROWS();
 	}
 }
@@ -2761,6 +2758,17 @@ PHP_FUNCTION(imagefilltoborder)
 		Z_PARAM_LONG(col)
 	ZEND_PARSE_PARAMETERS_END();
 
+	/* libgd takes the coordinates as int: without this check a value whose low
+	 * 32 bits happen to land inside the canvas would escape its own guard. */
+	if (ZEND_LONG_EXCEEDS_INT(x)) {
+		zend_argument_value_error(2, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+	if (ZEND_LONG_EXCEEDS_INT(y)) {
+		zend_argument_value_error(3, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+
 	im = php_gd_libgdimageptr_from_zval_p(IM);
 
 	gdImageFillToBorder(im, x, y, border, col);
@@ -2781,6 +2789,17 @@ PHP_FUNCTION(imagefill)
 		Z_PARAM_LONG(y)
 		Z_PARAM_LONG(col)
 	ZEND_PARSE_PARAMETERS_END();
+
+	/* libgd takes the coordinates as int: without this check a value whose low
+	 * 32 bits happen to land inside the canvas would escape its own guard. */
+	if (ZEND_LONG_EXCEEDS_INT(x)) {
+		zend_argument_value_error(2, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+	if (ZEND_LONG_EXCEEDS_INT(y)) {
+		zend_argument_value_error(3, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
 
 	im = php_gd_libgdimageptr_from_zval_p(IM);
 
@@ -3479,12 +3498,16 @@ static void php_imagettftext_common(INTERNAL_FUNCTION_PARAMETERS, int mode)
 #endif /* HAVE_GD_FREETYPE */
 
 /* Section Filters */
+/* The filter constant is parsed again here, so that the real argument count is
+ * checked and a surplus argument is reported like the other filters do. */
 #define PHP_GD_SINGLE_RES	\
 	zval *SIM;	\
 	gdImagePtr im_src;	\
-	if (zend_parse_parameters(1, "O", &SIM, gd_image_ce) == FAILURE) {	\
-		RETURN_THROWS();	\
-	}	\
+	zend_long filtertype_unused;	\
+	ZEND_PARSE_PARAMETERS_START(2, 2)	\
+		Z_PARAM_OBJECT_OF_CLASS(SIM, gd_image_ce)	\
+		Z_PARAM_LONG(filtertype_unused)	\
+	ZEND_PARSE_PARAMETERS_END();	\
 	im_src = php_gd_libgdimageptr_from_zval_p(SIM);
 
 static void php_image_filter_negate(INTERNAL_FUNCTION_PARAMETERS)
@@ -4378,6 +4401,14 @@ PHP_FUNCTION(imagesetinterpolation)
 	if (method == -1) {
 		 method = GD_BILINEAR_FIXED;
 	}
+
+	/* gdImageSetInterpolationMethod() rejects out of range methods, but the
+	 * cast below would first truncate the zend_long into the enum's range,
+	 * turning e.g. PHP_INT_MIN into GD_DEFAULT. */
+	if (method < 0 || method > GD_METHOD_COUNT) {
+		RETURN_FALSE;
+	}
+
 	RETURN_BOOL(gdImageSetInterpolationMethod(im, (gdInterpolationMethod) method));
 }
 /* }}} */
