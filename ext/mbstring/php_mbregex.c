@@ -696,7 +696,7 @@ mb_regex_groups_iter(const OnigUChar* name, const OnigUChar* name_end, int ngrou
 	gn = onig_name_to_backref_number(reg, name, name_end, args->region);
 	beg = args->region->beg[gn];
 	end = args->region->end[gn];
-	if (beg >= 0 && beg < end && ((size_t)end <= args->search_len)) {
+	if (beg >= 0 && beg <= end && ((size_t)end <= args->search_len)) {
 		add_assoc_stringl_ex(args->groups, (char *)name, name_end - name, &args->search_str[beg], end - beg);
 	} else {
 		add_assoc_bool_ex(args->groups, (char *)name, name_end - name, 0);
@@ -951,7 +951,7 @@ static void _php_mb_regex_ereg_exec(INTERNAL_FUNCTION_PARAMETERS, int icase)
 		for (i = 0; i < regs->num_regs; i++) {
 			beg = regs->beg[i];
 			end = regs->end[i];
-			if (beg >= 0 && beg < end && (size_t)end <= string_len) {
+			if (beg >= 0 && beg <= end && (size_t)end <= string_len) {
 				add_index_stringl(array, i, (char *)&str[beg], end - beg);
 			} else {
 				add_index_bool(array, i, 0);

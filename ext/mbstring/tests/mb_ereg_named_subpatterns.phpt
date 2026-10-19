@@ -38,11 +38,11 @@ array(5) {
   [0]=>
   string(3) "国"
   [1]=>
-  bool(false)
+  string(0) ""
   [2]=>
   string(3) "国"
   ["wsp"]=>
-  bool(false)
+  string(0) ""
   ["word"]=>
   string(3) "国"
 }
