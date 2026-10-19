@@ -237,6 +237,13 @@ static void php_snmp_error(zval *object, int type, const char *format, ...)
 
 /* }}} */
 
+/* snprint_objid() writes nothing for SNMP_OID_OUTPUT_NONE, do not use what the buffer held before */
+static void php_snmp_objid_to_buf(char *buf, size_t buf_len, const oid *name, size_t name_len)
+{
+	buf[0] = '\0';
+	snprint_objid(buf, buf_len, name, name_len);
+}
+
 /* {{{ php_snmp_getvalue
 *
 * SNMP value to zval converter
@@ -302,7 +309,7 @@ static void php_snmp_getvalue(struct variable_list *vars, zval *snmpval, int val
 			break;
 
 		case ASN_OBJECT_ID:		/* 0x06, asn1.h */
-			snprint_objid(buf, buflen, vars->val.objid, vars->val_len / sizeof(oid));
+			php_snmp_objid_to_buf(buf, buflen, vars->val.objid, vars->val_len / sizeof(oid));
 			ZVAL_STRING(&val, buf);
 			break;
 
@@ -449,7 +456,7 @@ static void php_snmp_internal(INTERNAL_FUNCTION_PARAMETERS, int st,
 			for (count = 0; objid_query->offset < objid_query->count && count < objid_query->step; objid_query->offset++, count++){
 				if (st & SNMP_CMD_SET) {
 					if ((snmp_errno = snmp_add_var(pdu, objid_query->vars[objid_query->offset].name, objid_query->vars[objid_query->offset].name_length, objid_query->vars[objid_query->offset].type, objid_query->vars[objid_query->offset].value))) {
-						snprint_objid(buf, sizeof(buf), objid_query->vars[objid_query->offset].name, objid_query->vars[objid_query->offset].name_length);
+						php_snmp_objid_to_buf(buf, sizeof(buf), objid_query->vars[objid_query->offset].name, objid_query->vars[objid_query->offset].name_length);
 						php_snmp_error(getThis(), PHP_SNMP_ERRNO_OID_PARSING_ERROR, "Could not add variable: OID='%s' type='%c' value='%s': %s", buf, objid_query->vars[objid_query->offset].type, objid_query->vars[objid_query->offset].value, snmp_api_errstring(snmp_errno));
 						snmp_free_pdu(pdu);
 						snmp_close(ss);
@@ -488,7 +495,7 @@ retry:
 						if ((st & SNMP_CMD_WALK) && Z_TYPE_P(return_value) == IS_ARRAY) {
 							break;
 						}
-						snprint_objid(buf, sizeof(buf), vars->name, vars->name_length);
+						php_snmp_objid_to_buf(buf, sizeof(buf), vars->name, vars->name_length);
 						snprint_value(buf2, sizeof(buf2), vars->name, vars->name_length, vars);
 						php_snmp_error(getThis(), PHP_SNMP_ERRNO_ERROR_IN_REPLY, "Error in packet at '%s': %s", buf, buf2);
 						continue;
@@ -529,11 +536,11 @@ retry:
 							if (found) {
 								add_assoc_zval(return_value, objid_query->vars[count].oid, &snmpval);
 							} else {
-								snprint_objid(buf2, sizeof(buf2), vars->name, vars->name_length);
+								php_snmp_objid_to_buf(buf2, sizeof(buf2), vars->name, vars->name_length);
 								php_error_docref(NULL, E_WARNING, "Could not find original OID name for '%s'", buf2);
 							}
 						} else if (st & SNMP_USE_SUFFIX_AS_KEYS && st & SNMP_CMD_WALK) {
-							snprint_objid(buf2, sizeof(buf2), vars->name, vars->name_length);
+							php_snmp_objid_to_buf(buf2, sizeof(buf2), vars->name, vars->name_length);
 							if (rootlen <= vars->name_length && snmp_oid_compare(root, rootlen, vars->name, rootlen) == 0) {
 								buf2[0] = '\0';
 								count = rootlen;
@@ -546,7 +553,7 @@ retry:
 							}
 							add_assoc_zval(return_value, buf2, &snmpval);
 						} else {
-							snprint_objid(buf2, sizeof(buf2), vars->name, vars->name_length);
+							php_snmp_objid_to_buf(buf2, sizeof(buf2), vars->name, vars->name_length);
 							add_assoc_zval(return_value, buf2, &snmpval);
 						}
 					} else {
@@ -557,7 +564,7 @@ retry:
 					/* OID increase check */
 					if (st & SNMP_CMD_WALK) {
 						if (objid_query->oid_increasing_check && snmp_oid_compare(objid_query->vars[0].name, objid_query->vars[0].name_length, vars->name, vars->name_length) >= 0) {
-							snprint_objid(buf2, sizeof(buf2), vars->name, vars->name_length);
+							php_snmp_objid_to_buf(buf2, sizeof(buf2), vars->name, vars->name_length);
 							php_snmp_error(getThis(), PHP_SNMP_ERRNO_OID_NOT_INCREASING, "Error: OID not increasing: %s", buf2);
 							keepwalking = false;
 						} else {
@@ -590,7 +597,7 @@ retry:
 						continue;
 					}
 					if (vars) {
-						snprint_objid(buf, sizeof(buf), vars->name, vars->name_length);
+						php_snmp_objid_to_buf(buf, sizeof(buf), vars->name, vars->name_length);
 						php_snmp_error(getThis(), PHP_SNMP_ERRNO_ERROR_IN_REPLY, "Error in packet at '%s': %s", buf, snmp_errstring(response->errstat));
 					} else {
 						php_snmp_error(getThis(), PHP_SNMP_ERRNO_ERROR_IN_REPLY, "Error in packet at %u object_id: %s", response->errindex, snmp_errstring(response->errstat));
