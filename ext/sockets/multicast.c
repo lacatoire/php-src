@@ -1,14 +1,12 @@
 /*
    +----------------------------------------------------------------------+
-   | Copyright (c) The PHP Group                                          |
+   | Copyright © The PHP Group and Contributors.                          |
    +----------------------------------------------------------------------+
-   | This source file is subject to version 3.01 of the PHP license,      |
-   | that is bundled with this package in the file LICENSE, and is        |
-   | available through the world-wide-web at the following url:           |
-   | https://www.php.net/license/3_01.txt                                 |
-   | If you did not receive a copy of the PHP license and are unable to   |
-   | obtain it through the world-wide-web, please send a note to          |
-   | license@php.net so we can mail you a copy immediately.               |
+   | This source file is subject to the Modified BSD License that is      |
+   | bundled with this package in the file LICENSE, and is available      |
+   | through the World Wide Web at <https://www.php.net/license/>.        |
+   |                                                                      |
+   | SPDX-License-Identifier: BSD-3-Clause                                |
    +----------------------------------------------------------------------+
    | Authors: Gustavo Lopes    <cataphract@php.net>                       |
    +----------------------------------------------------------------------+
@@ -293,7 +291,7 @@ int php_do_setsockopt_ip_mcast(php_socket *php_sock,
 		goto dosockopt;
 
 	case IP_MULTICAST_LOOP:
-		ipv4_mcast_ttl_lback = (unsigned char) zval_is_true(arg4);
+		ipv4_mcast_ttl_lback = (unsigned char) zend_is_true(arg4);
 		goto ipv4_loop_ttl;
 
 	case IP_MULTICAST_TTL:
@@ -357,7 +355,7 @@ int php_do_setsockopt_ipv6_mcast(php_socket *php_sock,
 		goto dosockopt;
 
 	case IPV6_MULTICAST_LOOP:
-		ov = (int) zval_is_true(arg4);
+		ov = (int) zend_is_true(arg4);
 		goto ipv6_loop_hops;
 	case IPV6_MULTICAST_HOPS:
 		convert_to_long(arg4);
@@ -654,7 +652,7 @@ zend_result php_if_index_to_addr4(unsigned if_index, php_socket *php_sock, struc
 retry:
 	retval = GetIpAddrTable(addr_table, &size, 0);
 	if (retval == ERROR_INSUFFICIENT_BUFFER) {
-		erealloc(addr_table, size);
+		addr_table = erealloc(addr_table, size);
 		goto retry;
 	}
 	if (retval != NO_ERROR) {
@@ -696,7 +694,7 @@ zend_result php_add4_to_if_index(struct in_addr *addr, php_socket *php_sock, uns
 retry:
 	retval = GetIpAddrTable(addr_table, &size, 0);
 	if (retval == ERROR_INSUFFICIENT_BUFFER) {
-		erealloc(addr_table, size);
+		addr_table = erealloc(addr_table, size);
 		goto retry;
 	}
 	if (retval != NO_ERROR) {
