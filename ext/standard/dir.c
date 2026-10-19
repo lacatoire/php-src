@@ -582,6 +582,10 @@ PHP_FUNCTION(scandir)
 		context = php_stream_context_from_zval(zcontext, 0);
 	}
 
+	/* Wrappers without directory support fail without setting errno, so make
+	 * sure a stale value is not reported below. */
+	errno = 0;
+
 	if (flags == PHP_SCANDIR_SORT_ASCENDING) {
 		n = php_stream_scandir(dirn, &namelist, context, (void *) php_stream_dirent_alphasort);
 	} else if (flags == PHP_SCANDIR_SORT_NONE) {
@@ -594,7 +598,9 @@ PHP_FUNCTION(scandir)
     }
 
 	if (n < 0) {
-		php_error_docref(NULL, E_WARNING, "(errno %d): %s", errno, strerror(errno));
+		if (errno != 0) {
+			php_error_docref(NULL, E_WARNING, "(errno %d): %s", errno, strerror(errno));
+		}
 		RETURN_FALSE;
 	}
 
