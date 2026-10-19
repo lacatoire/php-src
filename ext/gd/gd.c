@@ -4206,7 +4206,7 @@ PHP_FUNCTION(imageaffinematrixget)
 		PHP_GD_Z_PARAM_ARRAY_HT_OR_DOUBLE(options, dval_option)
 	ZEND_PARSE_PARAMETERS_END();
 
-	switch((gdAffineStandardMatrix)type) {
+	switch (type) {
 		case GD_AFFINE_TRANSLATE:
 		case GD_AFFINE_SCALE: {
 			double x, y;
