@@ -165,8 +165,12 @@ static void php_rshutdown_session_globals(void)
 {
 	/* Do NOT destroy PS(mod_user_names) here! */
 	if (!Z_ISUNDEF(PS(http_session_vars))) {
-		zval_ptr_dtor(&PS(http_session_vars));
+		/* A destructor of a value in the session may call session_*(): detach the data
+		 * before releasing it. */
+		zval vars;
+		ZVAL_COPY_VALUE(&vars, &PS(http_session_vars));
 		ZVAL_UNDEF(&PS(http_session_vars));
+		zval_ptr_dtor(&vars);
 	}
 	if (PS(mod_data) || PS(mod_user_implemented)) {
 		zend_try {
@@ -2791,8 +2795,11 @@ PHP_FUNCTION(session_unset)
 		zval *sess_var = Z_REFVAL(PS(http_session_vars));
 		SEPARATE_ARRAY(sess_var);
 
-		/* Clean $_SESSION. */
-		zend_hash_clean(Z_ARRVAL_P(sess_var));
+		/* Clean $_SESSION. Swap in an empty table before the destructors of the values run, they
+		 * can call session_*() and must not see a table being emptied. */
+		zend_array *old = Z_ARR_P(sess_var);
+		ZVAL_ARR(sess_var, zend_new_array(0));
+		zend_array_release(old);
 	}
 	RETURN_TRUE;
 }
