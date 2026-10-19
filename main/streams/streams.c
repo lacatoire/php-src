@@ -2042,6 +2042,9 @@ PHPAPI php_stream *_php_stream_opendir(const char *path, int options,
 	const char *path_to_open;
 
 	if (!path || !*path) {
+		if (options & REPORT_ERRORS) {
+			php_error_docref(NULL, E_WARNING, "Failed to open directory: Path must not be empty");
+		}
 		return NULL;
 	}
 
