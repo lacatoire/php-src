@@ -617,8 +617,14 @@ retry:
 			snmp_close(ss);
 			RETURN_FALSE;
 		} else {    /* status == STAT_ERROR */
-			snmp_error(ss, NULL, NULL, &err);
-			php_snmp_error(getThis(), PHP_SNMP_ERRNO_GENERIC, "Fatal error: %s", err);
+			int session_snmp_errno = 0;
+			snmp_error(ss, NULL, &session_snmp_errno, &err);
+			if (session_snmp_errno == SNMPERR_TIMEOUT) {
+				/* SNMPv3: the engine ID discovery timed out */
+				php_snmp_error(getThis(), PHP_SNMP_ERRNO_TIMEOUT, "No response from %s", session->peername);
+			} else {
+				php_snmp_error(getThis(), PHP_SNMP_ERRNO_GENERIC, "Fatal error: %s", err);
+			}
 			free(err);
 			if (objid_query->array_output) {
 				zval_ptr_dtor(return_value);
