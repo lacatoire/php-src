@@ -1335,11 +1335,29 @@ PHPAPI void php_strftime(INTERNAL_FUNCTION_PARAMETERS, bool gmt)
 #endif
 	}
 
+	/* %s of the C library goes through mktime() in the time zone of the process, which is
+	 * not the one used for the broken-down time: write the timestamp ourselves. */
+	smart_str fmt = {0};
+	for (const char *f = ZSTR_VAL(format), *f_end = f + ZSTR_LEN(format); f < f_end; f++) {
+		if (*f == '%' && f + 1 < f_end) {
+			f++;
+			if (*f == 's') {
+				smart_str_append_long(&fmt, timestamp);
+			} else {
+				smart_str_appendc(&fmt, '%');
+				smart_str_appendc(&fmt, *f);
+			}
+		} else {
+			smart_str_appendc(&fmt, *f);
+		}
+	}
+	smart_str_0(&fmt);
+
 	/* VS2012 crt has a bug where strftime crash with %z and %Z format when the
 	   initial buffer is too small. See
 	   http://connect.microsoft.com/VisualStudio/feedback/details/759720/vs2012-strftime-crash-with-z-formatting-code */
 	buf = zend_string_alloc(buf_len, 0);
-	while ((real_len = strftime(ZSTR_VAL(buf), buf_len, ZSTR_VAL(format), &ta)) == buf_len || real_len == 0) {
+	while ((real_len = strftime(ZSTR_VAL(buf), buf_len, ZSTR_VAL(fmt.s), &ta)) == buf_len || real_len == 0) {
 		buf_len *= 2;
 		buf = zend_string_extend(buf, buf_len, 0);
 		if (!--max_reallocs) {
@@ -1354,6 +1372,7 @@ PHPAPI void php_strftime(INTERNAL_FUNCTION_PARAMETERS, bool gmt)
 	}
 #endif
 
+	smart_str_free(&fmt);
 	timelib_time_dtor(ts);
 	if (!gmt) {
 		timelib_time_offset_dtor(offset);
