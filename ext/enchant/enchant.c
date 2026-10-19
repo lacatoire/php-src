@@ -603,7 +603,7 @@ PHP_FUNCTION(enchant_dict_quick_check)
 
 	PHP_ENCHANT_GET_DICT;
 
-	if (enchant_dict_check(pdict->pdict, word, wordlen) > 0) {
+	if (enchant_dict_check(pdict->pdict, word, wordlen) != 0) {
 		size_t n_sugg;
 		char **suggs;
 
