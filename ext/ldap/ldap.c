@@ -1492,6 +1492,23 @@ static void php_ldap_do_search(INTERNAL_FUNCTION_PARAMETERS, int scope)
 		Z_PARAM_ARRAY_HT_EX(server_controls_ht, 1, 1)
 	ZEND_PARSE_PARAMETERS_END();
 
+	if (ZEND_NUM_ARGS() >= 5 && ZEND_LONG_EXCEEDS_INT(attrsonly)) {
+		zend_argument_value_error(5, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+	if (ZEND_NUM_ARGS() >= 6 && ZEND_LONG_EXCEEDS_INT(sizelimit)) {
+		zend_argument_value_error(6, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+	if (ZEND_NUM_ARGS() >= 7 && ZEND_LONG_EXCEEDS_INT(timelimit)) {
+		zend_argument_value_error(7, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+	if (ZEND_NUM_ARGS() >= 8 && ZEND_LONG_EXCEEDS_INT(deref)) {
+		zend_argument_value_error(8, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+
 	/* Reverse -> fall through */
 	switch (ZEND_NUM_ARGS()) {
 		case 9:
