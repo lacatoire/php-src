@@ -5680,7 +5680,7 @@ PHP_FUNCTION(str_repeat)
 PHP_FUNCTION(count_chars)
 {
 	zend_string *input;
-	int chars[256];
+	zend_long chars[256];
 	zend_long mymode=0;
 	const unsigned char *buf;
 	int inx;
