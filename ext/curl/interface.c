@@ -2936,6 +2936,10 @@ PHP_FUNCTION(curl_strerror)
 		Z_PARAM_LONG(code)
 	ZEND_PARSE_PARAMETERS_END();
 
+	if (ZEND_LONG_EXCEEDS_INT(code)) {
+		RETURN_NULL();
+	}
+
 	str = curl_easy_strerror(code);
 	if (str) {
 		RETURN_STRING(str);
