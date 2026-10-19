@@ -3190,6 +3190,11 @@ PHP_FUNCTION(imagecopymerge)
 		Z_PARAM_LONG(PCT)
 	ZEND_PARSE_PARAMETERS_END();
 
+	if (PCT < 0 || PCT > 100) {
+		zend_argument_value_error(9, "must be between 0 and 100");
+		RETURN_THROWS();
+	}
+
 	im_src = php_gd_libgdimageptr_from_zval_p(SIM);
 	im_dst = php_gd_libgdimageptr_from_zval_p(DIM);
 
@@ -3225,6 +3230,11 @@ PHP_FUNCTION(imagecopymergegray)
 		Z_PARAM_LONG(SH)
 		Z_PARAM_LONG(PCT)
 	ZEND_PARSE_PARAMETERS_END();
+
+	if (PCT < 0 || PCT > 100) {
+		zend_argument_value_error(9, "must be between 0 and 100");
+		RETURN_THROWS();
+	}
 
 	im_src = php_gd_libgdimageptr_from_zval_p(SIM);
 	im_dst = php_gd_libgdimageptr_from_zval_p(DIM);
