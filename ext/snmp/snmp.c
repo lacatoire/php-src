@@ -2548,6 +2548,8 @@ static PHP_RSHUTDOWN_FUNCTION(snmp)
 	// Restore the output options
 	set_snmplib_output_options(&saved_snmp_settings);
 
+	SNMP_G(valueretrieval) = SNMP_VALUE_LIBRARY;
+
 	// Restore MIB options
 	netsnmp_ds_set_int(NETSNMP_DS_LIBRARY_ID, NETSNMP_DS_LIB_MIB_PARSE_LABEL, saved_mib_allow_underscores);
 	netsnmp_ds_set_int(NETSNMP_DS_LIBRARY_ID, NETSNMP_DS_LIB_MIB_COMMENT_TERM, saved_mib_comment_term);
