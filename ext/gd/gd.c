@@ -1798,6 +1798,12 @@ static void _php_image_output(INTERNAL_FUNCTION_PARAMETERS, int image_type)
 
 	im = php_gd_libgdimageptr_from_zval_p(imgind);
 
+	/* The width and the height are stored in 16 bits */
+	if (gdImageSX(im) > 65535 || gdImageSY(im) > 65535) {
+		php_error_docref(NULL, E_WARNING, "Image is too large for the GD format, the width and the height must not exceed 65535");
+		RETURN_FALSE;
+	}
+
 	if (file_len) {
 		PHP_GD_CHECK_OPEN_BASEDIR(file, "Invalid filename");
 
