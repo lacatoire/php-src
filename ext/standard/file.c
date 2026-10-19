@@ -813,26 +813,21 @@ PHP_FUNCTION(popen)
 		Z_PARAM_STRING(mode, mode_len)
 	ZEND_PARSE_PARAMETERS_END();
 
-	posix_mode = estrndup(mode, mode_len);
-#ifndef PHP_WIN32
-	{
-		char *z = memchr(posix_mode, 'b', mode_len);
-		if (z) {
-			memmove(z, z + 1, mode_len - (z - posix_mode));
-			mode_len--;
-		}
-	}
-#endif
-
 	/* Musl only partially validates the mode. Manually check it to ensure consistent behavior. */
-	if (mode_len > 2 ||
-		(mode_len == 1 && (*posix_mode != 'r' && *posix_mode != 'w')) ||
-		(mode_len == 2 && (memcmp(posix_mode, "rb", 2) && memcmp(posix_mode, "wb", 2)))
+	if (!(mode_len == 1 && (*mode == 'r' || *mode == 'w')) &&
+		!(mode_len == 2 && (memcmp(mode, "rb", 2) == 0 || memcmp(mode, "wb", 2) == 0))
 	) {
 		zend_argument_value_error(2, "must be one of \"r\", \"rb\", \"w\", or \"wb\"");
-		efree(posix_mode);
 		RETURN_THROWS();
 	}
+
+	posix_mode = estrndup(mode, mode_len);
+#ifndef PHP_WIN32
+	if (mode_len == 2) {
+		/* Drop the "b", which has no effect on POSIX systems. */
+		posix_mode[1] = '\0';
+	}
+#endif
 
 	fp = VCWD_POPEN(command, posix_mode);
 	if (!fp) {
