@@ -1037,9 +1037,13 @@ PS_SERIALIZER_ENCODE_FUNC(php_serialize)
 	php_serialize_data_t var_hash;
 
 	IF_SESSION_VARS() {
+		zval _zv;
+		/* protect against user interference, as PS_ENCODE_LOOP does */
+		ZVAL_COPY(&_zv, Z_REFVAL(PS(http_session_vars)));
 		PHP_VAR_SERIALIZE_INIT(var_hash);
-		php_var_serialize(&buf, Z_REFVAL(PS(http_session_vars)), &var_hash);
+		php_var_serialize(&buf, &_zv, &var_hash);
 		PHP_VAR_SERIALIZE_DESTROY(var_hash);
+		zval_ptr_dtor(&_zv);
 	}
 	return smart_str_extract(&buf);
 }
