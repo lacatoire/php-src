@@ -390,6 +390,7 @@ PHP_RINIT_FUNCTION(basic) /* {{{ */
 	memset(BG(strtok_table), 0, 256);
 
 	BG(serialize_lock) = 0;
+	BG(serialize_share) = 0;
 	memset(&BG(serialize), 0, sizeof(BG(serialize)));
 	memset(&BG(unserialize), 0, sizeof(BG(unserialize)));
 
