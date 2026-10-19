@@ -378,12 +378,12 @@ static void php_snmp_getvalue(struct variable_list *vars, zval *snmpval, int val
 }
 /* }}} */
 
-/* {{{ php_snmp_internal
+/* {{{ php_snmp_internal_run
 *
 * SNMP object fetcher/setter for all SNMP versions
 *
 */
-static void php_snmp_internal(INTERNAL_FUNCTION_PARAMETERS, int st,
+static void php_snmp_internal_run(INTERNAL_FUNCTION_PARAMETERS, int st,
 							struct snmp_session *session,
 							struct objid_query *objid_query)
 {
@@ -631,6 +631,53 @@ retry:
 		}
 	} /* keepwalking */
 	snmp_close(ss);
+}
+/* }}} */
+
+/* {{{ php_snmp_internal
+*
+* libnetsnmp keeps the USM user created for a session in a process wide list and
+* does not update it when a later session uses the same security name. Remove
+* the users created by this request, but not the ones that existed before
+* (createUser in snmp.conf, other sessions).
+*/
+static void php_snmp_internal(INTERNAL_FUNCTION_PARAMETERS, int st,
+							struct snmp_session *session,
+							struct objid_query *objid_query)
+{
+	if (session->version != SNMP_VERSION_3) {
+		php_snmp_internal_run(INTERNAL_FUNCTION_PARAM_PASSTHRU, st, session, objid_query);
+		return;
+	}
+
+	size_t known_count = 0;
+	for (struct usmUser *user = usm_get_userList(); user; user = user->next) {
+		known_count++;
+	}
+	struct usmUser **known = safe_emalloc(known_count + 1, sizeof(struct usmUser *), 0);
+	size_t i = 0;
+	for (struct usmUser *user = usm_get_userList(); user; user = user->next) {
+		known[i++] = user;
+	}
+
+	php_snmp_internal_run(INTERNAL_FUNCTION_PARAM_PASSTHRU, st, session, objid_query);
+
+	struct usmUser *user = usm_get_userList();
+	while (user) {
+		struct usmUser *next = user->next;
+		bool is_known = false;
+		for (i = 0; i < known_count; i++) {
+			if (known[i] == user) {
+				is_known = true;
+				break;
+			}
+		}
+		if (!is_known) {
+			usm_free_user(usm_remove_user(user));
+		}
+		user = next;
+	}
+	efree(known);
 }
 /* }}} */
 
