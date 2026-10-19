@@ -1,14 +1,12 @@
 /*
   +----------------------------------------------------------------------+
-  | Copyright (c) The PHP Group                                          |
+  | Copyright © The PHP Group and Contributors.                          |
   +----------------------------------------------------------------------+
-  | This source file is subject to version 3.01 of the PHP license,      |
-  | that is bundled with this package in the file LICENSE, and is        |
-  | available through the world-wide-web at the following url:           |
-  | https://www.php.net/license/3_01.txt                                 |
-  | If you did not receive a copy of the PHP license and are unable to   |
-  | obtain it through the world-wide-web, please send a note to          |
-  | license@php.net so we can mail you a copy immediately.               |
+  | This source file is subject to the Modified BSD License that is      |
+  | bundled with this package in the file LICENSE, and is available      |
+  | through the World Wide Web at <https://www.php.net/license/>.        |
+  |                                                                      |
+  | SPDX-License-Identifier: BSD-3-Clause                                |
   +----------------------------------------------------------------------+
   | Authors: Andrey Hristov <andrey@php.net>                             |
   |          Ulf Wendel <uw@php.net>                                     |
@@ -58,7 +56,7 @@ static bool mysqlnd_stmt_check_state(const MYSQLND_STMT_DATA *stmt)
 {
 	const MYSQLND_CONN_DATA *conn = stmt->conn;
 	if (stmt->state != MYSQLND_STMT_WAITING_USE_OR_STORE) {
-		return 0;
+		return false;
 	}
 	if (stmt->cursor_exists) {
 		return GET_CONNECTION_STATE(&conn->state) == CONN_READY;
@@ -348,6 +346,9 @@ mysqlnd_stmt_prepare_read_eof(MYSQLND_STMT * s)
 	if (FAIL == (ret = PACKET_READ(conn, &fields_eof))) {
 		if (stmt->result) {
 			stmt->result->m.free_result_contents(stmt->result);
+			/* The memset() below resets the statement, so release what it still owns first. */
+			conn->m->free_reference(conn);
+			mnd_efree(stmt->execute_cmd_buffer.buffer);
 			/* XXX: This will crash, because we will null also the methods.
 				But seems it happens in extreme cases or doesn't. Should be fixed by exporting a function
 				(from mysqlnd_driver.c?) to do the reset.
@@ -1968,6 +1969,5 @@ MYSQLND_CLASS_METHODS_END;
 void _mysqlnd_init_ps_subsystem(void)
 {
 	mysqlnd_stmt_set_methods(&MYSQLND_CLASS_METHOD_TABLE_NAME(mysqlnd_stmt));
-	_mysqlnd_init_ps_fetch_subsystem();
 }
 /* }}} */
