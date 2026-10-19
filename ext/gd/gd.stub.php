@@ -586,6 +586,7 @@ function imagecreatefromgd2part(string $filename, int $x, int $y, int $width, in
 /** @refcount 1 */
 function imagecreatefrombmp(string $filename): GdImage|false {}
 
+/** @refcount 1 */
 function imagecreatefromtga(string $filename): GdImage|false {}
 
 function imagexbm(GdImage $image, ?string $filename, ?int $foreground_color = null): bool {}
@@ -656,6 +657,7 @@ function imagesetpixel(GdImage $image, int $x, int $y, int $color): true {}
 
 function imageline(GdImage $image, int $x1, int $y1, int $x2, int $y2, int $color): true {}
 
+#[\Deprecated(since: '8.6', message: "use imagesetstyle() together with imageline() instead")]
 function imagedashedline(GdImage $image, int $x1, int $y1, int $x2, int $y2, int $color): true {}
 
 function imagerectangle(GdImage $image, int $x1, int $y1, int $x2, int $y2, int $color): true {}
