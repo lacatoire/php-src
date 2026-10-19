@@ -4646,6 +4646,33 @@ ZEND_API zend_result zend_try_assign_typed_ref_ex(zend_reference *ref, zval *val
 }
 /* }}} */
 
+ZEND_API zval *zend_try_array_init_typed_ref(zend_reference *ref, uint32_t size) /* {{{ */
+{
+	while (1) {
+		zend_array *arr = zend_new_array(size);
+
+		/* The destructor of the previous value runs after the assignment. It can replace the
+		 * array by another value allowed by the type, or share it, so keep a reference of our
+		 * own to recognize the array and to know that nobody else holds it. */
+		GC_ADDREF(arr);
+		if (zend_try_assign_typed_ref_arr(ref, arr) == FAILURE) {
+			zend_array_release(arr);
+			return NULL;
+		}
+
+		if (EXPECTED(Z_TYPE(ref->val) == IS_ARRAY && Z_ARR(ref->val) == arr && GC_REFCOUNT(arr) == 2)) {
+			GC_DELREF(arr);
+			return &ref->val;
+		}
+
+		zend_array_release(arr);
+		if (UNEXPECTED(EG(exception))) {
+			return NULL;
+		}
+	}
+}
+/* }}} */
+
 ZEND_API zend_result zend_try_assign_typed_ref(zend_reference *ref, zval *val) /* {{{ */
 {
 	return zend_try_assign_typed_ref_ex(ref, val, ZEND_ARG_USES_STRICT_TYPES());
