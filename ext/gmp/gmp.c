@@ -1192,6 +1192,13 @@ ZEND_FUNCTION(gmp_pow)
 		RETURN_THROWS();
 	}
 
+	/* GMP aborts the process when the result needs more than INT_MAX limbs */
+	if (exp > 1 && mpz_cmpabs_ui(gmpnum_base, 1) > 0
+	 && (zend_ulong) exp > ((zend_ulong) INT_MAX * GMP_NUMB_BITS) / mpz_sizeinbase(gmpnum_base, 2)) {
+		zend_argument_value_error(2, "is too large for this base");
+		RETURN_THROWS();
+	}
+
 	INIT_GMP_RETVAL(gmpnum_result);
 	mpz_pow_ui(gmpnum_result, gmpnum_base, exp);
 }
