@@ -659,6 +659,11 @@ static zend_result convert_zstr_to_gmp(mpz_t gmp_number, const zend_string *val,
 		--num_len;
 	}
 
+	if (num_len >= 1 && num_str[0] == '+') {
+		++num_str;
+		--num_len;
+	}
+
 	if (num_len >= 2 && num_str[0] == '0') {
 		if ((base == 0 || base == 16) && (num_str[1] == 'x' || num_str[1] == 'X')) {
 			base = 16;
