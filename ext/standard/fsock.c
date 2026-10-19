@@ -69,6 +69,11 @@ static void php_fsockopen_stream(INTERNAL_FUNCTION_PARAMETERS, int persistent)
 		Z_PARAM_DOUBLE_OR_NULL(timeout, timeout_is_null)
 	ZEND_PARSE_PARAMETERS_END();
 
+	if (port > 65535) {
+		zend_argument_value_error(2, "must be less than or equal to 65535");
+		RETURN_THROWS();
+	}
+
 	RETVAL_FALSE;
 
 	if (timeout_is_null) {
