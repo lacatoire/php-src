@@ -24,4 +24,6 @@ Deprecated: Function mb_ereg() is deprecated since 8.6, because the underlying l
 bool(true)
 
 Deprecated: Function mb_ereg() is deprecated since 8.6, because the underlying library is no longer maintained in %s on line %d
+
+Warning: mb_ereg(): mbregex search failure in mbregex_exec(): retry-limit-in-match over in %s on line %d
 bool(false)
