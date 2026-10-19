@@ -1340,11 +1340,12 @@ PHPAPI void php_strftime(INTERNAL_FUNCTION_PARAMETERS, bool gmt)
 	   http://connect.microsoft.com/VisualStudio/feedback/details/759720/vs2012-strftime-crash-with-z-formatting-code */
 	buf = zend_string_alloc(buf_len, 0);
 	while ((real_len = strftime(ZSTR_VAL(buf), buf_len, ZSTR_VAL(format), &ta)) == buf_len || real_len == 0) {
-		buf_len *= 2;
-		buf = zend_string_extend(buf, buf_len, 0);
-		if (!--max_reallocs) {
+		/* Every buffer that is allocated gets used */
+		if (!max_reallocs--) {
 			break;
 		}
+		buf_len *= 2;
+		buf = zend_string_extend(buf, buf_len, 0);
 	}
 #ifdef PHP_WIN32
 	/* VS2012 strftime() returns number of characters, not bytes.
