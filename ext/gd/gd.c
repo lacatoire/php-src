@@ -2546,15 +2546,16 @@ PHP_FUNCTION(imagegammacorrect)
 	if (gdImageTrueColor(im))	{
 		for (int y = 0; y < gdImageSY(im); y++)	{
 			for (int x = 0; x < gdImageSX(im); x++)	{
-				int c = gdImageGetPixel(im, x, y);
-				gdImageSetPixel(im, x, y,
+				/* Replace the pixel: gdImageSetPixel() would blend it over the old one and
+				 * honour the clipping rectangle. */
+				int c = im->tpixels[y][x];
+				im->tpixels[y][x] =
 					gdTrueColorAlpha(
 						(int) ((pow((gdTrueColorGetRed(c)   / 255.0), gamma) * 255) + .5),
 						(int) ((pow((gdTrueColorGetGreen(c) / 255.0), gamma) * 255) + .5),
 						(int) ((pow((gdTrueColorGetBlue(c)  / 255.0), gamma) * 255) + .5),
 						gdTrueColorGetAlpha(c)
-					)
-				);
+					);
 			}
 		}
 		RETURN_TRUE;
