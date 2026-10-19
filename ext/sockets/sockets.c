@@ -867,7 +867,13 @@ PHP_FUNCTION(socket_close)
 	php_socket *socket = Z_SOCKET_P(arg1);
 	ENSURE_SOCKET_VALID(socket);
 
+	zval zstream;
+	ZVAL_UNDEF(&zstream);
+
 	if (!Z_ISUNDEF(socket->zstream)) {
+		/* A stream filter may call socket_close() again while the stream is
+		 * flushed, keep the resource alive until this call returns */
+		ZVAL_COPY(&zstream, &socket->zstream);
 		php_stream *stream = NULL;
 		php_stream_from_zval_no_verify(stream, &socket->zstream);
 		if (stream != NULL) {
@@ -883,7 +889,13 @@ PHP_FUNCTION(socket_close)
 		}
 	}
 
-	ZVAL_UNDEF(&socket->zstream);
+	/* Release the reference held by the Socket, otherwise the closed resource
+	 * stays in the resource list until the end of the request */
+	if (!Z_ISUNDEF(socket->zstream)) {
+		zval_ptr_dtor(&socket->zstream);
+		ZVAL_UNDEF(&socket->zstream);
+	}
+	zval_ptr_dtor(&zstream);
 	socket->bsd_socket = -1;
 }
 /* }}} */
