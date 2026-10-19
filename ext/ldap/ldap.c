@@ -4007,7 +4007,8 @@ static void php_ldap_do_translate(INTERNAL_FUNCTION_PARAMETERS, int way)
 		RETVAL_STRINGL(value, value_len);
 		free(value);
 	} else {
-		php_error_docref(NULL, E_WARNING, "Conversion from ISO-8859-1 to t61 failed: %s", ldap_err2string(result));
+		php_error_docref(NULL, E_WARNING, "Conversion from %s failed: %s",
+			way == 1 ? "ISO-8859-1 to t61" : "t61 to ISO-8859-1", ldap_err2string(result));
 		RETVAL_FALSE;
 	}
 }
