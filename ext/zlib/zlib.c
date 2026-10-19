@@ -478,9 +478,44 @@ retry_raw_inflate:
 			Z.avail_in = in_len + 1; /* NOTE: data must be zero terminated */
 
 			switch (status = php_zlib_inflate_rounds(&Z, max_len, out_buf, out_len)) {
-				case Z_STREAM_END:
+				case Z_STREAM_END: {
+					size_t rest = Z.avail_in ? Z.avail_in - 1 : 0;
+					const char *next = (const char *) Z.next_in;
 					inflateEnd(&Z);
+
+					/* A gzip file can be a series of members: decode the following ones too */
+					if (rest >= 2 && in_len >= 2
+							&& (encoding == PHP_ZLIB_ENCODING_GZIP || encoding == PHP_ZLIB_ENCODING_ANY)
+							&& (unsigned char) in_buf[0] == 0x1f && (unsigned char) in_buf[1] == 0x8b
+							&& (unsigned char) next[0] == 0x1f && (unsigned char) next[1] == 0x8b) {
+						char *rest_buf;
+						size_t rest_len;
+						size_t rest_max = 0;
+
+						if (max_len) {
+							if (*out_len >= max_len) {
+								efree(*out_buf);
+								*out_buf = NULL;
+								*out_len = 0;
+								php_error_docref(NULL, E_WARNING, "%s", zError(Z_MEM_ERROR));
+								return FAILURE;
+							}
+							rest_max = max_len - *out_len;
+						}
+						if (php_zlib_decode(next, rest, &rest_buf, &rest_len, PHP_ZLIB_ENCODING_GZIP, rest_max) != SUCCESS) {
+							efree(*out_buf);
+							*out_buf = NULL;
+							*out_len = 0;
+							return FAILURE;
+						}
+						*out_buf = erealloc(*out_buf, *out_len + rest_len + 1);
+						memcpy(*out_buf + *out_len, rest_buf, rest_len);
+						*out_len += rest_len;
+						(*out_buf)[*out_len] = '\0';
+						efree(rest_buf);
+					}
 					return SUCCESS;
+				}
 
 				case Z_DATA_ERROR:
 					/* raw deflated data? */
