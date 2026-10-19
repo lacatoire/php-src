@@ -1203,7 +1203,12 @@ PHP_FUNCTION(socket_create)
 	}
 
 	php_sock->error = 0;
+#ifdef SOCK_NONBLOCK
+	/* The flag is applied by the kernel, keep the Socket in sync as socket_set_nonblock() does. */
+	php_sock->blocking = !(type & SOCK_NONBLOCK);
+#else
 	php_sock->blocking = 1;
+#endif
 }
 /* }}} */
 
@@ -2492,8 +2497,13 @@ PHP_FUNCTION(socket_create_pair)
 	php_sock[1]->type		= domain;
 	php_sock[0]->error		= 0;
 	php_sock[1]->error		= 0;
+#ifdef SOCK_NONBLOCK
+	php_sock[0]->blocking	= !(type & SOCK_NONBLOCK);
+	php_sock[1]->blocking	= !(type & SOCK_NONBLOCK);
+#else
 	php_sock[0]->blocking	= 1;
 	php_sock[1]->blocking	= 1;
+#endif
 
 	add_index_zval(fds_array_zval, 0, &retval[0]);
 	add_index_zval(fds_array_zval, 1, &retval[1]);
