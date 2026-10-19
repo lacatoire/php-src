@@ -1399,7 +1399,11 @@ PHP_FUNCTION(socket_bind)
 					RETURN_THROWS();
 				}
 
-				sa->sll_ifindex = if_nametoindex(ZSTR_VAL(addr));
+				unsigned ifindex;
+				if (php_string_to_if_index(ZSTR_VAL(addr), &ifindex) == FAILURE) {
+					RETURN_FALSE;
+				}
+				sa->sll_ifindex = ifindex;
 
 				retval = bind(php_sock->bsd_socket, sock_type, sizeof(struct sockaddr_ll));
 				break;
