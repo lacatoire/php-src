@@ -1105,6 +1105,9 @@ ZEND_API zend_result zend_try_assign_typed_ref_arr(zend_reference *ref, zend_arr
 ZEND_API zend_result zend_try_assign_typed_ref_res(zend_reference *ref, zend_resource *res);
 ZEND_API zend_result zend_try_assign_typed_ref_zval(zend_reference *ref, zval *zv);
 ZEND_API zend_result zend_try_assign_typed_ref_zval_ex(zend_reference *ref, zval *zv, bool strict);
+/* Assigns a new empty array to a typed reference and returns the dereferenced zval holding it,
+ * or NULL if the assignment failed. */
+ZEND_API zval *zend_try_array_init_typed_ref(zend_reference *ref, uint32_t size);
 
 #define _ZEND_TRY_ASSIGN_NULL(zv, is_ref) do { \
 	zval *_zv = zv; \
@@ -1483,20 +1486,21 @@ ZEND_API zend_result zend_try_assign_typed_ref_zval_ex(zend_reference *ref, zval
  * or NULL if the initialization failed. */
 static zend_always_inline zval *zend_try_array_init_size(zval *zv, uint32_t size)
 {
-	zend_array *arr = zend_new_array(size);
-
 	if (EXPECTED(Z_ISREF_P(zv))) {
 		zend_reference *ref = Z_REF_P(zv);
 		if (UNEXPECTED(ZEND_REF_HAS_TYPE_SOURCES(ref))) {
-			if (zend_try_assign_typed_ref_arr(ref, arr) == FAILURE) {
-				return NULL;
-			}
-			return &ref->val;
+			return zend_try_array_init_typed_ref(ref, size);
 		}
 		zv = &ref->val;
 	}
-	zval_ptr_safe_dtor(zv);
-	ZVAL_ARR(zv, arr);
+	/* A destructor of the previous value can store another value in zv, release it too */
+	zval garbage;
+	do {
+		ZVAL_COPY_VALUE(&garbage, zv);
+		ZVAL_NULL(zv);
+		zval_ptr_dtor(&garbage);
+	} while (UNEXPECTED(Z_TYPE_P(zv) != IS_NULL));
+	ZVAL_ARR(zv, zend_new_array(size));
 	return zv;
 }
 
