@@ -76,7 +76,7 @@ PHPAPI zend_string *php_quot_print_decode(const unsigned char *str, size_t lengt
 
 	i = length, p1 = str; buf_size = length;
 
-	while (i > 1 && *p1 != '\0') {
+	while (i > 1) {
 		if (*p1 == '=') {
 			buf_size -= 2;
 			p1++;
@@ -90,10 +90,10 @@ PHPAPI zend_string *php_quot_print_decode(const unsigned char *str, size_t lengt
 	i = length; p1 = str; p2 = (unsigned char*)ZSTR_VAL(retval);
 	decoded_len = 0;
 
-	while (i > 0 && *p1 != '\0') {
+	while (i > 0) {
 		if (*p1 == '=') {
 			i--, p1++;
-			if (i == 0 || *p1 == '\0') {
+			if (i == 0) {
 				break;
 			}
 			h_nbl = hexval_tbl[*p1];
@@ -194,6 +194,7 @@ PHP_FUNCTION(quoted_printable_decode)
 	char *str_in;
 	zend_string *str_out;
 	size_t i = 0, j = 0, k;
+	size_t len;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
 		Z_PARAM_STR(arg1)
@@ -205,11 +206,12 @@ PHP_FUNCTION(quoted_printable_decode)
 	}
 
 	str_in = ZSTR_VAL(arg1);
+	len = ZSTR_LEN(arg1);
 	str_out = zend_string_alloc(ZSTR_LEN(arg1), 0);
-	while (str_in[i]) {
+	while (i < len) {
 		switch (str_in[i]) {
 		case '=':
-			if (str_in[i + 1] && str_in[i + 2] &&
+			if (i + 2 < len &&
 				isxdigit((unsigned char)str_in[i + 1]) &&
 				isxdigit((unsigned char)str_in[i + 2]))
 			{
@@ -218,15 +220,15 @@ PHP_FUNCTION(quoted_printable_decode)
 				i += 3;
 			} else  /* check for soft line break according to RFC 2045*/ {
 				k = 1;
-				while (str_in[i + k] && ((str_in[i + k] == 32) || (str_in[i + k] == 9))) {
+				while (i + k < len && ((str_in[i + k] == 32) || (str_in[i + k] == 9))) {
 					/* Possibly, skip spaces/tabs at the end of line */
 					k++;
 				}
-				if (!str_in[i + k]) {
+				if (i + k >= len) {
 					/* End of line reached */
 					i += k;
 				}
-				else if ((str_in[i + k] == 13) && (str_in[i + k + 1] == 10)) {
+				else if ((str_in[i + k] == 13) && i + k + 1 < len && (str_in[i + k + 1] == 10)) {
 					/* CRLF */
 					i += k + 2;
 				}
