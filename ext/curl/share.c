@@ -120,6 +120,10 @@ PHP_FUNCTION(curl_share_strerror)
 		Z_PARAM_LONG(code)
 	ZEND_PARSE_PARAMETERS_END();
 
+	if (ZEND_LONG_EXCEEDS_INT(code)) {
+		RETURN_NULL();
+	}
+
 	str = curl_share_strerror(code);
 	if (str) {
 		RETURN_STRING(str);
