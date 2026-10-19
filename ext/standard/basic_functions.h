@@ -82,6 +82,7 @@ typedef struct _php_basic_globals {
 
 	/* var.c */
 	unsigned serialize_lock; /* whether to use the locally supplied var_hash instead (__sleep/__wakeup) */
+	unsigned serialize_share; /* whether a nested serialize() shares the table of the running one (Serializable::serialize) */
 	struct {
 		struct php_serialize_data *data;
 		unsigned level;

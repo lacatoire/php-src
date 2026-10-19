@@ -1201,7 +1201,10 @@ again:
 					unsigned char *serialized_data = NULL;
 					size_t serialized_length;
 
-					if (ce->serialize(struc, &serialized_data, &serialized_length, (zend_serialize_data *)var_hash) == SUCCESS) {
+					BG(serialize_share)++;
+					zend_result serialize_result = ce->serialize(struc, &serialized_data, &serialized_length, (zend_serialize_data *)var_hash);
+					BG(serialize_share)--;
+					if (serialize_result == SUCCESS) {
 						char b1[32], b2[32];
 						char *s1 = zend_print_long_to_buf(b1 + sizeof(b1) - 1, ZSTR_LEN(Z_OBJCE_P(struc)->name));
 						size_t l1 = b1 + sizeof(b1) - 1 - s1;
@@ -1352,28 +1355,36 @@ PHPAPI void php_var_serialize(smart_str *buf, zval *struc, php_serialize_data_t 
 PHPAPI php_serialize_data_t php_var_serialize_init(void) {
 	struct php_serialize_data *d;
 	/* fprintf(stderr, "SERIALIZE_INIT      == lock: %u, level: %u\n", BG(serialize_lock), BG(serialize).level); */
-	if (BG(serialize_lock) || !BG(serialize).level) {
-		d = emalloc(sizeof(struct php_serialize_data));
-		zend_hash_init(&d->ht, 16, NULL, ZVAL_PTR_DTOR, 0);
-		d->n = 0;
-		if (!BG(serialize_lock)) {
-			BG(serialize).data = d;
-			BG(serialize).level = 1;
-		}
-	} else {
+	/* A nested call only shares the table of the running one while Serializable::serialize() runs.
+	 * Other user code (error handler, destructor) must not shift the back-references of the outer call. */
+	if (!BG(serialize_lock) && BG(serialize).level && BG(serialize_share)) {
 		d = BG(serialize).data;
 		++BG(serialize).level;
+		return d;
+	}
+
+	d = emalloc(sizeof(struct php_serialize_data));
+	zend_hash_init(&d->ht, 16, NULL, ZVAL_PTR_DTOR, 0);
+	d->n = 0;
+	if (!BG(serialize_lock) && !BG(serialize).level) {
+		BG(serialize).data = d;
+		BG(serialize).level = 1;
 	}
 	return d;
 }
 
 PHPAPI void php_var_serialize_destroy(php_serialize_data_t d) {
 	/* fprintf(stderr, "SERIALIZE_DESTROY   == lock: %u, level: %u\n", BG(serialize_lock), BG(serialize).level); */
-	if (BG(serialize_lock) || BG(serialize).level == 1) {
+	if (BG(serialize_lock) || d != BG(serialize).data) {
+		zend_hash_destroy(&d->ht);
+		efree(d);
+		return;
+	}
+	if (BG(serialize).level == 1) {
 		zend_hash_destroy(&d->ht);
 		efree(d);
 	}
-	if (!BG(serialize_lock) && !--BG(serialize).level) {
+	if (!--BG(serialize).level) {
 		BG(serialize).data = NULL;
 	}
 }
