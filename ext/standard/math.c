@@ -158,6 +158,43 @@ static inline double php_round_helper(double integral, double value, double expo
 }
 /* }}} */
 
+/* Every double of magnitude 2^53 or more is an integer, so the arithmetic of the generic path
+ * (value / exponent, then back) is inexact there. fmod() is exact, which allows to round
+ * such a value to a negative precision without any intermediate rounding. */
+static double php_round_large_integral(double value, double exponent, int mode)
+{
+	double remainder = fmod(value, exponent);
+	double toward_zero = value - remainder;
+	/* Both candidates are computed from value, so that each of them is rounded only once */
+	double away_from_zero = value - (remainder - copysign(exponent, value));
+	double distance = fabs(remainder);
+	double twice = distance * 2.0;
+
+	switch (mode) {
+		case PHP_ROUND_HALF_UP:
+			return twice >= exponent ? away_from_zero : toward_zero;
+		case PHP_ROUND_HALF_DOWN:
+			return twice > exponent ? away_from_zero : toward_zero;
+		case PHP_ROUND_HALF_EVEN:
+		case PHP_ROUND_HALF_ODD:
+			if (twice != exponent) {
+				return twice > exponent ? away_from_zero : toward_zero;
+			} else {
+				bool odd_quotient = fabs(fmod(value, exponent * 2.0)) >= exponent;
+				return (odd_quotient == (mode == PHP_ROUND_HALF_EVEN)) ? away_from_zero : toward_zero;
+			}
+		case PHP_ROUND_CEILING:
+			return (distance > 0.0 && value > 0.0) ? away_from_zero : toward_zero;
+		case PHP_ROUND_FLOOR:
+			return (distance > 0.0 && value < 0.0) ? away_from_zero : toward_zero;
+		case PHP_ROUND_TOWARD_ZERO:
+			return toward_zero;
+		case PHP_ROUND_AWAY_FROM_ZERO:
+			return distance > 0.0 ? away_from_zero : toward_zero;
+		default: ZEND_UNREACHABLE();
+	}
+}
+
 /* {{{ _php_math_round */
 /*
  * Rounds a number to a certain number of decimal places in a certain rounding
@@ -177,6 +214,11 @@ PHPAPI double _php_math_round(double value, int places, int mode) {
 	places = places < INT_MIN+1 ? INT_MIN+1 : places;
 
 	exponent = php_intpow10(abs(places));
+
+	if (places < 0 && places >= -22 && fabs(value) >= 9007199254740992.0) {
+		double result = php_round_large_integral(value, exponent, mode);
+		return zend_finite(result) ? result : value;
+	}
 
 	/**
 	 * When extracting the integer part, the result may be incorrect as a decimal
@@ -331,6 +373,58 @@ PHPAPI int php_math_round_mode_from_enum(zend_enum_RoundingMode mode)
 	ZEND_UNREACHABLE();
 }
 
+/* Rounds an integer to a negative precision (-18 to -1) without converting it to a double first,
+ * which would round it a first time for magnitudes above 2^53. */
+static double php_round_long_negative_places(zend_long value, int places, int mode)
+{
+	zend_ulong exponent = 1;
+	for (int i = 0; i < -places; i++) {
+		exponent *= 10;
+	}
+
+	bool negative = value < 0;
+	zend_ulong magnitude = negative ? 0 - (zend_ulong) value : (zend_ulong) value;
+	zend_ulong remainder = magnitude % exponent;
+	zend_ulong toward_zero = magnitude - remainder;
+	zend_ulong half = exponent / 2;
+	bool away;
+
+	switch (mode) {
+		case PHP_ROUND_HALF_UP:
+			away = remainder >= half;
+			break;
+		case PHP_ROUND_HALF_DOWN:
+			away = remainder > half;
+			break;
+		case PHP_ROUND_HALF_EVEN:
+		case PHP_ROUND_HALF_ODD:
+			if (remainder == half) {
+				bool odd_quotient = (toward_zero / exponent) & 1;
+				away = odd_quotient == (mode == PHP_ROUND_HALF_EVEN);
+			} else {
+				away = remainder > half;
+			}
+			break;
+		case PHP_ROUND_CEILING:
+			away = remainder > 0 && !negative;
+			break;
+		case PHP_ROUND_FLOOR:
+			away = remainder > 0 && negative;
+			break;
+		case PHP_ROUND_TOWARD_ZERO:
+			away = false;
+			break;
+		case PHP_ROUND_AWAY_FROM_ZERO:
+			away = remainder > 0;
+			break;
+		default: ZEND_UNREACHABLE();
+	}
+
+	/* Cannot overflow: magnitude < 2^63 and exponent <= 10^18 */
+	double result = (double) (away ? toward_zero + exponent : toward_zero);
+	return negative ? -result : result;
+}
+
 /* {{{ Returns the number rounded to specified precision */
 PHP_FUNCTION(round)
 {
@@ -379,6 +473,9 @@ PHP_FUNCTION(round)
 			/* Simple case - long that doesn't need to be rounded. */
 			if (places >= 0) {
 				RETURN_DOUBLE(zval_get_double(value));
+			}
+			if (places >= -18) {
+				RETURN_DOUBLE(php_round_long_negative_places(Z_LVAL_P(value), places, (int)mode));
 			}
 			ZEND_FALLTHROUGH;
 
