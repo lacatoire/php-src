@@ -1242,6 +1242,12 @@ again:
 						ZVAL_OBJ_COPY(&tmp, Z_OBJ_P(struc));
 						if (!(ht = php_var_serialize_call_sleep(Z_OBJ(tmp), Z_FUNC_P(zv)))) {
 							if (!EG(exception)) {
+								/* Mark this value in the var_hash, to avoid creating references to it. */
+								zval *var_idx = zend_hash_index_find(&var_hash->ht,
+									(zend_ulong) (uintptr_t) Z_COUNTED_P(struc));
+								if (var_idx) {
+									ZVAL_LONG(var_idx, -1);
+								}
 								/* we should still add element even if it's not OK,
 								 * since we already wrote the length of the array before */
 								smart_str_appendl(buf, "N;", 2);
@@ -1314,7 +1320,7 @@ again:
 				/* count after serializing name, since php_var_serialize_class_name
 				 * changes the count if the variable is incomplete class */
 				count = zend_array_count(myht);
-				if (count > 0 && incomplete_class) {
+				if (count > 0 && incomplete_class && zend_hash_str_exists(myht, MAGIC_MEMBER, sizeof(MAGIC_MEMBER) - 1)) {
 					--count;
 				}
 				php_var_serialize_nested_data(buf, struc, myht, count, incomplete_class, var_hash, GC_REFCOUNT(myht) > 1);
