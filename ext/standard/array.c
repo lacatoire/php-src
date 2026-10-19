@@ -4617,9 +4617,13 @@ static inline zval *array_column_fetch_prop(zval *data, zend_string *name_str, z
 				|| Z_OBJ_HANDLER_P(data, has_property)(Z_OBJ_P(data), tmp_str, ZEND_PROPERTY_ISSET, cache_slot)) {
 			prop = Z_OBJ_HANDLER_P(data, read_property)(Z_OBJ_P(data), tmp_str, BP_VAR_R, cache_slot, rv);
 			if (prop) {
-				ZVAL_DEREF(prop);
-				if (prop != rv) {
-					Z_TRY_ADDREF_P(prop);
+				if (prop == rv && Z_ISREF_P(prop)) {
+					zend_unwrap_reference(prop);
+				} else {
+					ZVAL_DEREF(prop);
+					if (prop != rv) {
+						Z_TRY_ADDREF_P(prop);
+					}
 				}
 			}
 		}
