@@ -2477,6 +2477,9 @@ PHP_FUNCTION(socket_create_pair)
 
 	fds_array_zval = zend_try_array_init_size(fds_array_zval, 2);
 	if (!fds_array_zval) {
+		/* No Socket owns the descriptors yet */
+		close(fds_array[0]);
+		close(fds_array[1]);
 		RETURN_THROWS();
 	}
 
