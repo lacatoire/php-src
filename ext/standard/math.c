@@ -846,6 +846,52 @@ PHPAPI zend_long _php_math_basetolong(zval *arg, int base)
 }
 /* }}} */
 
+/* {{{ php_math_limbs_to_double */
+/* Converts the little-endian 32-bit limbs of a non-negative integer to the nearest double. */
+static double php_math_limbs_to_double(const uint32_t *limbs, int n)
+{
+	int hi = n - 1;
+	while (hi >= 0 && limbs[hi] == 0) {
+		hi--;
+	}
+	if (hi < 0) {
+		return 0.0;
+	}
+
+	int top_bits = 0;
+	for (uint32_t v = limbs[hi]; v != 0; v >>= 1) {
+		top_bits++;
+	}
+	int bitlen = hi * 32 + top_bits;
+	if (bitlen <= 64) {
+		uint64_t v = 0;
+		for (int i = hi; i >= 0; i--) {
+			v = (v << 32) | limbs[i];
+		}
+		return (double) v;
+	}
+
+	/* Keep the top 64 bits and fold the rest into a sticky bit, which preserves the rounding */
+	int shift = bitlen - 64;
+	uint64_t top = 0;
+	for (int b = 63; b >= 0; b--) {
+		int bit = shift + b;
+		top = (top << 1) | ((limbs[bit / 32] >> (bit % 32)) & 1);
+	}
+	bool sticky = false;
+	for (int i = 0; i < shift / 32 && !sticky; i++) {
+		sticky = limbs[i] != 0;
+	}
+	if (!sticky && (shift % 32) != 0) {
+		sticky = (limbs[shift / 32] & ((UINT32_C(1) << (shift % 32)) - 1)) != 0;
+	}
+	if (sticky) {
+		top |= 1;
+	}
+	return ldexp((double) top, shift);
+}
+/* }}} */
+
 /* {{{ _php_math_basetozval */
 /*
  * Convert a string representation of a base(2-36) number to a zval.
@@ -854,6 +900,11 @@ PHPAPI void _php_math_basetozval(zend_string *str, int base, zval *ret)
 {
 	zend_long num = 0;
 	double fnum = 0;
+	/* Digits beyond PHP_INT_MAX are accumulated exactly in 32-bit limbs, so that the final
+	 * double is correctly rounded. 40 limbs cover the range of a double. */
+	uint32_t limbs[40];
+	int nlimbs = 0;
+	bool too_large = false;
 	int mode = 0;
 	char c, *s, *e;
 	zend_long cutoff;
@@ -904,12 +955,28 @@ PHPAPI void _php_math_basetozval(zend_string *str, int base, zval *ret)
 				break;
 			} else {
 				zend_error(E_NOTICE, "Input number is larger than PHP_INT_MAX, precision has been lost in conversion");
-				fnum = (double)num;
+				for (uint64_t v = (uint64_t) num; v != 0; v >>= 32) {
+					limbs[nlimbs++] = (uint32_t) v;
+				}
 				mode = 1;
 			}
 			ZEND_FALLTHROUGH;
 		case 1: /* Float */
-			fnum = fnum * base + c;
+			if (!too_large) {
+				uint64_t carry = (uint64_t) c;
+				for (int i = 0; i < nlimbs; i++) {
+					uint64_t t = (uint64_t) limbs[i] * (uint64_t) base + carry;
+					limbs[i] = (uint32_t) t;
+					carry = t >> 32;
+				}
+				if (carry) {
+					if (nlimbs == (int) (sizeof(limbs) / sizeof(limbs[0]))) {
+						too_large = true;
+					} else {
+						limbs[nlimbs++] = (uint32_t) carry;
+					}
+				}
+			}
 		}
 	}
 
@@ -918,6 +985,7 @@ PHPAPI void _php_math_basetozval(zend_string *str, int base, zval *ret)
 	}
 
 	if (mode == 1) {
+		fnum = too_large ? ZEND_INFINITY : php_math_limbs_to_double(limbs, nlimbs);
 		ZVAL_DOUBLE(ret, fnum);
 	} else {
 		ZVAL_LONG(ret, num);
