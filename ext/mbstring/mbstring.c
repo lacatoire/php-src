@@ -4093,7 +4093,8 @@ static zend_string* html_numeric_entity_encode(zend_string *input, const mbfl_en
 		for (size_t i = 0; i < out_len; i++) {
 			uint32_t w = wchar_buf[i];
 
-			if (html_numeric_entity_convert(w, convmap, conversion_map_size, &w)) {
+			/* An invalid input byte is left to the output filter, whatever the map covers */
+			if (w != (uint32_t) MBFL_BAD_INPUT && html_numeric_entity_convert(w, convmap, conversion_map_size, &w)) {
 				*converted++ = '&';
 				*converted++ = '#';
 				if (hex) {
