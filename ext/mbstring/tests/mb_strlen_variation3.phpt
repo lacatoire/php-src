@@ -339,6 +339,8 @@ Encoding byte4le recognised
 Deprecated: mb_strlen(): Handling Base64 via mbstring is deprecated; use base64_encode/base64_decode instead in %s on line %d
 Encoding BASE64 recognised
 -- Multibyte String --
+
+Deprecated: mb_strlen(): Handling Base64 via mbstring is deprecated; use base64_encode/base64_decode instead in %s on line %d
 Encoding BASE64 recognised
 
 -- Iteration 41: HTML-ENTITIES --
@@ -347,6 +349,8 @@ Encoding BASE64 recognised
 Deprecated: mb_strlen(): Handling HTML entities via mbstring is deprecated; use htmlspecialchars, htmlentities, or mb_encode_numericentity/mb_decode_numericentity instead in %s on line %d
 Encoding HTML-ENTITIES recognised
 -- Multibyte String --
+
+Deprecated: mb_strlen(): Handling HTML entities via mbstring is deprecated; use htmlspecialchars, htmlentities, or mb_encode_numericentity/mb_decode_numericentity instead in %s on line %d
 Encoding HTML-ENTITIES recognised
 
 -- Iteration 42: 7bit --
