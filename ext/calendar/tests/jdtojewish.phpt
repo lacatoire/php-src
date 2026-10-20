@@ -42,4 +42,4 @@ string(%d) "2/22/5763
 2/30/5763
 3/16/5765
 3/8/13758
-ValueError: Year out of range (0-9999)
+ValueError: Year out of range (1-9999)
