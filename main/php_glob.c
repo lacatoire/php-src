@@ -794,10 +794,11 @@ static int glob3(Char *pathbuf, Char *pathbuf_last, Char *pathend, Char *pathend
 		if (pglob->gl_errfunc) {
 			if (g_Ctoc(pathbuf, buf, sizeof(buf)))
 				return(PHP_GLOB_ABORTED);
-			if (pglob->gl_errfunc(buf, errno) ||
-				pglob->gl_flags & PHP_GLOB_ERR)
+			if (pglob->gl_errfunc(buf, errno))
 				return(PHP_GLOB_ABORTED);
 		}
+		if (pglob->gl_flags & PHP_GLOB_ERR)
+			return(PHP_GLOB_ABORTED);
 		return(0);
 	}
 
