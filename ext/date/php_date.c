@@ -3755,6 +3755,7 @@ static void php_date_date_set(zval *object, zend_long y, zend_long m, zend_long 
 	dateobj->time->m = m;
 	dateobj->time->d = d;
 	timelib_update_ts(dateobj->time, NULL);
+	timelib_update_from_sse(dateobj->time);
 } /* }}} */
 
 /* {{{ Sets the date. */
