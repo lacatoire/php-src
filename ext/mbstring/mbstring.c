@@ -4626,37 +4626,47 @@ PHP_FUNCTION(mb_send_mail)
 	}
 
 	if ((s = zend_hash_str_find(&ht_headers, "content-type", sizeof("content-type") - 1))) {
-		char *tmp;
-		char *param_name;
-		char *charset = NULL;
-
 		ZEND_ASSERT(Z_TYPE_P(s) == IS_STRING);
 		p = strchr(Z_STRVAL_P(s), ';');
 
-		if (p != NULL) {
-			/* skipping the padded spaces */
+		/* The charset parameter may appear anywhere after the media type, and its
+		 * value ends at the next ';' when it is not quoted. */
+		while (p != NULL) {
 			do {
 				++p;
 			} while (*p == ' ' || *p == '\t');
 
-			if (*p != '\0') {
-				if ((param_name = php_strtok_r(p, "= ", &tmp)) != NULL) {
-					if (strcasecmp(param_name, "charset") == 0) {
-						const mbfl_encoding *_tran_cs = tran_cs;
+			if (strncasecmp(p, "charset", sizeof("charset") - 1) == 0) {
+				const char *v = p + sizeof("charset") - 1;
+				while (*v == ' ' || *v == '\t') {
+					v++;
+				}
+				if (*v == '=') {
+					const mbfl_encoding *_tran_cs = tran_cs;
+					char *charset = NULL;
 
-						charset = php_strtok_r(NULL, "= \"", &tmp);
-						if (charset != NULL) {
-							_tran_cs = mbfl_name2encoding(charset);
-						}
+					do {
+						v++;
+					} while (*v == ' ' || *v == '\t' || *v == '"');
 
-						if (!_tran_cs) {
-							php_error_docref(NULL, E_WARNING, "Unsupported charset \"%s\" - will be regarded as ascii", charset);
-							_tran_cs = &mbfl_encoding_ascii;
-						}
-						tran_cs = _tran_cs;
+					size_t len = strcspn(v, "; \t\"");
+					if (len > 0) {
+						charset = estrndup(v, len);
+						_tran_cs = mbfl_name2encoding(charset);
 					}
+
+					if (!_tran_cs) {
+						php_error_docref(NULL, E_WARNING, "Unsupported charset \"%s\" - will be regarded as ascii", charset);
+						_tran_cs = &mbfl_encoding_ascii;
+					}
+					tran_cs = _tran_cs;
+					if (charset) {
+						efree(charset);
+					}
+					break;
 				}
 			}
+			p = strchr(p, ';');
 		}
 		suppress_content_type = true;
 	}
