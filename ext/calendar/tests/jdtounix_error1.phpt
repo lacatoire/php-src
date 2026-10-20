@@ -15,4 +15,4 @@ try {
 }
 ?>
 --EXPECTF--
-ValueError: jdtounix(): Argument #1 ($julian_day) jday must be between 2440588 and %d
+ValueError: jdtounix(): Argument #1 ($julian_day) must be between 2440588 and %d
