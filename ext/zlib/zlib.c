@@ -669,7 +669,7 @@ PHP_FUNCTION(readgzfile)
 	size_t filename_len;
 	int flags = REPORT_ERRORS;
 	php_stream *stream;
-	size_t size;
+	ssize_t size;
 	bool use_include_path = false;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "p|b", &filename, &filename_len, &use_include_path) == FAILURE) {
@@ -687,6 +687,9 @@ PHP_FUNCTION(readgzfile)
 	}
 	size = php_stream_passthru(stream);
 	php_stream_close(stream);
+	if (size < 0) {
+		RETURN_FALSE;
+	}
 	RETURN_LONG(size);
 }
 /* }}} */

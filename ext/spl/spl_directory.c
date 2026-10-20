@@ -2494,7 +2494,8 @@ PHP_METHOD(SplFileObject, fpassthru)
 
 	CHECK_SPL_FILE_OBJECT_IS_INITIALIZED(intern);
 
-	RETURN_LONG(php_stream_passthru(intern->u.file.stream));
+	ssize_t size = php_stream_passthru(intern->u.file.stream);
+	RETURN_LONG(size < 0 ? 0 : size);
 } /* }}} */
 
 /* {{{ Implements a mostly ANSI compatible fscanf() */
