@@ -1391,15 +1391,21 @@ ZEND_FUNCTION(restore_exception_handler)
 {
 	ZEND_PARSE_PARAMETERS_NONE();
 
-	if (Z_TYPE(EG(user_exception_handler)) != IS_UNDEF) {
-		zval_ptr_dtor(&EG(user_exception_handler));
-	}
+	/* Destroy the replaced handler last: its destructor can call set_exception_handler() or
+	 * restore_exception_handler() and must find a consistent handler stack. */
+	zval replaced;
+	ZVAL_COPY_VALUE(&replaced, &EG(user_exception_handler));
+
 	if (zend_stack_is_empty(&EG(user_exception_handlers))) {
 		ZVAL_UNDEF(&EG(user_exception_handler));
 	} else {
 		zval *tmp = zend_stack_top(&EG(user_exception_handlers));
 		ZVAL_COPY_VALUE(&EG(user_exception_handler), tmp);
 		zend_stack_del_top(&EG(user_exception_handlers));
+	}
+
+	if (Z_TYPE(replaced) != IS_UNDEF) {
+		zval_ptr_dtor(&replaced);
 	}
 
 	// TODO Change to void
