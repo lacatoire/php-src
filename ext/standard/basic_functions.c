@@ -1931,7 +1931,10 @@ PHP_FUNCTION(ini_get_all)
 	zend_ini_sort_entries();
 
 	if (extname) {
-		if ((module = zend_hash_find_ptr(&module_registry, extname)) == NULL) {
+		zend_string *lcname = zend_string_tolower(extname);
+		module = zend_hash_find_ptr(&module_registry, lcname);
+		zend_string_release(lcname);
+		if (module == NULL) {
 			php_error_docref(NULL, E_WARNING, "Extension \"%s\" cannot be found", ZSTR_VAL(extname));
 			RETURN_FALSE;
 		}
