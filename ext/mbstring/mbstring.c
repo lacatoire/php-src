@@ -3677,7 +3677,12 @@ next_option:
 					}
 				}
 
-				zend_argument_value_error(2, "contains invalid flag: '%c'", c);
+				if (c >= 0x20 && c < 0x7f) {
+					zend_argument_value_error(2, "contains invalid flag: '%c'", c);
+				} else {
+					/* A control character or one byte of a multibyte character cannot be printed as is */
+					zend_argument_value_error(2, "contains invalid flag: 0x%02X", (unsigned char) c);
+				}
 				RETURN_THROWS();
 			}
 		}
