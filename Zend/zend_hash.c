@@ -2501,7 +2501,7 @@ ZEND_API HashTable* ZEND_FASTCALL zend_array_dup(const HashTable *source)
 		target->nTableSize = source->nTableSize;
 		HT_SET_DATA_ADDR(target, emalloc(HT_PACKED_SIZE_EX(target->nTableSize, HT_MIN_MASK)));
 		target->nInternalPointer =
-			(source->nInternalPointer < source->nNumUsed) ?
+			(source->nInternalPointer <= source->nNumUsed) ?
 				source->nInternalPointer : 0;
 
 		HT_HASH_RESET_PACKED(target);
@@ -2517,7 +2517,7 @@ ZEND_API HashTable* ZEND_FASTCALL zend_array_dup(const HashTable *source)
 		target->nTableMask = source->nTableMask;
 		target->nNextFreeElement = source->nNextFreeElement;
 		target->nInternalPointer =
-			(source->nInternalPointer < source->nNumUsed) ?
+			(source->nInternalPointer <= source->nNumUsed) ?
 				source->nInternalPointer : 0;
 
 		target->nTableSize = source->nTableSize;
