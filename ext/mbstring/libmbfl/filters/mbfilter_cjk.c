@@ -8764,8 +8764,8 @@ static zend_string* mb_cut_gb18030(unsigned char *str, size_t from, size_t len, 
 {
 	ZEND_ASSERT(str + from <= end);
 	unsigned char *start = step_through_gb18030_str(str, str + from);
-	if (str + from + len > end) {
-		len = (end - str) - from;
+	if (start + len > end) {
+		len = end - start;
 	}
 	if (start + len >= end) {
 		return zend_string_init_fast((const char*)start, end - start);
