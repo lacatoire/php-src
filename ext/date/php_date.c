@@ -740,7 +740,7 @@ static zend_string *date_format(const char *format, size_t format_len, const tim
 
 			/* year */
 			case 'L': length = slprintf(buffer, sizeof(buffer), "%d", timelib_is_leap((int) t->y)); break;
-			case 'y': length = slprintf(buffer, sizeof(buffer), "%02d", (int) (t->y % 100)); break;
+			case 'y': length = slprintf(buffer, sizeof(buffer), "%s%02d", t->y < 0 ? "-" : "", (int) (php_date_llabs((timelib_sll) t->y) % 100)); break;
 			case 'Y': length = slprintf(buffer, sizeof(buffer), "%s%04" PRIu64, t->y < 0 ? "-" : "", php_date_llabs((timelib_sll) t->y)); break;
 			case 'x': length = slprintf(buffer, sizeof(buffer), "%s%04" PRIu64, t->y < 0 ? "-" : (t->y >= 10000 ? "+" : ""), php_date_llabs((timelib_sll) t->y)); break;
 			case 'X': length = slprintf(buffer, sizeof(buffer), "%s%04" PRIu64, t->y < 0 ? "-" : "+", php_date_llabs((timelib_sll) t->y)); break;
