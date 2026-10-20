@@ -1334,7 +1334,9 @@ static void _php_mb_regex_ereg_search_exec(INTERNAL_FUNCTION_PARAMETERS, int mod
 	}
 
 	if (arg_options) {
-		_php_mb_regex_init_options(arg_options, arg_options_len, &option, &syntax);
+		if (!_php_mb_regex_init_options(arg_options, arg_options_len, &option, &syntax)) {
+			RETURN_THROWS();
+		}
 	} else {
 		option |= MBREX(regex_default_options);
 		syntax = MBREX(regex_default_syntax);
@@ -1472,7 +1474,9 @@ PHP_FUNCTION(mb_ereg_search_init)
 
 	if (arg_options) {
 		option = 0;
-		_php_mb_regex_init_options(arg_options, arg_options_len, &option, &syntax);
+		if (!_php_mb_regex_init_options(arg_options, arg_options_len, &option, &syntax)) {
+			RETURN_THROWS();
+		}
 	} else {
 		option = MBREX(regex_default_options);
 		syntax = MBREX(regex_default_syntax);
