@@ -134,6 +134,7 @@ PHP_FUNCTION(shmop_open)
 	struct shmid_ds shm;
 	char *flags;
 	size_t flags_len;
+	bool created = false;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "lsll", &key_arg, &flags, &flags_len, &mode, &size) == FAILURE) {
 		RETURN_THROWS();
@@ -184,14 +185,25 @@ PHP_FUNCTION(shmop_open)
 		goto err;
 	}
 
-	shmop->shmid = shmget(shmop->key, shmop->size, shmop->shmflg);
+	if ((shmop->shmflg & IPC_CREAT) && !(shmop->shmflg & IPC_EXCL)) {
+		/* "c" passes IPC_CREAT alone, so a single shmget() cannot tell a create from an open.
+		 * Try an exclusive create first to know whether this call owns the segment. */
+		shmop->shmid = shmget(shmop->key, shmop->size, shmop->shmflg | IPC_EXCL);
+		if (shmop->shmid != -1) {
+			created = true;
+		} else if (errno == EEXIST) {
+			shmop->shmid = shmget(shmop->key, shmop->size, shmop->shmflg);
+		}
+	} else {
+		shmop->shmid = shmget(shmop->key, shmop->size, shmop->shmflg);
+		created = (shmop->shmflg & IPC_EXCL) && shmop->shmid != -1;
+	}
 	if (shmop->shmid == -1) {
 		php_error_docref(NULL, E_WARNING, "Unable to attach or create shared memory segment \"%s\"", strerror(errno));
 		goto err;
 	}
 
 	if (shmctl(shmop->shmid, IPC_STAT, &shm)) {
-		/* please do not add coverage here: the segment would be leaked and impossible to delete via php */
 		php_error_docref(NULL, E_WARNING, "Unable to get shared memory segment information \"%s\"", strerror(errno));
 		goto err;
 	}
@@ -211,6 +223,10 @@ PHP_FUNCTION(shmop_open)
 	return;
 
 err:
+	/* No Shmop is returned, so nothing could delete a segment this call created. */
+	if (created) {
+		shmctl(shmop->shmid, IPC_RMID, NULL);
+	}
 	zend_object_release(Z_OBJ_P(return_value));
 	RETURN_FALSE;
 }
