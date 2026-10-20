@@ -33,6 +33,8 @@
 
 #define PHP_OPENSSL_MEMLIMIT_MIN  8u
 #define PHP_OPENSSL_MEMLIMIT_MAX  UINT32_MAX
+/* Upper bound (4 GiB, in KiB) for the memory cost of a stored hash being verified */
+#define PHP_OPENSSL_VERIFY_MEMLIMIT_MAX 4194304u
 #define PHP_OPENSSL_ITERLIMIT_MIN 1u
 #define PHP_OPENSSL_ITERLIMIT_MAX UINT32_MAX
 #define PHP_OPENSSL_THREADS_MIN   1u
@@ -90,7 +92,7 @@ static bool php_openssl_argon2_compute_hash(
 	uint32_t version, uint32_t memlimit, uint32_t iterlimit, uint32_t threads,
 	const char *pass, size_t pass_len,
 	const unsigned char *salt, size_t salt_len,
-	unsigned char *hash, size_t hash_len)
+	unsigned char *hash, size_t hash_len, bool throw_on_error)
 {
 	OSSL_PARAM params[7], *p = params;
 	EVP_KDF *kdf = NULL;
@@ -118,7 +120,9 @@ static bool php_openssl_argon2_compute_hash(
 		goto fail;
 	}
 	if (EVP_KDF_derive(kctx, hash, hash_len, params) != 1) {
-		zend_value_error("Unexpected failure hashing password");
+		if (throw_on_error) {
+			zend_value_error("Unexpected failure hashing password");
+		}
 		goto fail;
 	}
 
@@ -150,7 +154,7 @@ static zend_string *php_openssl_argon2_hash(const zend_string *password, zend_ar
 	}
 
 	if (!php_openssl_argon2_compute_hash(algo, version, memlimit, iterlimit, threads,
-			ZSTR_VAL(password), ZSTR_LEN(password),	salt, PHP_OPENSSL_SALT_SIZE, hash, PHP_OPENSSL_HASH_SIZE)) {
+			ZSTR_VAL(password), ZSTR_LEN(password),	salt, PHP_OPENSSL_SALT_SIZE, hash, PHP_OPENSSL_HASH_SIZE, true)) {
 		return NULL;
 	}
 
@@ -229,10 +233,23 @@ static bool php_openssl_argon2_verify(const zend_string *password, const zend_st
 		return false;
 	}
 
+	/* The stored hash is untrusted: do not let it make the KDF fail or exhaust memory */
+	if (!salt || !hash || ZSTR_LEN(salt) == 0 || ZSTR_LEN(hash) == 0
+			|| memlimit < PHP_OPENSSL_MEMLIMIT_MIN || memlimit > PHP_OPENSSL_VERIFY_MEMLIMIT_MAX
+			|| iterlimit < PHP_OPENSSL_ITERLIMIT_MIN || threads < PHP_OPENSSL_THREADS_MIN) {
+		if (salt) {
+			zend_string_release(salt);
+		}
+		if (hash) {
+			zend_string_release(hash);
+		}
+		return false;
+	}
+
 	new = zend_string_alloc(ZSTR_LEN(hash), 0);
 	if (php_openssl_argon2_compute_hash(algo, version, memlimit, iterlimit, threads,
 			ZSTR_VAL(password), ZSTR_LEN(password),	(unsigned char *)ZSTR_VAL(salt),
-			ZSTR_LEN(salt), (unsigned char *)ZSTR_VAL(new), ZSTR_LEN(new))) {
+			ZSTR_LEN(salt), (unsigned char *)ZSTR_VAL(new), ZSTR_LEN(new), false)) {
 		ret = (php_safe_bcmp(hash, new) == 0);
 	}
 
