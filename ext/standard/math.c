@@ -1181,6 +1181,12 @@ PHPAPI zend_string *_php_math_number_format_ex(double d, int dec, const char *de
 	if (tmpbuf == NULL) {
 		return NULL;
 	} else if (!isdigit((unsigned char)ZSTR_VAL(tmpbuf)[0])) {
+		/* Keep the sign of -INF, which was dropped by the negation above. */
+		if (is_negative && zend_isinf(d)) {
+			zend_string *neg = zend_string_concat2("-", 1, ZSTR_VAL(tmpbuf), ZSTR_LEN(tmpbuf));
+			zend_string_release_ex(tmpbuf, 0);
+			return neg;
+		}
 		return tmpbuf;
 	}
 
