@@ -157,11 +157,13 @@ PHP_FUNCTION(shm_attach)
 			php_error_docref(NULL, E_WARNING, "Failed for key 0x" ZEND_XLONG_FMT ": memorysize too small", shm_key_arg);
 			RETURN_FALSE;
 		}
-		if ((shm_id = shmget(shm_key, shm_size, shm_flag | IPC_CREAT | IPC_EXCL)) < 0) {
+		if ((shm_id = shmget(shm_key, shm_size, shm_flag | IPC_CREAT | IPC_EXCL)) >= 0) {
+			created = true;
+		} else if (errno != EEXIST || (shm_id = shmget(shm_key, 0, 0)) < 0) {
+			/* On EEXIST another process won the creation race, attach to its segment. */
 			php_error_docref(NULL, E_WARNING, "Failed for key 0x" ZEND_XLONG_FMT ": %s", shm_key_arg, strerror(errno));
 			RETURN_FALSE;
 		}
-		created = true;
 	}
 
 	if ((shm_ptr = shmat(shm_id, NULL, 0)) == (void *) -1) {
