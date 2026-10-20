@@ -2082,7 +2082,7 @@ void odbc_do_connect(INTERNAL_FUNCTION_PARAMETERS, int persistent)
 	}
 
 	char *hashed_details;
-	size_t hashed_details_len = spprintf(&hashed_details, 0, "odbc_%d_%s_%s_%s_%s_%d", persistent, ODBC_TYPE, db, uid, pwd, cur_opt);
+	size_t hashed_details_len = spprintf(&hashed_details, 0, "odbc_%d_%s_%zu:%s_%zu:%s_%zu:%s_%d", persistent, ODBC_TYPE, db_len, db, uid ? uid_len : 0, uid, pwd ? pwd_len : 0, pwd, cur_opt);
 
 try_and_get_another_connection:
 
