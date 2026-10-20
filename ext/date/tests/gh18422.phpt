@@ -14,8 +14,8 @@ echo date_create("2024-06-15")->format("Y"), "\n";
 echo date_create("-0042-01-01")->format("Y"), "\n";
 ?>
 --EXPECTF--
--%d
--%d
--%d
+%s
+%s
+%s
 2024
 -0042
