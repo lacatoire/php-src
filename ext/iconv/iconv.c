@@ -786,6 +786,26 @@ static php_iconv_err_t _php_iconv_substr(smart_str *pretval,
 
 /* }}} */
 
+/* {{{ _php_iconv_ndl_border()
+ * Length in bytes of the longest proper prefix of the first lim bytes of ndl that is also a suffix of them */
+static size_t _php_iconv_ndl_border(const char *ndl, size_t lim)
+{
+	size_t i = 0, j = GENERIC_SUPERSET_NBYTES;
+
+	while (j < lim) {
+		if (_php_iconv_memequal(&ndl[j], &ndl[i], GENERIC_SUPERSET_NBYTES)) {
+			i += GENERIC_SUPERSET_NBYTES;
+		} else {
+			j -= i;
+			i = 0;
+		}
+		j += GENERIC_SUPERSET_NBYTES;
+	}
+
+	return i;
+}
+/* }}} */
+
 /* {{{ _php_iconv_strpos() */
 static php_iconv_err_t _php_iconv_strpos(size_t *pretval,
 	const char *haystk, size_t haystk_nbytes,
@@ -807,8 +827,10 @@ static php_iconv_err_t _php_iconv_strpos(size_t *pretval,
 	size_t cnt;
 
 	zend_string *ndl_buf;
-	size_t *fail = NULL;
-	size_t ndl_chars, matched = 0;
+	const char *ndl_buf_p;
+	size_t ndl_buf_left;
+
+	size_t match_ofs;
 	bool more;
 
 	*pretval = (size_t)-1;
@@ -835,23 +857,10 @@ static php_iconv_err_t _php_iconv_strpos(size_t *pretval,
 		}
 	}
 
-	ndl_chars = ZSTR_LEN(ndl_buf) / GENERIC_SUPERSET_NBYTES;
-	more = haystk_nbytes > 0 && ndl_chars > 0;
-
-	/* Failure function of the needle (Knuth-Morris-Pratt), in characters */
-	if (ndl_chars > 0) {
-		fail = safe_emalloc(ndl_chars, sizeof(size_t), 0);
-		fail[0] = 0;
-		for (size_t q = 1, k = 0; q < ndl_chars; q++) {
-			while (k > 0 && !_php_iconv_memequal(&ZSTR_VAL(ndl_buf)[q * GENERIC_SUPERSET_NBYTES], &ZSTR_VAL(ndl_buf)[k * GENERIC_SUPERSET_NBYTES], GENERIC_SUPERSET_NBYTES)) {
-				k = fail[k - 1];
-			}
-			if (_php_iconv_memequal(&ZSTR_VAL(ndl_buf)[q * GENERIC_SUPERSET_NBYTES], &ZSTR_VAL(ndl_buf)[k * GENERIC_SUPERSET_NBYTES], GENERIC_SUPERSET_NBYTES)) {
-				k++;
-			}
-			fail[q] = k;
-		}
-	}
+	ndl_buf_p = ZSTR_VAL(ndl_buf);
+	ndl_buf_left = ZSTR_LEN(ndl_buf);
+	match_ofs = (size_t)-1;
+	more = haystk_nbytes > 0;
 
 	for (in_p = haystk, in_left = haystk_nbytes, cnt = 0; more; ++cnt) {
 		out_p = buf;
@@ -882,26 +891,45 @@ static php_iconv_err_t _php_iconv_strpos(size_t *pretval,
 			}
 		}
 		if (cnt >= offset) {
-			while (matched > 0 && !_php_iconv_memequal(buf, &ZSTR_VAL(ndl_buf)[matched * GENERIC_SUPERSET_NBYTES], sizeof(buf))) {
-				matched = fail[matched - 1];
-			}
-			if (_php_iconv_memequal(buf, &ZSTR_VAL(ndl_buf)[matched * GENERIC_SUPERSET_NBYTES], sizeof(buf))) {
-				matched++;
-			}
-			if (matched == ndl_chars) {
-				*pretval = cnt + 1 - ndl_chars;
-				if (!reverse) {
-					/* If searching forward, stop at first match. */
-					break;
+			if (_php_iconv_memequal(buf, ndl_buf_p, sizeof(buf))) {
+				if (match_ofs == (size_t)-1) {
+					match_ofs = cnt;
 				}
-				/* If searching backward, continue to find a later match, which may overlap */
-				matched = fail[matched - 1];
+				ndl_buf_p += GENERIC_SUPERSET_NBYTES;
+				ndl_buf_left -= GENERIC_SUPERSET_NBYTES;
+				if (ndl_buf_left == 0) {
+					*pretval = match_ofs;
+					if (reverse) {
+						/* If searching backward, continue trying to find a later match. */
+						size_t border = _php_iconv_ndl_border(ZSTR_VAL(ndl_buf), ZSTR_LEN(ndl_buf));
+						ndl_buf_p = &ZSTR_VAL(ndl_buf)[border];
+						ndl_buf_left = ZSTR_LEN(ndl_buf) - border;
+						match_ofs = border ? cnt + 1 - border / GENERIC_SUPERSET_NBYTES : (size_t)-1;
+					} else {
+						/* If searching forward, stop at first match. */
+						break;
+					}
+				}
+			} else {
+				size_t lim = (size_t)(ndl_buf_p - ZSTR_VAL(ndl_buf));
+				size_t i = _php_iconv_ndl_border(ZSTR_VAL(ndl_buf), lim);
+
+				while (i > 0 && !_php_iconv_memequal(buf, &ZSTR_VAL(ndl_buf)[i], sizeof(buf))) {
+					i = _php_iconv_ndl_border(ZSTR_VAL(ndl_buf), i);
+				}
+
+				if (_php_iconv_memequal(buf, &ZSTR_VAL(ndl_buf)[i], sizeof(buf))) {
+					match_ofs += (lim - i) / GENERIC_SUPERSET_NBYTES;
+					i += GENERIC_SUPERSET_NBYTES;
+					ndl_buf_p = &ZSTR_VAL(ndl_buf)[i];
+					ndl_buf_left = ZSTR_LEN(ndl_buf) - i;
+				} else {
+					match_ofs = (size_t)-1;
+					ndl_buf_p = ZSTR_VAL(ndl_buf);
+					ndl_buf_left = ZSTR_LEN(ndl_buf);
+				}
 			}
 		}
-	}
-
-	if (fail) {
-		efree(fail);
 	}
 
 	if (ndl_buf) {
