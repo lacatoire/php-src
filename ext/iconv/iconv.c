@@ -787,6 +787,26 @@ static php_iconv_err_t _php_iconv_substr(smart_str *pretval,
 
 /* }}} */
 
+/* {{{ _php_iconv_ndl_border()
+ * Length in bytes of the longest proper prefix of the first lim bytes of ndl that is also a suffix of them */
+static size_t _php_iconv_ndl_border(const char *ndl, size_t lim)
+{
+	size_t i = 0, j = GENERIC_SUPERSET_NBYTES;
+
+	while (j < lim) {
+		if (_php_iconv_memequal(&ndl[j], &ndl[i], GENERIC_SUPERSET_NBYTES)) {
+			i += GENERIC_SUPERSET_NBYTES;
+		} else {
+			j -= i;
+			i = 0;
+		}
+		j += GENERIC_SUPERSET_NBYTES;
+	}
+
+	return i;
+}
+/* }}} */
+
 /* {{{ _php_iconv_strpos() */
 static php_iconv_err_t _php_iconv_strpos(size_t *pretval,
 	const char *haystk, size_t haystk_nbytes,
@@ -883,30 +903,21 @@ static php_iconv_err_t _php_iconv_strpos(size_t *pretval,
 					*pretval = match_ofs;
 					if (reverse) {
 						/* If searching backward, continue trying to find a later match. */
-						ndl_buf_p = ZSTR_VAL(ndl_buf);
-						ndl_buf_left = ZSTR_LEN(ndl_buf);
-						match_ofs = -1;
+						size_t border = _php_iconv_ndl_border(ZSTR_VAL(ndl_buf), ZSTR_LEN(ndl_buf));
+						ndl_buf_p = &ZSTR_VAL(ndl_buf)[border];
+						ndl_buf_left = ZSTR_LEN(ndl_buf) - border;
+						match_ofs = border ? cnt + 1 - border / GENERIC_SUPERSET_NBYTES : (size_t)-1;
 					} else {
 						/* If searching forward, stop at first match. */
 						break;
 					}
 				}
 			} else {
-				size_t i, j, lim;
+				size_t lim = (size_t)(ndl_buf_p - ZSTR_VAL(ndl_buf));
+				size_t i = _php_iconv_ndl_border(ZSTR_VAL(ndl_buf), lim);
 
-				i = 0;
-				j = GENERIC_SUPERSET_NBYTES;
-				lim = (size_t)(ndl_buf_p - ZSTR_VAL(ndl_buf));
-
-				while (j < lim) {
-					if (_php_iconv_memequal(&ZSTR_VAL(ndl_buf)[j], &ZSTR_VAL(ndl_buf)[i],
-							   GENERIC_SUPERSET_NBYTES)) {
-						i += GENERIC_SUPERSET_NBYTES;
-					} else {
-						j -= i;
-						i = 0;
-					}
-					j += GENERIC_SUPERSET_NBYTES;
+				while (i > 0 && !_php_iconv_memequal(buf, &ZSTR_VAL(ndl_buf)[i], sizeof(buf))) {
+					i = _php_iconv_ndl_border(ZSTR_VAL(ndl_buf), i);
 				}
 
 				if (_php_iconv_memequal(buf, &ZSTR_VAL(ndl_buf)[i], sizeof(buf))) {
