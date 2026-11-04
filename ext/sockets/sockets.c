@@ -255,6 +255,18 @@ static bool php_open_listen_sock(php_socket *sock, unsigned short port, int back
 
 	sock->type = PF_INET;
 
+#ifndef PHP_WIN32
+	/* The caller never sees the socket before it is bound, so a server could not restart on its
+	 * port while a connection it closed first is in TIME_WAIT, as with stream_socket_server().
+	 * On Windows the option allows binding a port that is in use, so it is not set. */
+	int reuse_addr = 1;
+	if (setsockopt(sock->bsd_socket, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse_addr, sizeof(reuse_addr)) != 0) {
+		PHP_SOCKET_ERROR(sock, "unable to set socket option", errno);
+		close(sock->bsd_socket);
+		return false;
+	}
+#endif
+
 	if (bind(sock->bsd_socket, (struct sockaddr *)&la, sizeof(la)) != 0) {
 		PHP_SOCKET_ERROR(sock, "unable to bind to given address", errno);
 		close(sock->bsd_socket);
