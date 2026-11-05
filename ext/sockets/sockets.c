@@ -996,8 +996,8 @@ PHP_FUNCTION(socket_read)
 static size_t php_sock_abstract_unix_len(const struct sockaddr_un *s_un, socklen_t salen)
 {
 #ifdef __linux__
-	if (salen > XtOffsetOf(struct sockaddr_un, sun_path) && s_un->sun_path[0] == '\0') {
-		return MIN(salen - XtOffsetOf(struct sockaddr_un, sun_path), sizeof(s_un->sun_path));
+	if (salen > offsetof(struct sockaddr_un, sun_path) && s_un->sun_path[0] == '\0') {
+		return MIN(salen - offsetof(struct sockaddr_un, sun_path), sizeof(s_un->sun_path));
 	}
 #endif
 	return 0;
