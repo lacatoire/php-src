@@ -780,6 +780,11 @@ PHP_FUNCTION(socket_set_nonblock)
 				php_sock->blocking = 0;
 				RETURN_TRUE;
 			}
+		} else {
+			/* The stream was closed, and with it the descriptor, whose number
+			 * may now belong to something else */
+			PHP_SOCKET_ERROR(php_sock, "unable to set nonblocking mode", PHP_SOCKET_EBADF);
+			RETURN_FALSE;
 		}
 	}
 
@@ -818,6 +823,10 @@ PHP_FUNCTION(socket_set_block)
 				php_sock->blocking = 1;
 				RETURN_TRUE;
 			}
+		} else {
+			/* See socket_set_nonblock() */
+			PHP_SOCKET_ERROR(php_sock, "unable to set blocking mode", PHP_SOCKET_EBADF);
+			RETURN_FALSE;
 		}
 	}
 
