@@ -2083,6 +2083,16 @@ PHP_FUNCTION(socket_set_option)
 		Z_PARAM_ZVAL(arg4)
 	ZEND_PARSE_PARAMETERS_END();
 
+	if (ZEND_LONG_EXCEEDS_INT(level)) {
+		zend_argument_value_error(2, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+
+	if (ZEND_LONG_EXCEEDS_INT(optname)) {
+		zend_argument_value_error(3, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+
 	php_sock = Z_SOCKET_P(arg1);
 	ENSURE_SOCKET_VALID(php_sock);
 
@@ -2093,6 +2103,16 @@ PHP_FUNCTION(socket_set_option)
 		if (res == 1) { goto default_case; } \
 		else if (res == SUCCESS) { RETURN_TRUE; } \
 		else { RETURN_FALSE; } \
+	} while (0)
+
+	/* An integer option value is stored as an int, but options such as
+	 * SO_RCVBUF or TCP_NOTSENT_LOWAT take the full range of an unsigned int */
+#define CHECK_INT_OPTION_VALUE(val) \
+	do { \
+		if (sizeof(zend_long) > sizeof(uint32_t) && ((val) < INT_MIN || (val) > UINT_MAX)) { \
+			zend_argument_value_error(4, "must be between %d and %u", INT_MIN, UINT_MAX); \
+			RETURN_THROWS(); \
+		} \
 	} while (0)
 
 
@@ -2192,6 +2212,10 @@ PHP_FUNCTION(socket_set_option)
 		case SO_LINGER_SEC:
 #endif
 		case SO_LINGER: {
+			if (level != SOL_SOCKET) {
+				goto default_case;
+			}
+
 			const char l_onoff_key[] = "l_onoff";
 			const char l_linger_key[] = "l_linger";
 			zval *l_onoff, *l_linger;
@@ -2243,6 +2267,10 @@ PHP_FUNCTION(socket_set_option)
 
 		case SO_RCVTIMEO:
 		case SO_SNDTIMEO: {
+			if (level != SOL_SOCKET) {
+				goto default_case;
+			}
+
 			const char sec_key[] = "sec";
 			const char usec_key[] = "usec";
 			zval *sec, *usec;
@@ -2306,6 +2334,9 @@ PHP_FUNCTION(socket_set_option)
 		}
 #ifdef SO_BINDTODEVICE
 		case SO_BINDTODEVICE: {
+			if (level != SOL_SOCKET) {
+				goto default_case;
+			}
 			if (Z_TYPE_P(arg4) != IS_STRING) {
 				zend_argument_type_error(4, "must be of type string when argument #3 ($option) is SO_BINDTODEVICE, %s given", zend_zval_value_name(arg4));
 				RETURN_THROWS();
@@ -2318,6 +2349,9 @@ PHP_FUNCTION(socket_set_option)
 
 #ifdef SO_ACCEPTFILTER
 		case SO_ACCEPTFILTER: {
+			if (level != SOL_SOCKET) {
+				goto default_case;
+			}
 			if (Z_TYPE_P(arg4) != IS_STRING) {
 				zend_argument_type_error(4, "must be of type string when argument #3 ($option) is SO_ACCEPTFILTER, %s given", zend_zval_value_name(arg4));
 				RETURN_THROWS();
@@ -2367,6 +2401,7 @@ PHP_FUNCTION(socket_set_option)
 				RETURN_THROWS();
 			}
 			zend_long cbpf_val = zval_get_long(arg4);
+			CHECK_INT_OPTION_VALUE(cbpf_val);
 
 			if (!cbpf_val) {
 #ifdef SO_DETACH_REUSEPORT_BPF
@@ -2404,14 +2439,19 @@ PHP_FUNCTION(socket_set_option)
 
 #if defined(UDP_SEGMENT)
 		case UDP_SEGMENT: {
-			ov = zval_get_long(arg4);
+			if (level != IPPROTO_UDP) {
+				goto default_case;
+			}
+
+			zend_long segment_size = zval_get_long(arg4);
 
 			// UDP segmentation offload maximum size or 0 to disable it
-			if (ov < 0 || ov > USHRT_MAX) {
+			if (segment_size < 0 || segment_size > USHRT_MAX) {
 				zend_argument_value_error(4, "must be between 0 and %u", USHRT_MAX);
 				RETURN_THROWS();
 			}
 
+			ov = (int)segment_size;
 			optlen = sizeof(ov);
 			opt_ptr = &ov;
 			break;
@@ -2420,7 +2460,11 @@ PHP_FUNCTION(socket_set_option)
 
 		default:
 default_case:
-			ov = zval_get_long(arg4);
+			{
+				zend_long option_value = zval_get_long(arg4);
+				CHECK_INT_OPTION_VALUE(option_value);
+				ov = (int)option_value;
+			}
 
 			optlen = sizeof(ov);
 			opt_ptr = &ov;
