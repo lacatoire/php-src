@@ -1,5 +1,5 @@
 /* This is a generated file, edit sockets.stub.php instead.
- * Stub hash: aceee39bed5332f7f26d5d768976c4d5ab96ab3c */
+ * Stub hash: 779d539c8e9f9491d3defb8af1662444b4d5a032 */
 
 #include "zend_constants.h"
 
@@ -28,7 +28,7 @@ ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_socket_listen, 0, 1, _IS_BOOL, 0)
 	ZEND_ARG_OBJ_INFO(0, socket, Socket, 0)
-	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, backlog, IS_LONG, 0, "0")
+	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, backlog, IS_LONG, 0, "SOMAXCONN")
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_socket_close, 0, 1, IS_VOID, 0)

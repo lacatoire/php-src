@@ -2230,7 +2230,7 @@ function socket_set_nonblock(Socket $socket): bool {}
 
 function socket_set_block(Socket $socket): bool {}
 
-function socket_listen(Socket $socket, int $backlog = 0): bool {}
+function socket_listen(Socket $socket, int $backlog = SOMAXCONN): bool {}
 
 function socket_close(Socket $socket): void {}
 
