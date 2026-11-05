@@ -990,6 +990,19 @@ PHP_FUNCTION(socket_read)
 }
 /* }}} */
 
+/* Length of the name of an abstract AF_UNIX socket (Linux), 0 if the address is
+ * not abstract. Such a name starts with a NUL byte and its length is given by
+ * the address length, not by a terminating NUL. */
+static size_t php_sock_abstract_unix_len(const struct sockaddr_un *s_un, socklen_t salen)
+{
+#ifdef __linux__
+	if (salen > XtOffsetOf(struct sockaddr_un, sun_path) && s_un->sun_path[0] == '\0') {
+		return MIN(salen - XtOffsetOf(struct sockaddr_un, sun_path), sizeof(s_un->sun_path));
+	}
+#endif
+	return 0;
+}
+
 /* {{{ Queries the remote side of the given socket which may either result in host/port or in a UNIX filesystem path, dependent on its type. */
 PHP_FUNCTION(socket_getsockname)
 {
@@ -1050,6 +1063,12 @@ PHP_FUNCTION(socket_getsockname)
 
 		case AF_UNIX:
 			s_un = (struct sockaddr_un *) sa;
+
+			size_t abstract_len = php_sock_abstract_unix_len(s_un, salen);
+			if (abstract_len > 0) {
+				ZEND_TRY_ASSIGN_REF_STRINGL(addr, s_un->sun_path, abstract_len);
+				RETURN_TRUE;
+			}
 
 			ZEND_TRY_ASSIGN_REF_STRING(addr, s_un->sun_path);
 			RETURN_TRUE;
@@ -1137,6 +1156,12 @@ PHP_FUNCTION(socket_getpeername)
 
 		case AF_UNIX:
 			s_un = (struct sockaddr_un *) sa;
+
+			size_t abstract_len = php_sock_abstract_unix_len(s_un, salen);
+			if (abstract_len > 0) {
+				ZEND_TRY_ASSIGN_REF_STRINGL(arg2, s_un->sun_path, abstract_len);
+				RETURN_TRUE;
+			}
 
 			ZEND_TRY_ASSIGN_REF_STRING(arg2, s_un->sun_path);
 			RETURN_TRUE;
