@@ -140,6 +140,28 @@ static zend_result php_get_address_from_array(const HashTable *ht, const char *k
 	return SUCCESS;
 }
 
+static const char *php_mcast_option_name(int optname)
+{
+	switch (optname) {
+	case PHP_MCAST_JOIN_GROUP:
+		return "MCAST_JOIN_GROUP";
+	case PHP_MCAST_LEAVE_GROUP:
+		return "MCAST_LEAVE_GROUP";
+#ifdef HAS_MCAST_EXT
+	case PHP_MCAST_BLOCK_SOURCE:
+		return "MCAST_BLOCK_SOURCE";
+	case PHP_MCAST_UNBLOCK_SOURCE:
+		return "MCAST_UNBLOCK_SOURCE";
+	case PHP_MCAST_JOIN_SOURCE_GROUP:
+		return "MCAST_JOIN_SOURCE_GROUP";
+	case PHP_MCAST_LEAVE_SOURCE_GROUP:
+		return "MCAST_LEAVE_SOURCE_GROUP";
+#endif
+	default:
+		ZEND_UNREACHABLE();
+	}
+}
+
 static zend_result php_do_mcast_opt(php_socket *php_sock, int level, int optname, zval *arg4)
 {
 	HashTable		 		*opt_ht;
@@ -165,7 +187,7 @@ mcast_req_fun: ;
 
 			if (Z_TYPE_P(arg4) != IS_ARRAY) {
 				if (UNEXPECTED(Z_TYPE_P(arg4) != IS_OBJECT)) {
-					zend_argument_type_error(4, "must be of type array when argument #3 ($option) is MCAST_LEAVE_GROUP, %s given", zend_zval_value_name(arg4));
+					zend_argument_type_error(4, "must be of type array when argument #3 ($option) is %s, %s given", php_mcast_option_name(optname), zend_zval_value_name(arg4));
 					return FAILURE;
 				} else {
 					opt_ht = Z_OBJPROP_P(arg4);
@@ -208,7 +230,7 @@ mcast_req_fun: ;
 									slen;
 			if (Z_TYPE_P(arg4) != IS_ARRAY) {
 				if (UNEXPECTED(Z_TYPE_P(arg4) != IS_OBJECT)) {
-					zend_argument_type_error(4, "must be of type array when argument #3 ($option) is MCAST_LEAVE_SOURCE_GROUP, %s given", zend_zval_value_name(arg4));
+					zend_argument_type_error(4, "must be of type array when argument #3 ($option) is %s, %s given", php_mcast_option_name(optname), zend_zval_value_name(arg4));
 					return FAILURE;
 				} else {
 					opt_ht = Z_OBJPROP_P(arg4);
