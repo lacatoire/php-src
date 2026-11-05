@@ -4,8 +4,8 @@ socket_recvfrom(): AF_UNIX sender bound to the longest name PHP can bind
 sockets
 --SKIPIF--
 <?php
-if (PHP_OS_FAMILY === 'Windows') {
-    die('skip not for Windows');
+if (PHP_OS_FAMILY !== 'Linux') {
+    die('skip the length of sun_path is 108 bytes on Linux only');
 }
 ?>
 --FILE--
