@@ -327,62 +327,33 @@ static bool php_accept_connect(php_socket *in_sock, php_socket *out_sock, struct
 /* {{{ php_read -- wrapper around read() so that it only reads to a \r or \n. */
 static int php_read(php_socket *sock, void *buf, size_t maxlen, int flags)
 {
-	int m = 0;
 	size_t n = 0;
-	int no_read = 0;
-	int nonblock = 0;
 	char *t = (char *) buf;
 
-#ifndef PHP_WIN32
-	m = fcntl(sock->bsd_socket, F_GETFL);
-	if (m < 0) {
-		return m;
-	}
-	nonblock = (m & O_NONBLOCK);
-	m = 0;
-#else
-	nonblock = !sock->blocking;
-#endif
 	set_errno(0);
 
-	*t = '\0';
-	while (*t != '\n' && *t != '\r' && n < maxlen) {
-		if (m > 0) {
-			t++;
-			n++;
-		} else if (m == 0) {
-			no_read++;
-			if (nonblock && no_read >= 2) {
-				return n;
-				/* The first pass, m always is 0, so no_read becomes 1
-				 * in the first pass. no_read becomes 2 in the second pass,
-				 * and if this is nonblocking, we should return.. */
+	while (n < maxlen) {
+		int m = recv(sock->bsd_socket, (void *) (t + n), 1, flags);
+
+		if (m < 0) {
+			/* Bytes already read are returned rather than lost when no more
+			 * data is available (non-blocking socket or receive timeout). */
+			if (n > 0 && PHP_IS_TRANSIENT_ERROR(errno)) {
+				break;
 			}
-
-			if (no_read > 200) {
-				set_errno(ECONNRESET);
-				return -1;
-			}
-		}
-
-		if (n < maxlen) {
-			m = recv(sock->bsd_socket, (void *) t, 1, flags);
-		}
-
-		if (errno != 0 && errno != ESPIPE && errno != EAGAIN) {
 			return -1;
 		}
 
-		set_errno(0);
-	}
+		if (m == 0) {
+			/* End of stream: return what was read, an empty read if nothing. */
+			break;
+		}
 
-	if (n < maxlen) {
 		n++;
-		/* The only reasons it makes it to here is
-		 * if '\n' or '\r' are encountered. So, increase
-		 * the return by 1 to make up for the lack of the
-		 * '\n' or '\r' in the count (since read() takes
-		 * place at the end of the loop..) */
+
+		if (t[n - 1] == '\n' || t[n - 1] == '\r') {
+			break;
+		}
 	}
 
 	return n;
