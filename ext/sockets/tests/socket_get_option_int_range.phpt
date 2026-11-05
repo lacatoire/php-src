@@ -2,6 +2,8 @@
 socket_get_option(): $level and $option outside the int range are rejected
 --EXTENSIONS--
 sockets
+--SKIPIF--
+<?php if (PHP_INT_SIZE != 8) die("skip this test is for 64bit platform only"); ?>
 --FILE--
 <?php
 
@@ -9,7 +11,7 @@ $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
 
 foreach ([
     [2 ** 32 + SOL_SOCKET, SO_LINGER],
-    [2 ** 32 + SOL_TCP, TCP_CONGESTION],
+    [2 ** 32 + SOL_TCP, TCP_NODELAY],
     [PHP_INT_MIN, SO_LINGER],
     [SOL_SOCKET, 2 ** 32 + SO_LINGER],
     [SOL_SOCKET, PHP_INT_MAX],
