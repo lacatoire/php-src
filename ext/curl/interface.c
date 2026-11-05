@@ -568,6 +568,8 @@ static void php_curl_call_callback(
 		OBJ_RELEASE(closure);
 	}
 	ch->in_callback = was_in_callback;
+	/* The callback may have closed a stream this handle still uses, even if it threw. */
+	_php_curl_verify_handlers(ch, /* reporterror */ true);
 }
 
 /* {{{ curl_write */
@@ -611,7 +613,6 @@ static size_t curl_write(char *data, size_t size, size_t nmemb, void *ctx)
 
 			php_curl_call_callback(ch, &write_handler->fcc, &retval, /* argc */ 2, argv);
 			if (!Z_ISUNDEF(retval)) {
-				_php_curl_verify_handlers(ch, /* reporterror */ true);
 				/* TODO Check callback returns an int or something castable to int */
 				length = php_curl_get_long(&retval);
 			} else {
@@ -648,7 +649,6 @@ static int curl_fnmatch(void *ctx, const char *pattern, const char *string)
 	php_curl_call_callback(ch, &ch->handlers.fnmatch, &retval, /* argc */ 3, argv);
 
 	if (!Z_ISUNDEF(retval)) {
-		_php_curl_verify_handlers(ch, /* reporterror */ true);
 		/* TODO Check callback returns an int or something castable to int */
 		rval = php_curl_get_long(&retval);
 	}
@@ -686,7 +686,6 @@ static int curl_progress(void *clientp, double dltotal, double dlnow, double ult
 	php_curl_call_callback(ch, &ch->handlers.progress, &retval, /* argc */ 5, args);
 
 	if (!Z_ISUNDEF(retval)) {
-		_php_curl_verify_handlers(ch, /* reporterror */ true);
 		/* TODO Check callback returns an int or something castable to int */
 		if (0 == php_curl_get_long(&retval)) {
 			rval = 0; // ok
@@ -725,7 +724,6 @@ static int curl_xferinfo(void *clientp, curl_off_t dltotal, curl_off_t dlnow, cu
 	php_curl_call_callback(ch, &ch->handlers.xferinfo, &retval, /* argc */ 5, argv);
 
 	if (!Z_ISUNDEF(retval)) {
-		_php_curl_verify_handlers(ch, /* reporterror */ true);
 		/* TODO Check callback returns an int or something castable to int */
 		if (0 == php_curl_get_long(&retval)) {
 			rval = 0; // ok
@@ -768,7 +766,6 @@ static int curl_prereqfunction(void *clientp, char *conn_primary_ip, char *conn_
 	php_curl_call_callback(ch, &ch->handlers.prereq, &retval, /* argc */ 5, args);
 
 	if (!Z_ISUNDEF(retval)) {
-		_php_curl_verify_handlers(ch, /* reporterror */ true);
 		if (Z_TYPE(retval) == IS_LONG) {
 			zend_long retval_long = Z_LVAL(retval);
 			if (retval_long == CURL_PREREQFUNC_OK || retval_long == CURL_PREREQFUNC_ABORT) {
@@ -817,7 +814,6 @@ static int curl_ssh_hostkeyfunction(void *clientp, int keytype, const char *key,
 	php_curl_call_callback(ch, &ch->handlers.sshhostkey, &retval, /* argc */ 4, args);
 
 	if (!Z_ISUNDEF(retval)) {
-		_php_curl_verify_handlers(ch, /* reporterror */ true);
 		if (Z_TYPE(retval) == IS_LONG) {
 			zend_long retval_long = Z_LVAL(retval);
 			if (retval_long == CURLKHMATCH_OK || retval_long == CURLKHMATCH_MISMATCH) {
@@ -868,7 +864,6 @@ static size_t curl_read(char *data, size_t size, size_t nmemb, void *ctx)
 
 			php_curl_call_callback(ch, &read_handler->fcc, &retval, /* argc */ 3, argv);
 			if (!Z_ISUNDEF(retval)) {
-				_php_curl_verify_handlers(ch, /* reporterror */ true);
 				if (Z_TYPE(retval) == IS_STRING) {
 					length = MIN(nmemb, Z_STRLEN(retval));
 					memcpy(data, Z_STRVAL(retval), length);
@@ -922,9 +917,9 @@ static int curl_seek(void *clientp, curl_off_t offset, int origin)
 	ch->in_callback = true;
 	zend_call_known_fcc(&ch->handlers.seek, &retval, /* param_count */ 3, args, /* named_params */ NULL);
 	ch->in_callback = false;
+	_php_curl_verify_handlers(ch, /* reporterror */ true);
 
 	if (!Z_ISUNDEF(retval)) {
-		_php_curl_verify_handlers(ch, /* reporterror */ true);
 		if (Z_TYPE(retval) == IS_LONG) {
 			zend_long retval_long = Z_LVAL(retval);
 			if (retval_long == CURL_SEEKFUNC_OK || retval_long == CURL_SEEKFUNC_FAIL || retval_long == CURL_SEEKFUNC_CANTSEEK) {
@@ -975,7 +970,6 @@ static size_t curl_write_header(char *data, size_t size, size_t nmemb, void *ctx
 			php_curl_call_callback(ch, &write_handler->fcc, &retval, /* argc */ 2, argv);
 			if (!Z_ISUNDEF(retval)) {
 				// TODO: Check for valid int type for return value
-				_php_curl_verify_handlers(ch, /* reporterror */ true);
 				length = php_curl_get_long(&retval);
 			} else {
 				length = -1;
