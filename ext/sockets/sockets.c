@@ -1445,7 +1445,11 @@ PHP_FUNCTION(socket_recv)
 
 	recv_buf = zend_string_alloc(len, 0);
 
-	if ((retval = recv(php_sock->bsd_socket, ZSTR_VAL(recv_buf), len, flags)) < 1) {
+	retval = recv(php_sock->bsd_socket, ZSTR_VAL(recv_buf), len, flags);
+	/* Releasing the previous value of $buf can run a destructor that changes errno */
+	int recv_errno = errno;
+
+	if (retval < 1) {
 		zend_string_efree(recv_buf);
 		ZEND_TRY_ASSIGN_REF_NULL(buf);
 	} else {
@@ -1455,7 +1459,7 @@ PHP_FUNCTION(socket_recv)
 	}
 
 	if (retval == -1) {
-		PHP_SOCKET_ERROR(php_sock, "Unable to read from socket", errno);
+		PHP_SOCKET_ERROR(php_sock, "Unable to read from socket", recv_errno);
 		RETURN_FALSE;
 	}
 
