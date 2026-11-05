@@ -214,10 +214,42 @@ PHP_FUNCTION(socket_sendmsg)
 	allocations_dispose(&allocations);
 }
 
+#ifdef SCM_RIGHTS
+/* Closes the descriptors received in the control messages that have not been
+ * handed over to a Socket or a stream (their slot is set to -1 when they are). */
+static void close_unclaimed_received_fds(struct msghdr *msg)
+{
+	struct cmsghdr *cmsg;
+
+	for (cmsg = CMSG_FIRSTHDR(msg); cmsg != NULL; cmsg = CMSG_NXTHDR(msg, cmsg)) {
+		if (cmsg->cmsg_level != SOL_SOCKET || cmsg->cmsg_len < CMSG_LEN(0)) {
+			continue;
+		}
+		if (cmsg->cmsg_type != SCM_RIGHTS
+#ifdef SCM_PIDFD
+				&& cmsg->cmsg_type != SCM_PIDFD
+#endif
+				) {
+			continue;
+		}
+
+		int *fds = (int *) CMSG_DATA(cmsg);
+		size_t count = (cmsg->cmsg_len - CMSG_LEN(0)) / sizeof(int);
+		for (size_t i = 0; i < count; i++) {
+			if (fds[i] >= 0) {
+				close(fds[i]);
+			}
+		}
+	}
+}
+#endif
+
 PHP_FUNCTION(socket_recvmsg)
 {
 	zval			*zsocket,
-					*zmsg;
+					*zref,
+					*zmsg,
+					input;
 	zend_long			flags = 0;
 	php_socket		*php_sock;
 	ssize_t			res;
@@ -226,7 +258,19 @@ PHP_FUNCTION(socket_recvmsg)
 	struct err_s	err = {0};
 
 	//ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags);
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "Oa|l", &zsocket, socket_ce, &zmsg, &flags) == FAILURE) {
+	ZEND_PARSE_PARAMETERS_START(2, 3)
+		Z_PARAM_OBJECT_OF_CLASS(zsocket, socket_ce)
+		Z_PARAM_ZVAL(zref)
+		Z_PARAM_OPTIONAL
+		Z_PARAM_LONG(flags)
+	ZEND_PARSE_PARAMETERS_END();
+
+	/* zref stays the reference, so that the result is assigned with the type
+	 * checks of the properties bound to it */
+	zmsg = zref;
+	ZVAL_DEREF(zmsg);
+	if (Z_TYPE_P(zmsg) != IS_ARRAY) {
+		zend_argument_type_error(2, "must be of type array, %s given", zend_zval_value_name(zmsg));
 		RETURN_THROWS();
 	}
 
@@ -235,8 +279,12 @@ PHP_FUNCTION(socket_recvmsg)
 	php_sock = Z_SOCKET_P(zsocket);
 	ENSURE_SOCKET_VALID(php_sock);
 
-	msghdr = from_zval_run_conversions(zmsg, php_sock, from_zval_write_msghdr_recv,
+	/* The conversion can run user code (__toString()) that reassigns $message:
+	 * it works on its own reference to the array. */
+	ZVAL_COPY(&input, zmsg);
+	msghdr = from_zval_run_conversions(&input, php_sock, from_zval_write_msghdr_recv,
 			sizeof(*msghdr), "msghdr", &allocations, &err);
+	zval_ptr_dtor(&input);
 
 	if (err.has_error) {
 		err_msg_dispose(&err);
@@ -256,19 +304,21 @@ PHP_FUNCTION(socket_recvmsg)
 		zres = to_zval_run_conversions((char *)msghdr, to_zval_read_msghdr,
 				"msghdr", kv, &err, &tmp);
 
-		/* we don;t need msghdr anymore; free it */
-		msghdr = NULL;
+		RETVAL_LONG((zend_long)res);
 
-		zval_ptr_dtor(zmsg);
 		if (!err.has_error) {
-			ZVAL_COPY_VALUE(zmsg, zres);
+			/* The previous value of $message is released after the new one is written */
+			ZEND_TRY_ASSIGN_REF_ARR(zref, Z_ARR_P(zres));
 		} else {
-			err_msg_dispose(&err);
-			ZVAL_FALSE(zmsg);
 			/* no need to destroy/free zres -- it's NULL in this circumstance */
 			assert(zres == NULL);
+#ifdef SCM_RIGHTS
+			close_unclaimed_received_fds(msghdr);
+#endif
+			/* The warning can run user code: $message still holds its previous value */
+			err_msg_dispose(&err);
+			ZEND_TRY_ASSIGN_REF_FALSE(zref);
 		}
-		RETVAL_LONG((zend_long)res);
 	} else {
 		SOCKETS_G(last_error) = errno;
 		php_error_docref(NULL, E_WARNING, "Error in recvmsg [%d]: %s",
