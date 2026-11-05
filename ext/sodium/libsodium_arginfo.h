@@ -1,5 +1,5 @@
 /* This is a generated file, edit libsodium.stub.php instead.
- * Stub hash: 50b3cf45af139d4d38f0f46a152b5b1e2662dfd4 */
+ * Stub hash: d8c0b4fa56bf1b6f5a0b615fcab021cbc0359f7a */
 
 #include "zend_attributes.h"
 #include "zend_constants.h"
@@ -1271,6 +1271,10 @@ static void register_libsodium_symbols(int module_number)
 
 	zend_add_parameter_attribute(zend_hash_str_find_ptr(CG(function_table), "sodium_crypto_generichash_init", sizeof("sodium_crypto_generichash_init") - 1), 0, ZSTR_KNOWN(ZEND_STR_SENSITIVEPARAMETER), 0);
 
+	zend_add_parameter_attribute(zend_hash_str_find_ptr(CG(function_table), "sodium_crypto_generichash_update", sizeof("sodium_crypto_generichash_update") - 1), 0, ZSTR_KNOWN(ZEND_STR_SENSITIVEPARAMETER), 0);
+
+	zend_add_parameter_attribute(zend_hash_str_find_ptr(CG(function_table), "sodium_crypto_generichash_final", sizeof("sodium_crypto_generichash_final") - 1), 0, ZSTR_KNOWN(ZEND_STR_SENSITIVEPARAMETER), 0);
+
 	zend_add_parameter_attribute(zend_hash_str_find_ptr(CG(function_table), "sodium_crypto_kdf_derive_from_key", sizeof("sodium_crypto_kdf_derive_from_key") - 1), 3, ZSTR_KNOWN(ZEND_STR_SENSITIVEPARAMETER), 0);
 #if defined(crypto_pwhash_SALTBYTES)
 
@@ -1306,9 +1310,15 @@ static void register_libsodium_symbols(int module_number)
 
 	zend_add_parameter_attribute(zend_hash_str_find_ptr(CG(function_table), "sodium_crypto_secretstream_xchacha20poly1305_init_push", sizeof("sodium_crypto_secretstream_xchacha20poly1305_init_push") - 1), 0, ZSTR_KNOWN(ZEND_STR_SENSITIVEPARAMETER), 0);
 
+	zend_add_parameter_attribute(zend_hash_str_find_ptr(CG(function_table), "sodium_crypto_secretstream_xchacha20poly1305_push", sizeof("sodium_crypto_secretstream_xchacha20poly1305_push") - 1), 0, ZSTR_KNOWN(ZEND_STR_SENSITIVEPARAMETER), 0);
+
 	zend_add_parameter_attribute(zend_hash_str_find_ptr(CG(function_table), "sodium_crypto_secretstream_xchacha20poly1305_push", sizeof("sodium_crypto_secretstream_xchacha20poly1305_push") - 1), 1, ZSTR_KNOWN(ZEND_STR_SENSITIVEPARAMETER), 0);
 
 	zend_add_parameter_attribute(zend_hash_str_find_ptr(CG(function_table), "sodium_crypto_secretstream_xchacha20poly1305_init_pull", sizeof("sodium_crypto_secretstream_xchacha20poly1305_init_pull") - 1), 1, ZSTR_KNOWN(ZEND_STR_SENSITIVEPARAMETER), 0);
+
+	zend_add_parameter_attribute(zend_hash_str_find_ptr(CG(function_table), "sodium_crypto_secretstream_xchacha20poly1305_pull", sizeof("sodium_crypto_secretstream_xchacha20poly1305_pull") - 1), 0, ZSTR_KNOWN(ZEND_STR_SENSITIVEPARAMETER), 0);
+
+	zend_add_parameter_attribute(zend_hash_str_find_ptr(CG(function_table), "sodium_crypto_secretstream_xchacha20poly1305_rekey", sizeof("sodium_crypto_secretstream_xchacha20poly1305_rekey") - 1), 0, ZSTR_KNOWN(ZEND_STR_SENSITIVEPARAMETER), 0);
 #endif
 
 	zend_add_parameter_attribute(zend_hash_str_find_ptr(CG(function_table), "sodium_crypto_shorthash", sizeof("sodium_crypto_shorthash") - 1), 1, ZSTR_KNOWN(ZEND_STR_SENSITIVEPARAMETER), 0);
