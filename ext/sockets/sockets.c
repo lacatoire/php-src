@@ -2669,8 +2669,15 @@ PHP_FUNCTION(socket_import_stream)
 	ZEND_PARSE_PARAMETERS_END();
 	php_stream_from_zval(stream, zstream);
 
+	/* The cast and the import can emit diagnostics, whose error handler must not
+	 * be able to close the stream while it is still used below. */
+	uint32_t orig_no_fclose = stream->flags & PHP_STREAM_FLAG_NO_FCLOSE;
+	stream->flags |= PHP_STREAM_FLAG_NO_FCLOSE;
+
 	if (php_stream_cast(stream, PHP_STREAM_AS_SOCKETD, (void**)&socket, 1) == FAILURE) {
 		/* error supposedly already shown */
+		stream->flags &= ~PHP_STREAM_FLAG_NO_FCLOSE;
+		stream->flags |= orig_no_fclose;
 		RETURN_FALSE;
 	}
 
@@ -2680,6 +2687,8 @@ PHP_FUNCTION(socket_import_stream)
 	if (!socket_import_file_descriptor(socket, retsock)) {
 		retsock->bsd_socket = -1;
 		zval_ptr_dtor(return_value);
+		stream->flags &= ~PHP_STREAM_FLAG_NO_FCLOSE;
+		stream->flags |= orig_no_fclose;
 		RETURN_FALSE;
 	}
 
@@ -2699,6 +2708,9 @@ PHP_FUNCTION(socket_import_stream)
 	ZVAL_COPY(&retsock->zstream, zstream);
 
 	php_stream_set_option(stream, PHP_STREAM_OPTION_READ_BUFFER, PHP_STREAM_BUFFER_NONE, NULL);
+
+	stream->flags &= ~PHP_STREAM_FLAG_NO_FCLOSE;
+	stream->flags |= orig_no_fclose;
 }
 /* }}} */
 
