@@ -571,18 +571,23 @@ static int php_sock_array_to_fd_set(uint32_t arg_num, zval *sock_array, fd_set *
 }
 /* }}} */
 
-static void php_sock_array_from_fd_set(zval *sock_array, fd_set *fds) /* {{{ */
+/* Builds the array of the sockets of sock_array that are ready. The old array is
+ * left alone: the caller replaces it once the three arrays are built. */
+static bool php_sock_array_from_fd_set(zval *sock_array, fd_set *fds, zval *new_hash) /* {{{ */
 {
 	zval		*element;
 	zval		*dest_element;
 	php_socket	*php_sock;
-	zval		new_hash;
 	zend_ulong  num_key;
 	zend_string *key;
 
-	ZEND_ASSERT(Z_TYPE_P(sock_array) == IS_ARRAY);
+	/* The deprecation of a later argument runs user code, which can replace the
+	 * variable after the argument was parsed */
+	if (Z_TYPE_P(sock_array) != IS_ARRAY) {
+		return false;
+	}
 
-	array_init(&new_hash);
+	array_init(new_hash);
 	ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(sock_array), num_key, key, element) {
 		ZVAL_DEREF(element);
 
@@ -593,9 +598,9 @@ static void php_sock_array_from_fd_set(zval *sock_array, fd_set *fds) /* {{{ */
 		if (PHP_SAFE_FD_ISSET(php_sock->bsd_socket, fds)) {
 			/* Add fd to new array */
 			if (key) {
-				dest_element = zend_hash_add(Z_ARRVAL(new_hash), key, element);
+				dest_element = zend_hash_add(Z_ARRVAL_P(new_hash), key, element);
 			} else {
-				dest_element = zend_hash_index_update(Z_ARRVAL(new_hash), num_key, element);
+				dest_element = zend_hash_index_update(Z_ARRVAL_P(new_hash), num_key, element);
 			}
 			if (dest_element) {
 				Z_ADDREF_P(dest_element);
@@ -603,10 +608,7 @@ static void php_sock_array_from_fd_set(zval *sock_array, fd_set *fds) /* {{{ */
 		}
 	} ZEND_HASH_FOREACH_END();
 
-	/* Destroy old array, add new one */
-	zval_ptr_dtor(sock_array);
-
-	ZVAL_COPY_VALUE(sock_array, &new_hash);
+	return true;
 }
 /* }}} */
 
@@ -694,9 +696,29 @@ PHP_FUNCTION(socket_select)
 		RETURN_FALSE;
 	}
 
-	if (r_array != NULL) php_sock_array_from_fd_set(r_array, &rfds);
-	if (w_array != NULL) php_sock_array_from_fd_set(w_array, &wfds);
-	if (e_array != NULL) php_sock_array_from_fd_set(e_array, &efds);
+	/* Build the three results, write them, and only then destroy the old arrays:
+	 * destroying a Socket can run a stream close handler that changes the
+	 * variables passed to the function. */
+	zval *arrays[3] = {r_array, w_array, e_array};
+	fd_set *sets[3] = {&rfds, &wfds, &efds};
+	zval new_arrays[3];
+	zval old_arrays[3];
+
+	for (int i = 0; i < 3; i++) {
+		ZVAL_UNDEF(&old_arrays[i]);
+		if (arrays[i] != NULL && !php_sock_array_from_fd_set(arrays[i], sets[i], &new_arrays[i])) {
+			arrays[i] = NULL;
+		}
+	}
+	for (int i = 0; i < 3; i++) {
+		if (arrays[i] != NULL) {
+			ZVAL_COPY_VALUE(&old_arrays[i], arrays[i]);
+			ZVAL_COPY_VALUE(arrays[i], &new_arrays[i]);
+		}
+	}
+	for (int i = 0; i < 3; i++) {
+		zval_ptr_dtor(&old_arrays[i]);
+	}
 
 	RETURN_LONG(retval);
 }
