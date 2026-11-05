@@ -1,5 +1,5 @@
 /* This is a generated file, edit libsodium.stub.php instead.
- * Stub hash: 50b3cf45af139d4d38f0f46a152b5b1e2662dfd4 */
+ * Stub hash: 378d30e93fd262fd6f748371c51ff6c5a8e9990d */
 
 #include "zend_attributes.h"
 #include "zend_constants.h"
@@ -275,7 +275,7 @@ ZEND_END_ARG_INFO()
 
 #if SODIUM_LIBRARY_VERSION_MAJOR > 9 || (SODIUM_LIBRARY_VERSION_MAJOR == 9 && SODIUM_LIBRARY_VERSION_MINOR >= 6)
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_sodium_crypto_pwhash_str_needs_rehash, 0, 3, _IS_BOOL, 0)
-	ZEND_ARG_TYPE_INFO(0, password, IS_STRING, 0)
+	ZEND_ARG_TYPE_INFO(0, hash, IS_STRING, 0)
 	ZEND_ARG_TYPE_INFO(0, opslimit, IS_LONG, 0)
 	ZEND_ARG_TYPE_INFO(0, memlimit, IS_LONG, 0)
 ZEND_END_ARG_INFO()

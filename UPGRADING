@@ -51,6 +51,11 @@ PHP 8.7 UPGRADE NOTES
     value was appended to the Set-Cookie header verbatim, which let an
     application terminate one attribute and append further ones.
 
+- Sodium:
+  . The first parameter of sodium_crypto_pwhash_str_needs_rehash() is now named
+    $hash instead of $password, as it takes a password hash. Code passing it
+    as a named argument must be updated.
+
 - Standard:
   . The number of filters that can be chained in a php://filter URL is limited
     to 16 by default. Set the stream context option max_filter_count to change
