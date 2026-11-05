@@ -100,6 +100,11 @@ PHP 8.7 UPGRADE NOTES
 5. Changed Functions
 ========================================
 
+- Sockets:
+  . The default value of the $backlog parameter of socket_listen() is now
+    SOMAXCONN instead of 0, as in socket_create_listen(). On Linux, 0 queued a
+    single pending connection.
+
 - Standard:
   . stream_select() no longer fails once a watched descriptor exceeds
     FD_SETSIZE. The descriptor set now grows on demand on both POSIX (bitset)

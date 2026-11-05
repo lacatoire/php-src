@@ -836,7 +836,7 @@ PHP_FUNCTION(socket_listen)
 {
 	zval		*arg1;
 	php_socket	*php_sock;
-	zend_long	backlog = 0;
+	zend_long	backlog = SOMAXCONN;
 
 	ZEND_PARSE_PARAMETERS_START(1, 2)
 		Z_PARAM_OBJECT_OF_CLASS(arg1, socket_ce)
