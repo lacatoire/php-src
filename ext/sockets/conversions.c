@@ -245,7 +245,15 @@ static unsigned from_array_iterate(const zval *arr,
 		}
 		zend_llist_add_element(&ctx->keys, &bufp);
 
-		func(elem, i, args, ctx);
+		/* Hold the dereferenced value: user code run by the conversion (a
+		 * __toString()) can overwrite the variable the reference points to */
+		zval held;
+		ZVAL_COPY_DEREF(&held, elem);
+		func(&held, i, args, ctx);
+		zval_ptr_dtor(&held);
+		if (EG(exception)) {
+			ctx->err.has_error = 1;
+		}
 
 		zend_llist_remove_tail(&ctx->keys);
 		if (ctx->err.has_error) {
@@ -281,7 +289,14 @@ static void from_zval_write_aggregation(const zval *container,
 			}
 
 			zend_llist_add_element(&ctx->keys, (void*)&descr->name);
-			descr->from_zval(elem, ((char*)structure) + descr->field_offset, ctx);
+			/* See from_array_iterate() */
+			zval held;
+			ZVAL_COPY_DEREF(&held, elem);
+			descr->from_zval(&held, ((char*)structure) + descr->field_offset, ctx);
+			zval_ptr_dtor(&held);
+			if (EG(exception)) {
+				ctx->err.has_error = 1;
+			}
 			zend_llist_remove_tail(&ctx->keys);
 
 		} else if (descr->required) {
@@ -324,6 +339,7 @@ static zend_long from_zval_integer_common(const zval *arr_value, ser_context *ct
 	zend_long ret = 0;
 	zval lzval;
 
+	ZVAL_DEREF(arr_value);
 	ZVAL_NULL(&lzval);
 	if (Z_TYPE_P(arr_value) != IS_LONG) {
 		ZVAL_COPY(&lzval, (zval *)arr_value);
@@ -872,15 +888,15 @@ static void from_zval_write_control(const zval			*arr,
 	ancillary_reg_entry	*entry;
 
 	static const field_descriptor descriptor_level[] = {
-			{"level", sizeof("level"), 0, 0, from_zval_write_int, 0},
+			{"level", sizeof("level"), 1, 0, from_zval_write_int, 0},
 			{0}
 	};
 	static const field_descriptor descriptor_type[] = {
-			{"type", sizeof("type"), 0, 0, from_zval_write_int, 0},
+			{"type", sizeof("type"), 1, 0, from_zval_write_int, 0},
 			{0}
 	};
 	field_descriptor descriptor_data[] = {
-			{"data", sizeof("data"), 0, 0, 0, 0},
+			{"data", sizeof("data"), 1, 0, 0, 0},
 			{0}
 	};
 
@@ -907,7 +923,10 @@ static void from_zval_write_control(const zval			*arr,
 			do_from_zval_err(ctx, "cmsghdr should have a 'data' element here");
 			return;
 		}
-		data_len = entry->calc_space(data_elem, ctx);
+		zval held;
+		ZVAL_COPY_DEREF(&held, data_elem);
+		data_len = entry->calc_space(&held, ctx);
+		zval_ptr_dtor(&held);
 		if (ctx->err.has_error) {
 			return;
 		}
@@ -974,7 +993,13 @@ static void from_zval_write_control_array(const zval *arr, char *msghdr_c, ser_c
 		}
 		zend_llist_add_element(&ctx->keys, &bufp);
 
-		from_zval_write_control(elem, &control_buf, alloc, &control_len, &cur_offset, ctx);
+		zval held;
+		ZVAL_COPY_DEREF(&held, elem);
+		from_zval_write_control(&held, &control_buf, alloc, &control_len, &cur_offset, ctx);
+		zval_ptr_dtor(&held);
+		if (EG(exception)) {
+			ctx->err.has_error = 1;
+		}
 
 		zend_llist_remove_tail(&ctx->keys);
 	} ZEND_HASH_FOREACH_END();
