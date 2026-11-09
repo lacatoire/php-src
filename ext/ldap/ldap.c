@@ -2897,7 +2897,12 @@ PHP_FUNCTION(ldap_err2str)
 		RETURN_THROWS();
 	}
 
-	RETURN_STRING(ldap_err2string(perrno));
+	if (ZEND_LONG_EXCEEDS_INT(perrno)) {
+		zend_argument_value_error(1, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+
+	RETURN_STRING(ldap_err2string((int) perrno));
 }
 /* }}} */
 
