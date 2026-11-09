@@ -326,6 +326,10 @@ php_sprintf_append2n(zend_string **buffer, size_t *pos, zend_long number,
 	PRINTF_DEBUG(("sprintf: append2n 2^%d andbits=%x\n", n, andbits));
 
 	num = (zend_ulong) number;
+
+	/* Can't right-pad 0's on integers */
+	if (alignment == 0 && padding == '0') padding = ' ';
+
 	numbuf[i] = '\0';
 
 	do {
