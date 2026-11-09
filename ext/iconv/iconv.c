@@ -2231,7 +2231,7 @@ PHP_FUNCTION(iconv_mime_decode_headers)
 		if (header_name != NULL) {
 			zval *elem;
 
-			if ((elem = zend_hash_str_find(Z_ARRVAL_P(return_value), header_name, header_name_len)) != NULL) {
+			if ((elem = zend_symtable_str_find(Z_ARRVAL_P(return_value), header_name, header_name_len)) != NULL) {
 				if (Z_TYPE_P(elem) != IS_ARRAY) {
 					zval new_elem;
 
@@ -2239,7 +2239,7 @@ PHP_FUNCTION(iconv_mime_decode_headers)
 					Z_ADDREF_P(elem);
 					add_next_index_zval(&new_elem, elem);
 
-					elem = zend_hash_str_update(Z_ARRVAL_P(return_value), header_name, header_name_len, &new_elem);
+					elem = zend_symtable_str_update(Z_ARRVAL_P(return_value), header_name, header_name_len, &new_elem);
 				}
 				add_next_index_stringl(elem, header_value, header_value_len);
 			} else {
