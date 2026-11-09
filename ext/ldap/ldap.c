@@ -2799,12 +2799,16 @@ PHP_FUNCTION(ldap_modify_batch)
 			/* for each value */
 			zend_ulong value_index = 0;
 			zval *modification_value_zv = NULL;
-			ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(modification_values), modification_value_zv) {
+			/* __toString() can reassign the user's variable holding this array */
+			HashTable *values_ht = Z_ARRVAL_P(modification_values);
+			GC_TRY_ADDREF(values_ht);
+			ZEND_HASH_FOREACH_VAL(values_ht, modification_value_zv) {
 				zend_string *modval = zval_try_get_string(modification_value_zv);
 				if (!modval) {
 					RETVAL_FALSE;
 					ldap_mods[modification_index]->mod_bvalues[value_index] = NULL;
 					num_mods = modification_index + 1;
+					zend_array_release(values_ht);
 					goto cleanup;
 				}
 
@@ -2817,6 +2821,7 @@ PHP_FUNCTION(ldap_modify_batch)
 				zend_string_release(modval);
 				value_index++;
 			} ZEND_HASH_FOREACH_END();
+			zend_array_release(values_ht);
 
 			/* NULL-terminate values */
 			ldap_mods[modification_index]->mod_bvalues[num_modification_values] = NULL;
@@ -2827,6 +2832,12 @@ PHP_FUNCTION(ldap_modify_batch)
 
 	/* NULL-terminate modifications */
 	ldap_mods[num_mods] = NULL;
+
+	/* Converting the values can run __toString(), which can close the connection */
+	if (!ld->link) {
+		zend_throw_error(NULL, "LDAP connection has already been closed");
+		goto cleanup;
+	}
 
 	/* perform (finally) */
 	int ldap_status = ldap_modify_ext_s(ld->link, dn, ldap_mods, lserverctrls, NULL);
