@@ -1308,6 +1308,11 @@ PHP_FUNCTION(phpversion)
 		RETURN_STRING(PHP_VERSION);
 	} else {
 		const char *version;
+		/* zend_get_module_version() takes a C string, so a name with a NUL byte
+		 * would be silently truncated and match a different extension. */
+		if (strlen(ext_name) != ext_name_len) {
+			RETURN_FALSE;
+		}
 		version = zend_get_module_version(ext_name);
 		if (version == NULL) {
 			RETURN_FALSE;
