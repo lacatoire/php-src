@@ -309,6 +309,12 @@ PHP_FUNCTION(msg_receive)
 
 	mq = Z_SYSVMSG_QUEUE_P(queue);
 
+	/* A message can never be larger than the queue capacity, so do not allocate more than that. */
+	struct msqid_ds stat;
+	if (msgctl(mq->id, IPC_STAT, &stat) == 0 && (zend_ulong) maxsize > (zend_ulong) stat.msg_qbytes) {
+		maxsize = (zend_long) stat.msg_qbytes;
+	}
+
 	messagebuffer = (struct php_msgbuf *) safe_emalloc(maxsize, 1, sizeof(struct php_msgbuf));
 
 	result = msgrcv(mq->id, messagebuffer, maxsize, desiredmsgtype, realflags);
