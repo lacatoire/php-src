@@ -3068,6 +3068,10 @@ static void php_imagechar(INTERNAL_FUNCTION_PARAMETERS, int mode)
 	col = COL;
 
 	if (mode < 2) {
+		if (ZSTR_LEN(C) == 0) {
+			/* There is no first character, the terminator is not glyph 0 */
+			RETURN_TRUE;
+		}
 		ch = (int)((unsigned char)*ZSTR_VAL(C));
 	} else {
 		str = (unsigned char *) estrndup(ZSTR_VAL(C), ZSTR_LEN(C));
