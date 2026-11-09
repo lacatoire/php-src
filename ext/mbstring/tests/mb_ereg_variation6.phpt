@@ -191,7 +191,7 @@ Deprecated: Function mb_ereg() is deprecated since 8.6, because the underlying l
 bool(true)
 array(1) {
   [0]=>
-  bool(false)
+  string(0) ""
 }
 -- Multibyte String: --
 
@@ -199,7 +199,7 @@ Deprecated: Function mb_ereg() is deprecated since 8.6, because the underlying l
 bool(true)
 array(1) {
   [0]=>
-  bool(false)
+  string(0) ""
 }
 
 --** Pattern is: \B **--
@@ -209,7 +209,7 @@ Deprecated: Function mb_ereg() is deprecated since 8.6, because the underlying l
 bool(true)
 array(1) {
   [0]=>
-  bool(false)
+  string(0) ""
 }
 -- Multibyte String: --
 
@@ -217,6 +217,6 @@ Deprecated: Function mb_ereg() is deprecated since 8.6, because the underlying l
 bool(true)
 array(1) {
   [0]=>
-  bool(false)
+  string(0) ""
 }
 Done
