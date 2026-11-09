@@ -594,8 +594,8 @@ int phar_wrapper_rmdir(php_stream_wrapper *wrapper, const char *url, int options
 
 		if (error) {
 			php_stream_wrapper_log_warn(wrapper, context, options, RmdirFailed,
-				"phar error: cannot remove directory \"%pS\" in phar \"%pS\", %s",
-				entry->filename, phar->fname, error);
+				"phar error: cannot remove directory \"%s\" in phar \"%pS\", %s",
+				ZSTR_VAL(resource->path)+1, phar->fname, error);
 			php_url_free(resource);
 			efree(error);
 			return 0;
