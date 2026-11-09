@@ -2265,8 +2265,21 @@ gdImageFilledEllipse(gdImagePtr im, int mx, int my, int w, int h, int c)
 /*
         Function: gdImageFillToBorder
 */
+/* Spans are painted from an explicit stack of seeds: a recursion per span overflows the C stack */
+#define FILL_TO_BORDER_PUSH(X, Y) do { \
+    if (seed_count == seed_alloc) { \
+        seed_alloc = seed_alloc ? seed_alloc * 2 : 64; \
+        seeds = gdRealloc(seeds, seed_alloc * sizeof(*seeds)); \
+    } \
+    seeds[seed_count].x = (X); \
+    seeds[seed_count].y = (Y); \
+    seed_count++; \
+} while (0)
+
 BGD_DECLARE(void) gdImageFillToBorder(gdImagePtr im, int x, int y, int border, int color)
 {
+    struct { int x, y; } *seeds = NULL;
+    size_t seed_count = 0, seed_alloc = 0;
     int lastBorder;
     /* Seek left */
     int leftLimit, rightLimit;
@@ -2284,8 +2297,6 @@ BGD_DECLARE(void) gdImageFillToBorder(gdImagePtr im, int x, int y, int border, i
         }
     }
 
-    leftLimit = (-1);
-
     restoreAlphaBlending = im->alphaBlendingFlag;
     im->alphaBlendingFlag = 0;
 
@@ -2300,6 +2311,8 @@ BGD_DECLARE(void) gdImageFillToBorder(gdImagePtr im, int x, int y, int border, i
         y = 0;
     }
 
+next_seed:
+    leftLimit = (-1);
     for (i = x; (i >= 0); i--) {
         if (gdImageGetPixel(im, i, y) == border) {
             break;
@@ -2308,8 +2321,7 @@ BGD_DECLARE(void) gdImageFillToBorder(gdImagePtr im, int x, int y, int border, i
         leftLimit = i;
     }
     if (leftLimit == (-1)) {
-        im->alphaBlendingFlag = restoreAlphaBlending;
-        return;
+        goto pop_seed;
     }
     /* Seek right */
     rightLimit = x;
@@ -2328,7 +2340,7 @@ BGD_DECLARE(void) gdImageFillToBorder(gdImagePtr im, int x, int y, int border, i
             int c = gdImageGetPixel(im, i, y - 1);
             if (lastBorder) {
                 if ((c != border) && (c != color)) {
-                    gdImageFillToBorder(im, i, y - 1, border, color);
+                    FILL_TO_BORDER_PUSH(i, y - 1);
                     lastBorder = 0;
                 }
             } else if ((c == border) || (c == color)) {
@@ -2343,7 +2355,7 @@ BGD_DECLARE(void) gdImageFillToBorder(gdImagePtr im, int x, int y, int border, i
             int c = gdImageGetPixel(im, i, y + 1);
             if (lastBorder) {
                 if ((c != border) && (c != color)) {
-                    gdImageFillToBorder(im, i, y + 1, border, color);
+                    FILL_TO_BORDER_PUSH(i, y + 1);
                     lastBorder = 0;
                 }
             } else if ((c == border) || (c == color)) {
@@ -2351,8 +2363,21 @@ BGD_DECLARE(void) gdImageFillToBorder(gdImagePtr im, int x, int y, int border, i
             }
         }
     }
+
+pop_seed:
+    if (seed_count > 0) {
+        seed_count--;
+        x = seeds[seed_count].x;
+        y = seeds[seed_count].y;
+        goto next_seed;
+    }
+    if (seeds) {
+        gdFree(seeds);
+    }
     im->alphaBlendingFlag = restoreAlphaBlending;
 }
+
+#undef FILL_TO_BORDER_PUSH
 
 /*
  * set the pixel at (x,y) and its 4-connected neighbors
