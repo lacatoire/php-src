@@ -576,6 +576,9 @@ PHPAPI zend_long php_count_recursive(HashTable *ht) /* {{{ */
 		GC_PROTECT_RECURSION(ht);
 	}
 
+	/* The "Recursion detected" warning of a nested call runs a user error handler, which
+	 * can free or grow the array being iterated. */
+	GC_TRY_ADDREF(ht);
 	cnt = zend_hash_num_elements(ht);
 	ZEND_HASH_FOREACH_VAL(ht, element) {
 		ZVAL_DEREF(element);
@@ -590,6 +593,7 @@ PHPAPI zend_long php_count_recursive(HashTable *ht) /* {{{ */
 	} ZEND_HASH_FOREACH_END();
 
 	GC_TRY_UNPROTECT_RECURSION(ht);
+	GC_TRY_DTOR_NO_REF(ht);
 	return cnt;
 }
 /* }}} */
