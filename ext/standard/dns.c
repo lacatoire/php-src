@@ -230,12 +230,9 @@ PHP_FUNCTION(gethostbyname)
 		RETURN_STRINGL(hostname, hostname_len);
 	}
 
-	if (!(ipaddr = php_gethostbyname(hostname))) {
-		php_error_docref(NULL, E_WARNING, "Host name to ip failed %s", hostname);
-		RETURN_STRINGL(hostname, hostname_len);
-	} else {
-		RETURN_NEW_STR(ipaddr);
-	}
+	/* The unmodified host name is returned when it cannot be resolved */
+	ipaddr = php_gethostbyname(hostname);
+	RETURN_NEW_STR(ipaddr);
 }
 /* }}} */
 
@@ -310,7 +307,7 @@ static zend_string *php_gethostbyname(char *name)
 	memcpy(&in.s_addr, h_addr_0, sizeof(in.s_addr));
 
 	if (!(address = inet_ntop(AF_INET, &in, addr4, INET_ADDRSTRLEN))) {
-		return NULL;
+		return zend_string_init(name, strlen(name), 0);
 	}
 
 	return zend_string_init(address, strlen(address), 0);
