@@ -1385,11 +1385,14 @@ PHP_FUNCTION(ldap_sasl_bind)
 	ld = Z_LDAP_LINK_P(link);
 	VERIFY_LDAP_LINK_CONNECTED(ld);
 
-	ctx = _php_sasl_setdefs(ld->link, sasl_mech, sasl_realm, sasl_authc_id, passwd, sasl_authz_id);
-
 	if (props) {
-		ldap_set_option(ld->link, LDAP_OPT_X_SASL_SECPROPS, props);
+		if (ldap_set_option(ld->link, LDAP_OPT_X_SASL_SECPROPS, props) != LDAP_OPT_SUCCESS) {
+			zend_argument_value_error(8, "must be a valid list of SASL security properties");
+			RETURN_THROWS();
+		}
 	}
+
+	ctx = _php_sasl_setdefs(ld->link, sasl_mech, sasl_realm, sasl_authc_id, passwd, sasl_authz_id);
 
 	rc = ldap_sasl_interactive_bind_s(ld->link, binddn, ctx->mech, NULL, NULL, LDAP_SASL_QUIET, _php_sasl_interact, ctx);
 	if (rc != LDAP_SUCCESS) {
