@@ -255,6 +255,9 @@ PHP_FUNCTION(phar_readfile) /* {{{ */
 		}
 		ssize_t size = php_stream_passthru(stream);
 		php_stream_close(stream);
+		if (size < 0) {
+			RETURN_FALSE;
+		}
 		RETURN_LONG(size);
 	}
 
