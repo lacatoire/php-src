@@ -1386,8 +1386,10 @@ static const char php_sig_gd2[3] = {'g', 'd', '2'};
 static int _php_image_type(zend_string *data)
 {
 	if (ZSTR_LEN(data) < 12) {
-		/* Handle this the same way as an unknown image type. */
-		return -1;
+		/* Too short for the signatures that are compared below, but a valid WBMP file can be as
+		 * short as 5 bytes and is recognised by its first byte. Anything else is handled like an
+		 * unknown image type. */
+		return (ZSTR_LEN(data) > 0 && ZSTR_VAL(data)[0] == 0) ? PHP_GDIMG_TYPE_WBM : -1;
 	}
 
 	if (!memcmp(ZSTR_VAL(data), php_sig_gd2, sizeof(php_sig_gd2))) {
