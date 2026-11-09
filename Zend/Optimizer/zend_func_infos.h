@@ -132,6 +132,7 @@ static const func_info_t func_infos[] = {
 	F1("imagecreatefromgd2", MAY_BE_OBJECT|MAY_BE_FALSE),
 	F1("imagecreatefromgd2part", MAY_BE_OBJECT|MAY_BE_FALSE),
 	F1("imagecreatefrombmp", MAY_BE_OBJECT|MAY_BE_FALSE),
+	F1("imagecreatefromtga", MAY_BE_OBJECT|MAY_BE_FALSE),
 	F1("imagecolorsforindex", MAY_BE_ARRAY|MAY_BE_ARRAY_KEY_STRING|MAY_BE_ARRAY_OF_LONG),
 	F1("imagegetclip", MAY_BE_ARRAY|MAY_BE_ARRAY_KEY_LONG|MAY_BE_ARRAY_OF_LONG),
 #if defined(HAVE_GD_FREETYPE)
