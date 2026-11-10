@@ -3730,7 +3730,13 @@ PHP_FUNCTION(imagefilter)
 		zend_argument_value_error(2, "must be one of the IMG_FILTER_* filter constants");
 		RETURN_THROWS();
 	}
+	/* The filters write the pixels back with gdImageSetPixel(): with alpha blending on, a
+	 * non-opaque pixel would be blended over its old value instead of being replaced. */
+	gdImagePtr im = php_gd_libgdimageptr_from_zval_p(tmp);
+	int alpha_blending = im->alphaBlendingFlag;
+	gdImageAlphaBlending(im, gdEffectReplace);
 	filters[filtertype](INTERNAL_FUNCTION_PARAM_PASSTHRU);
+	gdImageAlphaBlending(im, alpha_blending);
 }
 /* }}} */
 
