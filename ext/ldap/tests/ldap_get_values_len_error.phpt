@@ -26,5 +26,5 @@ $link = ldap_connect_and_bind($uri, $user, $passwd, $protocol_version);
 remove_dummy_data($link, $base);
 ?>
 --EXPECTF--
-Warning: ldap_get_values_len(): Cannot get the value(s) of attribute %s in %s on line %d
+Warning: ldap_get_values_len(): Cannot get the value(s) of attribute "inexistentAttribute": %s in %s on line %d
 bool(false)
