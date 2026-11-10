@@ -1089,6 +1089,26 @@ PHP_FUNCTION(imagecopyresampled)
 	dstH = DH;
 	dstW = DW;
 
+	if (dstW <= 0) {
+		zend_argument_value_error(7, "must be greater than 0");
+		RETURN_THROWS();
+	}
+
+	if (dstH <= 0) {
+		zend_argument_value_error(8, "must be greater than 0");
+		RETURN_THROWS();
+	}
+
+	if (srcW <= 0) {
+		zend_argument_value_error(9, "must be greater than 0");
+		RETURN_THROWS();
+	}
+
+	if (srcH <= 0) {
+		zend_argument_value_error(10, "must be greater than 0");
+		RETURN_THROWS();
+	}
+
 	gdImageCopyResampled(im_dst, im_src, dstX, dstY, srcX, srcY, dstW, dstH, srcW, srcH);
 
 	RETURN_TRUE;
