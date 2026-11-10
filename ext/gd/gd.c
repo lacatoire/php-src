@@ -3434,6 +3434,11 @@ static void php_imagettftext_common(INTERNAL_FUNCTION_PARAMETERS, int mode)
 		RETURN_THROWS();
 	}
 
+	if (UNEXPECTED(!zend_finite(angle))) {
+		zend_argument_value_error(ptsize_arg_num + 1, "must be finite");
+		RETURN_THROWS();
+	}
+
 	/* convert angle to radians */
 	angle = angle * (M_PI/180);
 
