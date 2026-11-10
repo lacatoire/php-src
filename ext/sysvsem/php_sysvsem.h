@@ -31,6 +31,7 @@ typedef struct {
 	int semid;					/* Returned by semget(). */
 	int count;					/* Acquire count for auto-release. */
 	int auto_release;			/* flag that says to auto-release. */
+	pid_t owner_pid;			/* Process that called sem_get(). */
 	zend_object std;
 } sysvsem_sem;
 

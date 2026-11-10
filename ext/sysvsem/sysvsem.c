@@ -25,6 +25,7 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include "sysvsem_arginfo.h"
 #include "php_sysvsem.h"
@@ -110,7 +111,9 @@ static void sysvsem_free_obj(zend_object *object)
 	 * if count == -1, semaphore has been removed
 	 * Need better way to handle this
 	 */
-	if (sem_ptr->count == -1 || !sem_ptr->auto_release) {
+	/* A forked child gets a copy of the object but not the SEM_UNDO adjustments of its parent,
+	 * so it must not give back what only the parent acquired. */
+	if (sem_ptr->count == -1 || !sem_ptr->auto_release || sem_ptr->owner_pid != getpid()) {
 		zend_object_std_dtor(&sem_ptr->std);
 		return;
 	}
@@ -265,6 +268,7 @@ PHP_FUNCTION(sem_get)
 	sem_ptr->semid = semid;
 	sem_ptr->count = 0;
 	sem_ptr->auto_release = (int) auto_release;
+	sem_ptr->owner_pid = getpid();
 }
 /* }}} */
 
