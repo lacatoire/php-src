@@ -2378,6 +2378,12 @@ static void php_ldap_do_modify(INTERNAL_FUNCTION_PARAMETERS, int oper, bool ext)
 	} ZEND_HASH_FOREACH_END();
 	ldap_mods[num_attribs] = NULL;
 
+	/* Converting the values can run __toString(), which can close the connection */
+	if (!ld->link) {
+		zend_throw_error(NULL, "LDAP connection has already been closed");
+		goto cleanup;
+	}
+
 	if (server_controls_ht) {
 		lserverctrls = php_ldap_controls_from_array(ld->link, server_controls_ht, 4);
 		if (lserverctrls == NULL) {
