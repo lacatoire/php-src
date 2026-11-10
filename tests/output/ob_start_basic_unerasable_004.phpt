@@ -10,13 +10,13 @@ function callback($string) {
 
 ob_start('callback', 0, false);
 
-echo "This call will obtain the content, but will not flush the buffer.";
+echo "This call will not obtain the content nor flush the buffer.";
 $str = ob_get_flush();
 var_dump($str);
 ?>
 --EXPECTF--
-[callback:1]This call will obtain the content, but will not flush the buffer.
+[callback:1]This call will not obtain the content nor flush the buffer.
 Notice: ob_get_flush(): Failed to send buffer of callback (0) in %s on line 11
 
 Notice: ob_get_flush(): Failed to delete buffer of callback (0) in %s on line 11
-string(65) "This call will obtain the content, but will not flush the buffer."
+bool(false)

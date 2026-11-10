@@ -1462,6 +1462,8 @@ PHP_FUNCTION(ob_get_flush)
 
 	if (SUCCESS != php_output_end()) {
 		php_error_docref("ref.outcontrol", E_NOTICE, "Failed to delete buffer of %s (%d)", ZSTR_VAL(OG(active)->name), OG(active)->level);
+		zval_ptr_dtor(return_value);
+		RETURN_FALSE;
 	}
 }
 /* }}} */
@@ -1482,6 +1484,8 @@ PHP_FUNCTION(ob_get_clean)
 
 	if (SUCCESS != php_output_discard()) {
 		php_error_docref("ref.outcontrol", E_NOTICE, "Failed to delete buffer of %s (%d)", ZSTR_VAL(OG(active)->name), OG(active)->level);
+		zval_ptr_dtor(return_value);
+		RETURN_FALSE;
 	}
 }
 /* }}} */
