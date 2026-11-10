@@ -20,6 +20,10 @@ $tests = [
     '-0m',
     '-0G',
     '-0g',
+    '0 K',
+    "0\tM",
+    '0  G',
+    ' 0 K ',
 ];
 
 foreach ($tests as $setting) {
@@ -69,4 +73,16 @@ int(0)
 int(0)
 
 # "-0g"
+int(0)
+
+# "0 K"
+int(0)
+
+# "0\tM"
+int(0)
+
+# "0  G"
+int(0)
+
+# " 0 K "
 int(0)
