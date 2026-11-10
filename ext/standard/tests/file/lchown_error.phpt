@@ -19,7 +19,11 @@ $uid = posix_getuid();
 var_dump( lchown( 'foobar_lchown.txt', $uid ) );
 
 // Bad user
-var_dump( lchown( $filename, -5 ) );
+try {
+    var_dump( lchown( $filename, -5 ) );
+} catch (Throwable $e) {
+    echo $e::class, ': ', $e->getMessage(), "\n";
+}
 
 ?>
 --CLEAN--
@@ -34,6 +38,4 @@ unlink($filename);
 
 Warning: lchown(): No such file or directory in %s on line %d
 bool(false)
-
-Warning: lchown(): %r(Operation not permitted|Invalid argument)%r in %s on line %d
-bool(false)
+ValueError: lchown(): Argument #2 ($user) must be between 0 and 4294967294

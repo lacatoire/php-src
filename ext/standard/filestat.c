@@ -359,6 +359,11 @@ static void php_do_chgrp(INTERNAL_FUNCTION_PARAMETERS, int do_lchgrp) /* {{{ */
 			RETURN_FALSE;
 		}
 	} else {
+		/* (gid_t) -1 means "leave unchanged" to chown(2) */
+		if (group_long < 0 || (zend_ulong) group_long >= (zend_ulong) (gid_t) -1) {
+			zend_argument_value_error(2, "must be between 0 and " ZEND_ULONG_FMT, (zend_ulong) (gid_t) -1 - 1);
+			RETURN_THROWS();
+		}
 		gid = (gid_t) group_long;
 	}
 
@@ -497,6 +502,11 @@ static void php_do_chown(INTERNAL_FUNCTION_PARAMETERS, int do_lchown) /* {{{ */
 			RETURN_FALSE;
 		}
 	} else {
+		/* (uid_t) -1 means "leave unchanged" to chown(2) */
+		if (user_long < 0 || (zend_ulong) user_long >= (zend_ulong) (uid_t) -1) {
+			zend_argument_value_error(2, "must be between 0 and " ZEND_ULONG_FMT, (zend_ulong) (uid_t) -1 - 1);
+			RETURN_THROWS();
+		}
 		uid = (uid_t) user_long;
 	}
 
