@@ -295,6 +295,8 @@ static void dba_close_connection(dba_connection *connection)
 
 	if (!persistent) {
 		dba_close_info(connection->info);
+	} else {
+		connection->info->users--;
 	}
 
 	connection->info = NULL;
@@ -592,6 +594,7 @@ static void php_dba_open(INTERNAL_FUNCTION_PARAMETERS, bool persistent)
 			object_init_ex(return_value, dba_connection_ce);
 			dba_connection *connection = Z_DBA_CONNECTION_P(return_value);
 			connection->info = (dba_info *)le->ptr;
+			connection->info->users++;
 			connection->hash = zend_string_dup(resource_key, /* persistent */ true);
 			GC_MAKE_PERSISTENT_LOCAL(connection->hash);
 
@@ -794,6 +797,7 @@ static void php_dba_open(INTERNAL_FUNCTION_PARAMETERS, bool persistent)
 		connection->info->driver_flags = driver_flags;
 		connection->info->flags = (hptr->flags & ~DBA_LOCK_ALL) | (lock_flag & DBA_LOCK_ALL) | (persistent ? DBA_PERSISTENT : 0);
 		connection->info->lock.mode = lock_mode;
+		connection->info->users = 1;
 		if (persistent) {
 			connection->hash = zend_string_dup(resource_key, /* persistent */ true);
 			GC_MAKE_PERSISTENT_LOCAL(connection->hash);
@@ -989,11 +993,14 @@ PHP_FUNCTION(dba_close)
 	CHECK_DBA_CONNECTION(connection->info);
 
 	bool persistent = connection->info->flags & DBA_PERSISTENT;
+	/* dba_close_connection() clears connection->info */
+	dba_info *info = connection->info;
 
 	dba_close_connection(connection);
 
-	if (persistent) {
-		zend_hash_apply_with_argument(&EG(persistent_list), remove_pconnection_from_list, (void *) connection->info);
+	/* Release the underlying resource unless another connection object still uses it */
+	if (persistent && info->users == 0) {
+		zend_hash_apply_with_argument(&EG(persistent_list), remove_pconnection_from_list, (void *) info);
 	}
 }
 /* }}} */
