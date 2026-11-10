@@ -94,7 +94,7 @@ mb_internal_encoding('SJIS-Mobile#DOCOMO');
 var_dump(bin2hex(mb_decode_mimeheader("6")));
 
 ?>
---EXPECT--
+--EXPECTF--
 string(36) "0032002c0020004700430047003f00470053"
 string(6) "203869"
 string(0) ""
@@ -111,6 +111,8 @@ string(2) "3f"
 string(4) "3d3f"
 string(6) "3d3f3d"
 string(6) "3d3f2c"
+
+Deprecated: mb_internal_encoding(): Handling Uuencode via mbstring is deprecated; use convert_uuencode/convert_uudecode instead in %s on line %d
 string(42) "626567696e20303634342066696c656e616d650a20"
 string(2) "36"
 string(2) "36"
