@@ -1723,6 +1723,18 @@ cleanup_parallel:
 			goto cleanup;
 		}
 
+		if (zend_str_has_nul_byte(base_dn_str)) {
+			zend_argument_value_error(2, "must not contain null bytes");
+			has_errors = true;
+			goto cleanup;
+		}
+
+		if (zend_str_has_nul_byte(filter_str)) {
+			zend_argument_value_error(3, "must not contain null bytes");
+			has_errors = true;
+			goto cleanup;
+		}
+
 		if (server_controls_ht) {
 			lserverctrls = php_ldap_controls_from_array(ld->link, server_controls_ht, 9);
 			if (lserverctrls == NULL) {
