@@ -72,6 +72,7 @@ typedef struct _php_basic_globals {
 	zend_long page_gid;
 	zend_long page_inode;
 	time_t page_mtime;
+	bool page_mtime_valid;
 
 	/* filestat.c && main/streams/streams.c */
 	zend_string *CurrentStatFile, *CurrentLStatFile;
