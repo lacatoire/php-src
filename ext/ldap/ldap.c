@@ -3403,6 +3403,15 @@ PHP_FUNCTION(ldap_parse_result)
 	if (referrals) {
 		referrals = zend_try_array_init(referrals);
 		if (!referrals) {
+			if (lreferrals != NULL) {
+				ldap_memvfree((void**)lreferrals);
+			}
+			if (errmsg && lerrmsg != NULL) {
+				ldap_memfree(lerrmsg);
+			}
+			if (matcheddn && lmatcheddn != NULL) {
+				ldap_memfree(lmatcheddn);
+			}
 			RETURN_THROWS();
 		}
 		if (lreferrals != NULL) {
@@ -3597,6 +3606,9 @@ PHP_FUNCTION(ldap_parse_reference)
 
 	referrals = zend_try_array_init(referrals);
 	if (!referrals) {
+		if (lreferrals != NULL) {
+			ldap_memvfree((void**)lreferrals);
+		}
 		RETURN_THROWS();
 	}
 
