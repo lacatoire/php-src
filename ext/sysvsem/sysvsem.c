@@ -185,6 +185,11 @@ PHP_FUNCTION(sem_get)
 		RETURN_THROWS();
 	}
 
+	if (max_acquire < 1 || max_acquire > INT_MAX) {
+		zend_argument_value_error(2, "must be between 1 and %d", INT_MAX);
+		RETURN_THROWS();
+	}
+
 	/* Get/create the semaphore.  Note that we rely on the semaphores
 	 * being zeroed when they are created.  Despite the fact that
 	 * the(?)  Linux semget() man page says they are not initialized,
@@ -238,11 +243,14 @@ PHP_FUNCTION(sem_get)
 
 	/* If we are the only user, then take this opportunity to set the max. */
 
+	bool max_set = true;
 	if (count == 1) {
 		union semun semarg;
 		semarg.val = max_acquire;
 		if (semctl(semid, SYSVSEM_SEM, SETVAL, semarg) == -1) {
-			php_error_docref(NULL, E_WARNING, "Failed for key 0x" ZEND_XLONG_FMT ": %s", key_arg, strerror(errno));
+			/* The kernel limits the value (SEMVMX), a semaphore left at 0 could never be acquired */
+			php_error_docref(NULL, E_WARNING, "Failed setting max_acquire to " ZEND_LONG_FMT " for key 0x" ZEND_XLONG_FMT ": %s", max_acquire, key_arg, strerror(errno));
+			max_set = false;
 		}
 	}
 
@@ -256,6 +264,13 @@ PHP_FUNCTION(sem_get)
 			php_error_docref(NULL, E_WARNING, "Failed releasing SYSVSEM_SETVAL for key 0x" ZEND_XLONG_FMT ": %s", key_arg, strerror(errno));
 			break;
 		}
+	}
+
+	if (!max_set) {
+		/* We are the only user, do not leave a semaphore that nothing can acquire */
+		union semun un;
+		semctl(semid, 0, IPC_RMID, un);
+		RETURN_FALSE;
 	}
 
 	object_init_ex(return_value, sysvsem_ce);
@@ -347,8 +362,14 @@ PHP_FUNCTION(sem_remove)
 
 	un.buf = &buf;
 	if (semctl(sem_ptr->semid, 0, IPC_STAT, un) < 0) {
-		php_error_docref(NULL, E_WARNING, "SysV semaphore for key 0x%x does not (any longer) exist", sem_ptr->key);
-		RETURN_FALSE;
+		/* Without read permission the set can still be removed by its owner or creator */
+		if (errno == EINVAL || errno == EIDRM) {
+			php_error_docref(NULL, E_WARNING, "SysV semaphore for key 0x%x does not (any longer) exist", sem_ptr->key);
+			RETURN_FALSE;
+		} else if (errno != EACCES) {
+			php_error_docref(NULL, E_WARNING, "Failed for SysV semaphore for key 0x%x: %s", sem_ptr->key, strerror(errno));
+			RETURN_FALSE;
+		}
 	}
 
 	if (semctl(sem_ptr->semid, 0, IPC_RMID, un) < 0) {
