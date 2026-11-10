@@ -1926,6 +1926,12 @@ PHP_FUNCTION(imagegif)
 
 	im = php_gd_libgdimageptr_from_zval_p(imgind);
 
+	/* The width and the height are stored in 16 bits */
+	if (gdImageSX(im) > 65535 || gdImageSY(im) > 65535) {
+		php_error_docref(NULL, E_WARNING, "Image is too large for the GIF format, the width and the height must not exceed 65535");
+		RETURN_FALSE;
+	}
+
 	ctx = create_output_context(to_zval, 2);
 	if (!ctx) {
 		RETURN_FALSE;
