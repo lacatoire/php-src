@@ -415,6 +415,11 @@ PHP_FUNCTION(file_get_contents)
 
 	php_stream_error_operation_begin();
 	context = php_stream_context_from_zval(zcontext, 0);
+
+	if (UNEXPECTED(EG(exception))) {
+		php_stream_error_operation_end(context);
+		RETURN_THROWS();
+	}
 	stream = php_stream_open_wrapper_ex(filename, "rb",
 				(use_include_path ? USE_PATH : 0) | REPORT_ERRORS,
 				NULL, context);
@@ -475,6 +480,11 @@ PHP_FUNCTION(file_put_contents)
 
 	php_stream_error_operation_begin();
 	context = php_stream_context_from_zval(zcontext, flags & PHP_FILE_NO_DEFAULT_CONTEXT);
+
+	if (UNEXPECTED(EG(exception))) {
+		php_stream_error_operation_end(context);
+		RETURN_THROWS();
+	}
 
 	if (flags & PHP_FILE_APPEND) {
 		mode[0] = 'a';
@@ -631,6 +641,11 @@ PHP_FUNCTION(file)
 	php_stream_error_operation_begin();
 	context = php_stream_context_from_zval(zcontext, flags & PHP_FILE_NO_DEFAULT_CONTEXT);
 
+	if (UNEXPECTED(EG(exception))) {
+		php_stream_error_operation_end(context);
+		RETURN_THROWS();
+	}
+
 	stream = php_stream_open_wrapper_ex(filename, "rb", (use_include_path ? USE_PATH : 0) | REPORT_ERRORS, NULL, context);
 	if (!stream) {
 		php_stream_error_operation_end(context);
@@ -765,6 +780,11 @@ PHP_FUNCTION(fopen)
 
 	php_stream_error_operation_begin();
 	context = php_stream_context_from_zval(zcontext, 0);
+
+	if (UNEXPECTED(EG(exception))) {
+		php_stream_error_operation_end(context);
+		RETURN_THROWS();
+	}
 
 	stream = php_stream_open_wrapper_ex(filename, mode, (use_include_path ? USE_PATH : 0) | REPORT_ERRORS, NULL, context);
 	php_stream_error_operation_end(context);
@@ -1169,6 +1189,10 @@ PHP_FUNCTION(mkdir)
 
 	context = php_stream_context_from_zval(zcontext, 0);
 
+	if (UNEXPECTED(EG(exception))) {
+		RETURN_THROWS();
+	}
+
 	php_stream_error_operation_begin();
 	RETVAL_BOOL(php_stream_mkdir(dir, (int)mode, (recursive ? PHP_STREAM_MKDIR_RECURSIVE : 0) | REPORT_ERRORS, context));
 	php_stream_error_operation_end(context);
@@ -1190,6 +1214,10 @@ PHP_FUNCTION(rmdir)
 	ZEND_PARSE_PARAMETERS_END();
 
 	context = php_stream_context_from_zval(zcontext, 0);
+
+	if (UNEXPECTED(EG(exception))) {
+		RETURN_THROWS();
+	}
 
 	php_stream_error_operation_begin();
 	RETVAL_BOOL(php_stream_rmdir(dir, REPORT_ERRORS, context));
@@ -1216,6 +1244,10 @@ PHP_FUNCTION(readfile)
 	ZEND_PARSE_PARAMETERS_END();
 
 	context = php_stream_context_from_zval(zcontext, 0);
+
+	if (UNEXPECTED(EG(exception))) {
+		RETURN_THROWS();
+	}
 
 	php_stream_error_operation_begin();
 	stream = php_stream_open_wrapper_ex(filename, "rb", (use_include_path ? USE_PATH : 0) | REPORT_ERRORS, NULL, context);
@@ -1295,6 +1327,11 @@ PHP_FUNCTION(rename)
 	php_stream_error_operation_begin();
 	context = php_stream_context_from_zval(zcontext, 0);
 
+	if (UNEXPECTED(EG(exception))) {
+		php_stream_error_operation_end(context);
+		RETURN_THROWS();
+	}
+
 	wrapper = php_stream_locate_url_wrapper(old_name, NULL, 0);
 
 	if (!wrapper || !wrapper->wops) {
@@ -1337,6 +1374,11 @@ PHP_FUNCTION(unlink)
 
 	php_stream_error_operation_begin();
 	context = php_stream_context_from_zval(zcontext, 0);
+
+	if (UNEXPECTED(EG(exception))) {
+		php_stream_error_operation_end(context);
+		RETURN_THROWS();
+	}
 
 	wrapper = php_stream_locate_url_wrapper(filename, NULL, 0);
 
@@ -1527,6 +1569,11 @@ PHP_FUNCTION(copy)
 
 	php_stream_error_operation_begin();
 	context = php_stream_context_from_zval(zcontext, 0);
+
+	if (UNEXPECTED(EG(exception))) {
+		php_stream_error_operation_end(context);
+		RETURN_THROWS();
+	}
 
 	if (php_stream_locate_url_wrapper(source, NULL, 0) == &php_plain_files_wrapper && php_check_open_basedir(source)) {
 		php_stream_error_operation_end(context);
