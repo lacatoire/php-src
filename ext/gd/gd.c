@@ -3515,6 +3515,11 @@ static void php_image_filter_brightness(INTERNAL_FUNCTION_PARAMETERS)
 
 	im_src = php_gd_libgdimageptr_from_zval_p(SIM);
 
+	/* libgd refuses a value outside -255..255: do not let a large one wrap into the range */
+	if (brightness < -255 || brightness > 255) {
+		RETURN_FALSE;
+	}
+
 	RETURN_BOOL(gdImageBrightness(im_src, (int)brightness) == 1);
 }
 
@@ -3531,6 +3536,12 @@ static void php_image_filter_contrast(INTERNAL_FUNCTION_PARAMETERS)
 	ZEND_PARSE_PARAMETERS_END();
 
 	im_src = php_gd_libgdimageptr_from_zval_p(SIM);
+
+	if (contrast < INT_MIN) {
+		contrast = INT_MIN;
+	} else if (contrast > INT_MAX) {
+		contrast = INT_MAX;
+	}
 
 	RETURN_BOOL(gdImageContrast(im_src, (int)contrast) == 1);
 }
@@ -3553,6 +3564,29 @@ static void php_image_filter_colorize(INTERNAL_FUNCTION_PARAMETERS)
 	ZEND_PARSE_PARAMETERS_END();
 
 	im_src = php_gd_libgdimageptr_from_zval_p(SIM);
+
+	/* The result is clamped to the channel range anyway: saturate the arguments instead of
+	 * letting them wrap or overflow the addition. */
+	if (r < -255) {
+		r = -255;
+	} else if (r > 255) {
+		r = 255;
+	}
+	if (g < -255) {
+		g = -255;
+	} else if (g > 255) {
+		g = 255;
+	}
+	if (b < -255) {
+		b = -255;
+	} else if (b > 255) {
+		b = 255;
+	}
+	if (a < -255) {
+		a = -255;
+	} else if (a > 255) {
+		a = 255;
+	}
 
 	RETURN_BOOL(gdImageColor(im_src, (int) r, (int) g, (int) b, (int) a) == 1);
 }
