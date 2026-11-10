@@ -2878,7 +2878,7 @@ MBSTRING_API HashTable *php_mb_convert_encoding_recursive(HashTable *input, cons
 	}
 
 	if (GC_IS_RECURSIVE(input)) {
-		GC_UNPROTECT_RECURSION(input);
+		/* The array is still being converted by an outer level, which removes the protection. */
 		php_error_docref(NULL, E_WARNING, "Cannot convert recursively referenced values");
 		return NULL;
 	}
