@@ -1959,6 +1959,7 @@ PHP_FUNCTION(imagepng)
 	gdImagePtr im;
 	gdIOCtx *ctx;
 	zval *to_zval = NULL;
+	bool encoded = true;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "O|z!ll", &imgind, gd_image_ce, &to_zval, &quality, &basefilter) == FAILURE) {
 		RETURN_THROWS();
@@ -1998,7 +1999,7 @@ PHP_FUNCTION(imagepng)
 			}
 		}
 		options.filters = filters;
-		(void) gdImagePngCtxWithOptions(im, ctx, &options);
+		encoded = gdImagePngCtxWithOptions(im, ctx, &options) == 0;
 	}
 #else
 	gdImagePngCtxEx(im, ctx, (int) quality);
@@ -2006,7 +2007,8 @@ PHP_FUNCTION(imagepng)
 
 	ctx->gd_free(ctx);
 
-	RETURN_TRUE;
+	/* libpng can fail, for example on an unknown row filter or a width above its limit */
+	RETURN_BOOL(encoded);
 }
 /* }}} */
 #endif /* HAVE_GD_PNG */
