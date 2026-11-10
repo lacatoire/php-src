@@ -11,9 +11,9 @@ var_dump(unserialize($serialized_data));
 
 echo "\nDone";
 ?>
---EXPECTF--
+--EXPECT--
 --- Testing Resource ---
-string(4) "i:%d;"
-int(%d)
+string(4) "i:0;"
+int(0)
 
 Done

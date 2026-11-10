@@ -18,10 +18,10 @@ $numbers = array(
     "feffffffffffef7f", //2^1024. - 10^-Accuracy[2^1024.]
     "0100000000000000", //minimum subnormal double
     "0200000000000000", //2nd minimum subnormal double
-    "fffffffffffff000", //maximum subnormal double
-    "fefffffffffff000", //2nd maximum subnormal double
-    "0000000000000f7f", //+inf
-    "0000000000000fff", //-inf
+    "ffffffffffff0f00", //maximum subnormal double
+    "feffffffffff0f00", //2nd maximum subnormal double
+    "000000000000f07f", //+inf
+    "000000000000f0ff", //-inf
 );
 
 foreach ($numbers as $ns) {
@@ -45,7 +45,7 @@ number: 1.79769313486231571e+308... OK
 number: 1.79769313486231551e+308... OK
 number: 4.94065645841246544e-324... OK
 number: 9.88131291682493088e-324... OK
-number: 3.87340857288933536e-304... OK
-number: 3.87340857288933455e-304... OK
-number: 1.06293653832877718e+304... OK
-number: -1.06293653832877718e+304... OK
+number: 2.22507385850720089e-308... OK
+number: 2.22507385850720039e-308... OK
+number: INF... OK
+number: -INF... OK
