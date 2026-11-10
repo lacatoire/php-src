@@ -226,7 +226,9 @@ PHP_FUNCTION(sem_get)
 	while (semop(semid, sop, 3) == -1) {
 		if (errno != EINTR) {
 			php_error_docref(NULL, E_WARNING, "Failed acquiring SYSVSEM_SETVAL for key 0x" ZEND_XLONG_FMT ": %s", key_arg, strerror(errno));
-			break;
+			/* The operations are atomic, so nothing was changed. Going on would release a
+			 * SYSVSEM_SETVAL that was never acquired, and wait for ever. */
+			RETURN_FALSE;
 		}
 	}
 
