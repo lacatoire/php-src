@@ -1679,7 +1679,10 @@ process:
 			ldap_search_ext(current_ld->link, ZSTR_VAL(ldap_base_dn), scope, ZSTR_VAL(ldap_filter), ldap_attrs, ldap_attrsonly, lserverctrls, NULL, NULL, ldap_sizelimit, &rcs[ldap_link_index]);
 			lds[ldap_link_index] = current_ld;
 
-			// TODO Reset the options of the link?
+			/* Restoring previous options, the request has already been encoded */
+			int dummy_sizelimit, dummy_timelimit, dummy_deref;
+			php_set_opts(current_ld->link, old_ldap_sizelimit, old_ldap_timelimit, old_ldap_deref, &dummy_sizelimit, &dummy_timelimit, &dummy_deref);
+			old_ldap_sizelimit = old_ldap_timelimit = old_ldap_deref = -1;
 		} ZEND_HASH_FOREACH_END();
 
 		array_init(return_value);
