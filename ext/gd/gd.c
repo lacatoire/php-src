@@ -4397,29 +4397,30 @@ PHP_FUNCTION(imageresolution)
 		Z_PARAM_LONG_OR_NULL(res_y, res_y_is_null)
 	ZEND_PARSE_PARAMETERS_END();
 
+	/* The JFIF density is a 16-bit field, a larger value would be written modulo 65536 */
 	im = php_gd_libgdimageptr_from_zval_p(IM);
 
 	if (!res_x_is_null && !res_y_is_null) {
-		if (res_x < 0 || ZEND_SIZE_T_UINT_OVFL(res_x)) {
-			zend_argument_value_error(2, "must be between 0 and %u", UINT_MAX);
+		if (res_x < 0 || res_x > 65535) {
+			zend_argument_value_error(2, "must be between 0 and 65535");
 			RETURN_THROWS();
 		}
-		if (res_y < 0 || ZEND_SIZE_T_UINT_OVFL(res_y)) {
-			zend_argument_value_error(3, "must be between 0 and %u", UINT_MAX);
+		if (res_y < 0 || res_y > 65535) {
+			zend_argument_value_error(3, "must be between 0 and 65535");
 			RETURN_THROWS();
 		}
 		gdImageSetResolution(im, res_x, res_y);
 		RETURN_TRUE;
 	} else if (!res_x_is_null && res_y_is_null) {
-		if (res_x < 0 || ZEND_SIZE_T_UINT_OVFL(res_x)) {
-			zend_argument_value_error(2, "must be between 0 and %u", UINT_MAX);
+		if (res_x < 0 || res_x > 65535) {
+			zend_argument_value_error(2, "must be between 0 and 65535");
 			RETURN_THROWS();
 		}
 		gdImageSetResolution(im, res_x, res_x);
 		RETURN_TRUE;
 	} else if (res_x_is_null && !res_y_is_null) {
-		if (res_y < 0 || ZEND_SIZE_T_UINT_OVFL(res_y)) {
-			zend_argument_value_error(3, "must be between 0 and %u", UINT_MAX);
+		if (res_y < 0 || res_y > 65535) {
+			zend_argument_value_error(3, "must be between 0 and 65535");
 			RETURN_THROWS();
 		}
 		gdImageSetResolution(im, res_y, res_y);
