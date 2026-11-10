@@ -761,6 +761,9 @@ static void _php_ldap_controls_to_array(LDAP *ld, LDAPControl** ctrls, zval* arr
 
 	array = zend_try_array_init(array);
 	if (!array) {
+		if (ctrls) {
+			ldap_controls_free(ctrls);
+		}
 		return;
 	}
 
