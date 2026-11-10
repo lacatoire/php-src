@@ -2454,7 +2454,7 @@ BGD_DECLARE(void) gdImageFill(gdImagePtr im, int x, int y, int nc)
     wx2 = im->sx;
     wy2 = im->sy;
     oc = gdImageGetPixel(im, x, y);
-    if (oc == nc || x < 0 || x > wx2 || y < 0 || y > wy2) {
+    if (oc == nc || x < 0 || x >= wx2 || y < 0 || y >= wy2) {
         im->alphaBlendingFlag = alphablending_bak;
         return;
     }
@@ -2512,7 +2512,7 @@ BGD_DECLARE(void) gdImageFill(gdImagePtr im, int x, int y, int nc)
         }
         x = x1 + 1;
         do {
-            for (; x <= wx2 && gdImageGetPixel(im, x, y) == oc; x++) {
+            for (; x < wx2 && gdImageGetPixel(im, x, y) == oc; x++) {
                 gdImageSetPixel(im, x, y, nc);
             }
             FILL_PUSH(y, l, x - 1, dy);
@@ -2551,7 +2551,7 @@ static void _gdImageFillTiled(gdImagePtr im, int x, int y, int nc)
     wx2 = im->sx;
     wy2 = im->sy;
     oc = gdImageGetPixel(im, x, y);
-    if (oc == nc || x < 0 || x > wx2 || y < 0 || y > wy2) {
+    if (oc == nc || x < 0 || x >= wx2 || y < 0 || y >= wy2) {
         return;
     }
 
