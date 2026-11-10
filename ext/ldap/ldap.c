@@ -2022,6 +2022,11 @@ PHP_FUNCTION(ldap_first_attribute)
 
 	resultentry = Z_LDAP_RESULT_ENTRY_P(result_entry);
 
+	if (resultentry->ber != NULL) {
+		ber_free(resultentry->ber, 0);
+		resultentry->ber = NULL;
+	}
+
 	if ((attribute = ldap_first_attribute(ld->link, resultentry->data, &resultentry->ber)) == NULL) {
 		RETURN_FALSE;
 	} else {
