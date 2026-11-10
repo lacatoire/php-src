@@ -1699,6 +1699,7 @@ PHP_FUNCTION(mb_str_split)
 		}
 	} else if (enc->mblen_table) {
 		unsigned char const *mbtab = enc->mblen_table;
+		bool is_utf8 = mbtab == mbfl_encoding_utf8.mblen_table;
 
 		/* Assume that we have 1-byte characters */
 		if (UNEXPECTED(!array_finit_size_packed(return_value, (ZSTR_LEN(str) + split_len - 1) / split_len))) {
@@ -1709,7 +1710,16 @@ PHP_FUNCTION(mb_str_split)
 			unsigned char *chunk = p; /* start of chunk */
 
 			for (int char_count = 0; char_count < split_len && p < e; char_count++) {
-				p += mbtab[*p];
+				if (is_utf8) {
+					/* A truncated sequence is one invalid character, like in mb_strlen() */
+					unsigned char *seq_end = p + mbtab[*p];
+					p++;
+					while (p < seq_end && p < e && (*p & 0xC0) == 0x80) {
+						p++;
+					}
+				} else {
+					p += mbtab[*p];
+				}
 			}
 			if (p > e) {
 				p = e; /* ensure chunk is in bounds */
