@@ -927,6 +927,16 @@ BGD_DECLARE(void) gdImagePaletteCopy(gdImagePtr to, gdImagePtr from)
         };
     };
 
+    /* The transparent index follows the pixels to the new palette */
+    if (to->transparent >= 0 && to->transparent < to->colorsTotal) {
+        p = to->transparent;
+        if (xlate[p] == -1) {
+            xlate[p] = gdImageColorClosestAlpha(from, to->red[p], to->green[p], to->blue[p],
+                                                to->alpha[p]);
+        }
+        to->transparent = xlate[p];
+    }
+
     for (i = 0; (i < (from->colorsTotal)); i++) {
         to->red[i] = from->red[i];
         to->blue[i] = from->blue[i];
