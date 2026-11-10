@@ -170,10 +170,14 @@ gdImagePixelate(gdImagePtr im, int block_size, const unsigned int mode)
                 int total;
                 int cx, cy;
 
+                /* Only the part of the block inside the image can be sampled */
+                const int block_h = block_size < im->sy - y ? block_size : im->sy - y;
+                const int block_w = block_size < im->sx - x ? block_size : im->sx - x;
+
                 a = r = g = b = c = total = 0;
                 /* sampling */
-                for (cy = 0; cy < block_size; cy++) {
-                    for (cx = 0; cx < block_size; cx++) {
+                for (cy = 0; cy < block_h; cy++) {
+                    for (cx = 0; cx < block_w; cx++) {
                         if (!gdImageBoundsSafe(im, x + cx, y + cy)) {
                             continue;
                         }
