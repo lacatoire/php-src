@@ -2388,7 +2388,6 @@ PHP_FUNCTION(imagecolordeallocate)
 {
 	zval *IM;
 	zend_long index;
-	int col;
 	gdImagePtr im;
 
 	ZEND_PARSE_PARAMETERS_START(2, 2)
@@ -2403,13 +2402,11 @@ PHP_FUNCTION(imagecolordeallocate)
 		RETURN_TRUE;
 	}
 
-	col = index;
-
-	if (col >= 0 && col < gdImageColorsTotal(im)) {
-		gdImageColorDeallocate(im, col);
+	if (index >= 0 && index < gdImageColorsTotal(im)) {
+		gdImageColorDeallocate(im, (int) index);
 		RETURN_TRUE;
 	} else {
-		zend_argument_value_error(2, "must be between 0 and %d", gdImageColorsTotal(im));
+		zend_argument_value_error(2, "must be between 0 and %d", gdImageColorsTotal(im) - 1);
 		RETURN_THROWS();
 	}
 }
