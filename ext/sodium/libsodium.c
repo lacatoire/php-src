@@ -373,12 +373,14 @@ PHP_MINFO_FUNCTION(sodium)
 PHP_FUNCTION(sodium_memzero)
 {
 	zval      *buf_zv;
+	zval      *buf_arg;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(),
 									"z", &buf_zv) == FAILURE) {
 		sodium_remove_param_values_from_backtrace(EG(exception));
 		RETURN_THROWS();
 	}
+	buf_arg = buf_zv;
 	ZVAL_DEREF(buf_zv);
 	if (Z_TYPE_P(buf_zv) != IS_STRING) {
 		zend_throw_exception(sodium_exception_ce, "a PHP string is required", 0);
@@ -391,7 +393,7 @@ PHP_FUNCTION(sodium_memzero)
 			sodium_memzero(buf, (size_t) buf_len);
 		}
 	}
-	convert_to_null(buf_zv);
+	ZEND_TRY_ASSIGN_NULL(buf_arg);
 }
 
 PHP_FUNCTION(sodium_increment)
