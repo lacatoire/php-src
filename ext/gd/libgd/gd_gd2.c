@@ -926,7 +926,11 @@ static int _gdImageGd2(gdImagePtr im, gdIOCtx *out, int cs, int fmt)
         idxPos = gdTell(out);
         idxSize = ncx * ncy * sizeof(t_chunk_info);
         GD2_DBG(gd_error("Index size is %d", idxSize));
-        gdSeek(out, idxPos + idxSize);
+        if (!gdSeek(out, idxPos + idxSize)) {
+            gd_error("gd2: the output cannot be seeked");
+            ret = 1;
+            goto fail;
+        }
 
         chunkIdx = gdCalloc(idxSize * sizeof(t_chunk_info), 1);
         if (!chunkIdx) {
@@ -1002,7 +1006,11 @@ static int _gdImageGd2(gdImagePtr im, gdIOCtx *out, int cs, int fmt)
         /* Save the position, write the index, restore position (paranoia). */
         GD2_DBG(gd_error("Seeking %d to write index", idxPos));
         posSave = gdTell(out);
-        gdSeek(out, idxPos);
+        if (!gdSeek(out, idxPos)) {
+            gd_error("gd2: the output cannot be seeked");
+            ret = 1;
+            goto fail;
+        }
         GD2_DBG(gd_error("Writing index"));
         for (x = 0; x < chunkNum; x++) {
             GD2_DBG(
@@ -1010,7 +1018,9 @@ static int _gdImageGd2(gdImagePtr im, gdIOCtx *out, int cs, int fmt)
             gdPutInt(chunkIdx[x].offset, out);
             gdPutInt(chunkIdx[x].size, out);
         }
-        gdSeek(out, posSave);
+        if (!gdSeek(out, posSave)) {
+            ret = 1;
+        }
     }
 fail:
     GD2_DBG(gd_error("Freeing memory"));
@@ -1031,13 +1041,15 @@ fail:
 /*
         Function: gdImageGd2
 */
-BGD_DECLARE(void) gdImageGd2(gdImagePtr im, FILE *outFile, int cs, int fmt)
+BGD_DECLARE(int) gdImageGd2(gdImagePtr im, FILE *outFile, int cs, int fmt)
 {
     gdIOCtx *out = gdNewFileCtx(outFile);
+    int ret;
     if (out == NULL)
-        return;
-    _gdImageGd2(im, out, cs, fmt);
+        return 1;
+    ret = _gdImageGd2(im, out, cs, fmt);
     out->gd_free(out);
+    return ret;
 }
 
 /*
