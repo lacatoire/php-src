@@ -32,6 +32,21 @@ static void zend_autoload_callback_zval_destroy(zval *element)
 	efree(fcc);
 }
 
+/* Delete the entries one by one: a destructor run by an entry can walk or grow the table,
+ * so each bucket must be marked as deleted before its callback is released. */
+static void autoload_table_clean(HashTable *autoloader_table)
+{
+	while (zend_hash_num_elements(autoloader_table) > 0) {
+		Bucket *p = autoloader_table->arData;
+		const Bucket *end = p + autoloader_table->nNumUsed;
+		while (p < end && Z_TYPE(p->val) == IS_UNDEF) {
+			p++;
+		}
+		ZEND_ASSERT(p < end);
+		zend_hash_del_bucket(autoloader_table, p);
+	}
+}
+
 static Bucket *autoload_find_registered_function(const HashTable *autoloader_table, const zend_fcall_info_cache *function_entry)
 {
 	zend_fcall_info_cache *current_function_entry;
@@ -151,15 +166,18 @@ ZEND_API void zend_autoload_clean_class_loaders(void)
 {
 	if (zend_class_autoload_functions) {
 		/* Don't destroy the hash table, as we might be iterating over it right now. */
-		zend_hash_clean(zend_class_autoload_functions);
+		autoload_table_clean(zend_class_autoload_functions);
 	}
 }
 
 void zend_autoload_shutdown(void)
 {
-	if (zend_class_autoload_functions) {
-		zend_hash_destroy(zend_class_autoload_functions);
-		FREE_HASHTABLE(zend_class_autoload_functions);
+	/* A destructor run while emptying the table can register autoloaders again. */
+	while (zend_class_autoload_functions) {
+		HashTable *autoloader_table = zend_class_autoload_functions;
 		zend_class_autoload_functions = NULL;
+		autoload_table_clean(autoloader_table);
+		zend_hash_destroy(autoloader_table);
+		FREE_HASHTABLE(autoloader_table);
 	}
 }
