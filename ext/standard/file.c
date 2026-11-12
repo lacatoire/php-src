@@ -1682,6 +1682,8 @@ static const char *php_fgetcsv_lookup_trailing_spaces(const char *ptr, size_t le
 			case -1:
 				inc_len = 1;
 				php_mb_reset();
+				last_chars[0] = last_chars[1];
+				last_chars[1] = *ptr;
 				break;
 			case 0:
 				goto quit_loop;
