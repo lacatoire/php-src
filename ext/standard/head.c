@@ -250,6 +250,10 @@ static zend_result php_head_parse_cookie_options_array(HashTable *options, zend_
 			zend_value_error("%s(): option \"%pS\" is invalid", get_active_function_name(), key);
 			return FAILURE;
 		}
+		/* Converting the value can throw, e.g. an object without __toString(). */
+		if (UNEXPECTED(EG(exception))) {
+			return FAILURE;
+		}
 	} ZEND_HASH_FOREACH_END();
 	return SUCCESS;
 }
