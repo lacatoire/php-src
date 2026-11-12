@@ -669,6 +669,7 @@ PHP_FUNCTION(socket_select)
 	}
 
 	if (!PHP_SAFE_MAX_FD(max_fd, max_set_count)) {
+		SOCKETS_G(last_error) = PHP_SOCKET_EINVAL;
 		RETURN_FALSE;
 	}
 
