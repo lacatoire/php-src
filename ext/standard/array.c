@@ -696,19 +696,26 @@ PHP_FUNCTION(natcasesort)
 typedef bucket_compare_func_t(*get_compare_function)(zend_long);
 
 static zend_always_inline void php_sort(INTERNAL_FUNCTION_PARAMETERS, get_compare_function get_cmp, bool renumber) {
-	HashTable *array;
+	zval *array_zv;
 	zend_long sort_type = PHP_SORT_REGULAR;
 	bucket_compare_func_t cmp;
 
 	ZEND_PARSE_PARAMETERS_START(1, 2)
-		Z_PARAM_ARRAY_HT_EX(array, 0, 1)
+		Z_PARAM_ARRAY_EX2(array_zv, 0, 1, 0)
 		Z_PARAM_OPTIONAL
 		Z_PARAM_LONG(sort_type)
 	ZEND_PARSE_PARAMETERS_END();
 
+	/* Parsing $flags can run an error handler that rebinds the by-reference variable. */
+	if (UNEXPECTED(Z_TYPE_P(array_zv) != IS_ARRAY)) {
+		zend_argument_type_error(1, "must be of type array, %s given", zend_zval_type_name(array_zv));
+		RETURN_THROWS();
+	}
+	SEPARATE_ARRAY(array_zv);
+
 	cmp = get_cmp(sort_type);
 
-	zend_array_sort(array, cmp, renumber);
+	zend_array_sort(Z_ARRVAL_P(array_zv), cmp, renumber);
 
 	RETURN_TRUE;
 }
@@ -3797,12 +3804,19 @@ PHP_FUNCTION(array_splice)
 	int		num_in;				/* Number of elements in the input array */
 
 	ZEND_PARSE_PARAMETERS_START(2, 4)
-		Z_PARAM_ARRAY_EX(array, 0, 1)
+		Z_PARAM_ARRAY_EX2(array, 0, 1, 0)
 		Z_PARAM_LONG(offset)
 		Z_PARAM_OPTIONAL
 		Z_PARAM_LONG_OR_NULL(length, length_is_null)
 		Z_PARAM_ZVAL(repl_array)
 	ZEND_PARSE_PARAMETERS_END();
+
+	/* Parsing $offset or $length can run an error handler that rebinds the by-reference variable. */
+	if (UNEXPECTED(Z_TYPE_P(array) != IS_ARRAY)) {
+		zend_argument_type_error(1, "must be of type array, %s given", zend_zval_type_name(array));
+		RETURN_THROWS();
+	}
+	SEPARATE_ARRAY(array);
 
 	num_in = zend_hash_num_elements(Z_ARRVAL_P(array));
 
