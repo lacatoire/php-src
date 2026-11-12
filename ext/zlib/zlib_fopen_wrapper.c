@@ -197,7 +197,12 @@ php_stream *php_stream_gzopen(php_stream_wrapper *wrapper, const char *path, con
 		if (SUCCESS == php_stream_cast(innerstream, PHP_STREAM_AS_FD, (void **) &fd, REPORT_ERRORS)) {
 			struct php_gz_stream_data_t *self = emalloc(sizeof(*self));
 			self->stream = innerstream;
-			self->gz_file = gzdopen(dup(fd), mode);
+			int dup_fd = dup(fd);
+			self->gz_file = dup_fd >= 0 ? gzdopen(dup_fd, mode) : NULL;
+			if (!self->gz_file && dup_fd >= 0) {
+				/* gzdopen() owns the descriptor only on success */
+				close(dup_fd);
+			}
 
 			if (self->gz_file) {
 				const zval *zlevel = context ? php_stream_context_get_option(context, "zlib", "level") : NULL;
