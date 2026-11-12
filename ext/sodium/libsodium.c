@@ -274,8 +274,11 @@ static void sodium_remove_param_values_from_backtrace(zend_object *obj) {
 	zval *trace = zend_read_property_ex(zend_get_exception_base(obj), obj, ZSTR_KNOWN(ZEND_STR_TRACE), /* silent */ false, &rv);
 	if (trace && Z_TYPE_P(trace) == IS_ARRAY) {
 		zval *frame;
+		/* The trace can be shared or immutable (a literal, or opcache shared memory) */
+		SEPARATE_ARRAY(trace);
 		ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(trace), frame) {
 			if (Z_TYPE_P(frame) == IS_ARRAY) {
+				SEPARATE_ARRAY(frame);
 				zval *args = zend_hash_find(Z_ARRVAL_P(frame), ZSTR_KNOWN(ZEND_STR_ARGS));
 				if (args) {
 					zval_ptr_dtor(args);
