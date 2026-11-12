@@ -36,6 +36,24 @@ try {
     echo $ex::class, ': ', $ex->getMessage(), "\n";
 }
 
+try {
+    sodium_crypto_scalarmult_ristretto255(substr($n, 1), $p);
+} catch (SodiumException $ex) {
+    echo $ex::class, ': ', $ex->getMessage(), "\n";
+}
+
+try {
+    sodium_crypto_scalarmult_ristretto255($n, substr($p, 1));
+} catch (SodiumException $ex) {
+    echo $ex::class, ': ', $ex->getMessage(), "\n";
+}
+
+try {
+    sodium_crypto_scalarmult_ristretto255_base(substr($n, 1));
+} catch (SodiumException $ex) {
+    echo $ex::class, ': ', $ex->getMessage(), "\n";
+}
+
 ?>
 --EXPECT--
 SodiumException: sodium_crypto_scalarmult_ristretto255_base(): Argument #1 ($n) must not be zero
@@ -56,3 +74,6 @@ string(64) "aa52e000df2e16f55fb1032fc33bc42742dad6bd5a8fc0be0167436c5948501f"
 string(64) "46376b80f409b29dc2b5f6f0c52591990896e5716f41477cd30085ab7f10301e"
 string(64) "e0c418f7c8d9c4cdd7395b93ea124f3ad99021bb681dfc3302a9d99a2e53e64e"
 SodiumException: sodium_crypto_scalarmult(): Argument #1 ($n) must be SODIUM_CRYPTO_SCALARMULT_SCALARBYTES bytes long
+SodiumException: sodium_crypto_scalarmult_ristretto255(): Argument #1 ($n) must be SODIUM_CRYPTO_SCALARMULT_RISTRETTO255_SCALARBYTES bytes long
+SodiumException: sodium_crypto_scalarmult_ristretto255(): Argument #2 ($p) must be SODIUM_CRYPTO_SCALARMULT_RISTRETTO255_BYTES bytes long
+SodiumException: sodium_crypto_scalarmult_ristretto255_base(): Argument #1 ($n) must be SODIUM_CRYPTO_SCALARMULT_RISTRETTO255_SCALARBYTES bytes long
