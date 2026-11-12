@@ -61,7 +61,8 @@ PHPAPI bool php_binary_string_shuffle(php_random_algo_with_state engine, char *s
 # ifdef PHP_WIN32
 #  include <wchar.h>
 # endif
-# define php_mblen(ptr, len) ((int) mbrlen(ptr, len, &BG(mblen_state)))
+PHPAPI int php_mblen_ex(const char *ptr, size_t len);
+# define php_mblen(ptr, len) php_mblen_ex(ptr, len)
 # define php_mb_reset() memset(&BG(mblen_state), 0, sizeof(BG(mblen_state)))
 #else
 # define php_mblen(ptr, len) mblen(ptr, len)
