@@ -21,6 +21,11 @@ try {
 } catch (SodiumException $ex) {
     echo $ex::class, ': ', $ex->getMessage(), "\n";
 }
+try {
+    sodium_crypto_scalarmult_ristretto255(str_pad("\x01", SODIUM_CRYPTO_SCALARMULT_RISTRETTO255_SCALARBYTES, "\0"), str_repeat("\xff", SODIUM_CRYPTO_SCALARMULT_RISTRETTO255_BYTES));
+} catch (SodiumException $ex) {
+    echo $ex::class, ': ', $ex->getMessage(), "\n";
+}
 
 for ($i = 1; $i < 16; $i++) {
     sodium_increment($n);
@@ -40,6 +45,7 @@ try {
 --EXPECT--
 SodiumException: sodium_crypto_scalarmult_ristretto255_base(): Argument #1 ($n) must not be zero
 SodiumException: Result is identity element
+SodiumException: sodium_crypto_scalarmult_ristretto255(): Argument #2 ($p) must be a valid ristretto255 point
 string(64) "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76"
 string(64) "6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919"
 string(64) "94741f5d5d52755ece4f23f044ee27d5d1ea1e2bd196b462166b16152a9d0259"

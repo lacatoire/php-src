@@ -76,7 +76,7 @@ $L = "\xed\xd3\xf5\x5c\x1a\x63\x12\x58" .
 
 $s = sodium_crypto_core_ristretto255_random();
 try {
-    $multL = sodium_crypto_scalarmult_ristretto255($s, $L);
+    $multL = sodium_crypto_scalarmult_ristretto255($L, $s);
 } catch (SodiumException $e) {
     echo $e::class, ': ', $e->getMessage(), "\n";
 }

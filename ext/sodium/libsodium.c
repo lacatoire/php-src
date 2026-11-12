@@ -2848,6 +2848,10 @@ PHP_FUNCTION(sodium_crypto_scalarmult_ristretto255)
 							"must be SODIUM_CRYPTO_SCALARMULT_RISTRETTO255_BYTES bytes long");
 		RETURN_THROWS();
 	}
+	if (!crypto_core_ristretto255_is_valid_point(p)) {
+		zend_argument_error(sodium_exception_ce, 2, "must be a valid ristretto255 point");
+		RETURN_THROWS();
+	}
 	q = zend_string_alloc(crypto_scalarmult_ristretto255_BYTES, 0);
 	if (crypto_scalarmult_ristretto255((unsigned char *) ZSTR_VAL(q), n, p) != 0) {
 		zend_string_efree(q);
