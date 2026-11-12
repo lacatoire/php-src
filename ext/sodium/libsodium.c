@@ -2699,6 +2699,12 @@ PHP_FUNCTION(sodium_hex2bin)
 		sodium_remove_param_values_from_backtrace(EG(exception));
 		RETURN_THROWS();
 	}
+	/* libsodium skips the characters of $ignore with strchr(), which also
+	 * matches the terminating NUL: a NUL in the input is never valid */
+	if (memchr(hex, '\0', hex_len) != NULL) {
+		zend_argument_error(sodium_exception_ce, 1, "must be a valid hexadecimal string");
+		RETURN_THROWS();
+	}
 	bin_len = hex_len / 2;
 	bin = zend_string_alloc(bin_len, 0);
 	if (sodium_hex2bin((unsigned char *) ZSTR_VAL(bin), bin_len, hex, hex_len,
@@ -2733,7 +2739,7 @@ PHP_FUNCTION(sodium_bin2base64)
 		sodium_remove_param_values_from_backtrace(EG(exception));
 		RETURN_THROWS();
 	}
-	if ((((unsigned int) variant) & ~ 0x6U) != 0x1U) {
+	if ((variant & ~(zend_long) 0x6) != 0x1) {
 		zend_argument_error(sodium_exception_ce, 2, "must be a valid base64 variant identifier");
 		RETURN_THROWS();
 	}
@@ -2766,8 +2772,13 @@ PHP_FUNCTION(sodium_base642bin)
 		sodium_remove_param_values_from_backtrace(EG(exception));
 		RETURN_THROWS();
 	}
-	if ((((unsigned int) variant) & ~ 0x6U) != 0x1U) {
+	if ((variant & ~(zend_long) 0x6) != 0x1) {
 		zend_argument_error(sodium_exception_ce, 2, "must be a valid base64 variant identifier");
+		RETURN_THROWS();
+	}
+	/* See sodium_hex2bin() */
+	if (memchr(b64, '\0', b64_len) != NULL) {
+		zend_argument_error(sodium_exception_ce, 1, "must be a valid base64 string");
 		RETURN_THROWS();
 	}
 	bin_len = b64_len / 4U * 3U + 2U;
