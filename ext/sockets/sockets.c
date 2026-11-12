@@ -1435,6 +1435,11 @@ PHP_FUNCTION(socket_recv)
 		Z_PARAM_LONG(flags)
 	ZEND_PARSE_PARAMETERS_END();
 
+	if (ZEND_LONG_EXCEEDS_INT(flags)) {
+		zend_argument_value_error(4, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+
 	php_sock = Z_SOCKET_P(php_sock_res);
 	ENSURE_SOCKET_VALID(php_sock);
 
@@ -1478,6 +1483,11 @@ PHP_FUNCTION(socket_send)
 		Z_PARAM_LONG(len)
 		Z_PARAM_LONG(flags)
 	ZEND_PARSE_PARAMETERS_END();
+
+	if (ZEND_LONG_EXCEEDS_INT(flags)) {
+		zend_argument_value_error(4, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
 
 	php_sock = Z_SOCKET_P(arg1);
 	ENSURE_SOCKET_VALID(php_sock);
@@ -1527,6 +1537,11 @@ PHP_FUNCTION(socket_recvfrom)
 		Z_PARAM_OPTIONAL
 		Z_PARAM_ZVAL(zport)
 	ZEND_PARSE_PARAMETERS_END();
+
+	if (ZEND_LONG_EXCEEDS_INT(flags)) {
+		zend_argument_value_error(4, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
 
 	php_sock = Z_SOCKET_P(zsocket);
 	ENSURE_SOCKET_VALID(php_sock);
@@ -1725,6 +1740,11 @@ PHP_FUNCTION(socket_sendto)
 		Z_PARAM_OPTIONAL
 		Z_PARAM_LONG_OR_NULL(port, port_is_null)
 	ZEND_PARSE_PARAMETERS_END();
+
+	if (ZEND_LONG_EXCEEDS_INT(flags)) {
+		zend_argument_value_error(4, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
 
 	php_sock = Z_SOCKET_P(zsocket);
 	ENSURE_SOCKET_VALID(php_sock);
