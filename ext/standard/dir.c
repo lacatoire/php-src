@@ -531,7 +531,16 @@ no_results:
 		 * determine the information for each file. I.e., the caller must still be
 		 * able to filter directories out.
 		 */
-		if (flags & PHP_GLOB_ONLYDIR) {
+		if (flags & PHP_GLOB_ONLYDIR
+#ifndef PHP_SYSTEM_GLOB
+			/* When GLOB_NOCHECK finds no real match, php_glob() appends the
+			 * literal pattern as a synthetic entry without counting it in
+			 * gl_matchc. That entry is not a filesystem path, so stat()-ing
+			 * it always fails; filtering it here would silently break
+			 * GLOB_NOCHECK's guarantee of at least one result. */
+			&& globbuf.gl_matchc != 0
+#endif
+		) {
 			zend_stat_t s = {0};
 
 			if (0 != VCWD_STAT(globbuf.gl_pathv[n], &s)) {
