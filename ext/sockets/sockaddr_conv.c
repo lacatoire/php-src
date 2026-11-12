@@ -48,12 +48,33 @@ int php_set_inet6_addr(struct sockaddr_in6 *sin6, zend_string *string, php_socke
 #else
 		hints.ai_flags = AI_ADDRCONFIG;
 #endif
-		getaddrinfo(ZSTR_VAL(string), NULL, &hints, &addrinfo);
-		if (!addrinfo) {
+		int gai_error = getaddrinfo(ZSTR_VAL(string), NULL, &hints, &addrinfo);
+		if (gai_error != 0 || !addrinfo) {
 #ifdef PHP_WIN32
 			PHP_SOCKET_ERROR(php_sock, "Host lookup failed", WSAGetLastError());
 #else
-			PHP_SOCKET_ERROR(php_sock, "Host lookup failed", (-10000 - h_errno));
+			/* getaddrinfo() does not set h_errno, translate its own code to the
+			 * h_errno value that sockets_strerror() expects */
+			int herr;
+			switch (gai_error) {
+				case EAI_AGAIN:
+					herr = TRY_AGAIN;
+					break;
+				case EAI_NONAME:
+#ifdef EAI_NODATA
+				case EAI_NODATA:
+#endif
+#ifdef EAI_ADDRFAMILY
+				case EAI_ADDRFAMILY:
+#endif
+				case EAI_FAMILY:
+					herr = HOST_NOT_FOUND;
+					break;
+				default:
+					herr = NO_RECOVERY;
+					break;
+			}
+			PHP_SOCKET_ERROR(php_sock, "Host lookup failed", (-10000 - herr));
 #endif
 			return 0;
 		}
