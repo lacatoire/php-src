@@ -1819,7 +1819,7 @@ PHPAPI ssize_t php_fputcsv(php_stream *stream, zval *fields, char delimiter, cha
 
 			smart_str_appendc(&csvline, enclosure);
 			while (ch < end) {
-				if (escape_char != PHP_CSV_NO_ESCAPE && *ch == escape_char) {
+				if (escape_char != PHP_CSV_NO_ESCAPE && (unsigned char) *ch == escape_char) {
 					escaped = 1;
 				} else if (!escaped && *ch == enclosure) {
 					smart_str_appendc(&csvline, enclosure);
@@ -2111,7 +2111,7 @@ PHPAPI HashTable *php_fgetcsv(php_stream *stream, char delimiter, char enclosure
 							default:
 								if (*bptr == enclosure) {
 									state = 2;
-								} else if (escape_char != PHP_CSV_NO_ESCAPE && *bptr == escape_char) {
+								} else if (escape_char != PHP_CSV_NO_ESCAPE && (unsigned char) *bptr == escape_char) {
 									state = 1;
 								}
 								bptr++;
