@@ -1489,6 +1489,9 @@ static int php_plain_files_mkdir(php_stream_wrapper *wrapper, const char *dir, i
 			return 0;
 		}
 
+		/* The cache may hold outdated data of the parent directory (nlink, mtime) */
+		php_clear_stat_cache(0, NULL, 0);
+
 		return 1;
 	}
 
@@ -1545,6 +1548,10 @@ static int php_plain_files_mkdir(php_stream_wrapper *wrapper, const char *dir, i
 	char errstr[256];
 	while (true) {
 		int ret = VCWD_MKDIR(buf, (mode_t) mode);
+		if (ret == 0) {
+			/* The cache may hold outdated data of the parent directory (nlink, mtime) */
+			php_clear_stat_cache(0, NULL, 0);
+		}
 		if (ret < 0 && errno != EEXIST) {
 			if (options & REPORT_ERRORS) {
 				php_stream_wrapper_warn(wrapper, context, options,
