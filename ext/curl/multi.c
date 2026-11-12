@@ -412,6 +412,11 @@ static int _php_server_push_callback(CURL *parent_ch, CURL *easy, size_t num_hea
 	zval 					headers;
 	zval 					retval;
 
+	/* The callback is not set anymore when replacing it with an invalid value failed */
+	if (!ZEND_FCC_INITIALIZED(mh->handlers.server_push)) {
+		return rval;
+	}
+
 	pz_parent_ch = _php_curl_multi_find_easy_handle(mh, parent_ch);
 	if (pz_parent_ch == NULL) {
 		return rval;
