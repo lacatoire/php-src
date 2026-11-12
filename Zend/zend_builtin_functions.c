@@ -1328,13 +1328,10 @@ ZEND_FUNCTION(restore_error_handler)
 {
 	ZEND_PARSE_PARAMETERS_NONE();
 
-	if (Z_TYPE(EG(user_error_handler)) != IS_UNDEF) {
-		zval zeh;
+	zval zeh;
 
-		ZVAL_COPY_VALUE(&zeh, &EG(user_error_handler));
-		ZVAL_UNDEF(&EG(user_error_handler));
-		zval_ptr_dtor(&zeh);
-	}
+	ZVAL_COPY_VALUE(&zeh, &EG(user_error_handler));
+	ZVAL_UNDEF(&EG(user_error_handler));
 
 	if (zend_stack_is_empty(&EG(user_error_handlers))) {
 		ZVAL_UNDEF(&EG(user_error_handler));
@@ -1345,6 +1342,12 @@ ZEND_FUNCTION(restore_error_handler)
 		tmp = zend_stack_top(&EG(user_error_handlers));
 		ZVAL_COPY_VALUE(&EG(user_error_handler), tmp);
 		zend_stack_del_top(&EG(user_error_handlers));
+	}
+
+	/* Destroy the popped handler last, as its destructor may call
+	 * set_error_handler() or restore_error_handler(). */
+	if (Z_TYPE(zeh) != IS_UNDEF) {
+		zval_ptr_dtor(&zeh);
 	}
 
 	// TODO Change to void
