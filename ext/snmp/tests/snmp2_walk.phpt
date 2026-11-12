@@ -33,13 +33,13 @@ var_dump(gettype($return));
 var_dump(gettype($return[0]));
 
 echo "Default OID\n";
-$return = snmpwalk($hostname, $community, '', $timeout, $retries);
+$return = snmp2_walk($hostname, $community, '', $timeout, $retries);
 var_dump(gettype($return));
 var_dump(gettype($return[0]));
 
 echo "More error handling\n";
 echo "Single incorrect OID\n";
-$return = snmpwalk($hostname, $community, '.1.3.6...1', $timeout, $retries);
+$return = snmp2_walk($hostname, $community, '.1.3.6...1', $timeout, $retries);
 var_dump($return);
 
 echo "Multiple correct OID\n";
@@ -73,7 +73,7 @@ string(6) "string"
 More error handling
 Single incorrect OID
 
-Warning: snmpwalk(): Invalid object identifier: %s in %s on line %d
+Warning: snmp2_walk(): Invalid object identifier: %s in %s on line %d
 bool(false)
 Multiple correct OID
 
