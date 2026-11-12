@@ -196,7 +196,13 @@ PHPAPI zend_result php_stream_cast(php_stream *stream, int castas, void **ret, i
 	/* synchronize our buffer (if possible) */
 	if (ret && castas != PHP_STREAM_AS_FD_FOR_SELECT && castas != PHP_STREAM_AS_FD_FOR_COPY
 			&& castas != PHP_STREAM_AS_FD_FOR_POLL) {
+		/* The flush can run user code, which must not close the stream used below. */
+		uint32_t orig_no_fclose = stream->flags & PHP_STREAM_FLAG_NO_FCLOSE;
+		stream->flags |= PHP_STREAM_FLAG_NO_FCLOSE;
 		php_stream_flush(stream);
+		stream->flags &= ~PHP_STREAM_FLAG_NO_FCLOSE;
+		stream->flags |= orig_no_fclose;
+
 		if (stream->ops->seek && (stream->flags & PHP_STREAM_FLAG_NO_SEEK) == 0) {
 			zend_off_t dummy;
 
