@@ -321,9 +321,9 @@ static void jpeg_gdIOCtx_dest(j_compress_ptr cinfo, gdIOCtx *outfile);
         quality - Image quality.
 
 */
-BGD_DECLARE(void) gdImageJpegCtx(gdImagePtr im, gdIOCtx *outfile, int quality)
+BGD_DECLARE(int) gdImageJpegCtx(gdImagePtr im, gdIOCtx *outfile, int quality)
 {
-    _gdImageJpegCtx(im, outfile, quality, NULL, 0);
+    return _gdImageJpegCtx(im, outfile, quality, NULL, 0);
 }
 
 BGD_DECLARE(void)
@@ -1572,12 +1572,13 @@ void *gdImageJpegPtrWithMetadataNoSubsampling(gdImagePtr im, int *size, int qual
     return NULL;
 }
 
-BGD_DECLARE(void) gdImageJpegCtx(gdImagePtr im, gdIOCtx *outfile, int quality)
+BGD_DECLARE(int) gdImageJpegCtx(gdImagePtr im, gdIOCtx *outfile, int quality)
 {
     ARG_NOT_USED(im);
     ARG_NOT_USED(outfile);
     ARG_NOT_USED(quality);
     _noJpegError();
+    return 1;
 }
 
 BGD_DECLARE(void)
