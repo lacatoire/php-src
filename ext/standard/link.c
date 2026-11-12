@@ -29,6 +29,7 @@
 #include <errno.h>
 
 #include "php_string.h"
+#include "php_filestat.h"
 
 #ifndef VOLUME_NAME_NT
 #define VOLUME_NAME_NT 0x2
@@ -163,6 +164,8 @@ PHP_FUNCTION(symlink)
 		RETURN_FALSE;
 	}
 
+	php_clear_stat_cache(0, NULL, 0);
+
 	RETURN_TRUE;
 }
 /* }}} */
@@ -210,6 +213,8 @@ PHP_FUNCTION(link)
 		php_error_docref(NULL, E_WARNING, "%s", strerror(errno));
 		RETURN_FALSE;
 	}
+
+	php_clear_stat_cache(0, NULL, 0);
 
 	RETURN_TRUE;
 }
