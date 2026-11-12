@@ -779,12 +779,61 @@ static inline zend_result ct_eval_array_key_exists(zval *result, const zval *op1
 	return SUCCESS;
 }
 
+/* Upper bound of the length of a scalar converted to string, for non-string array elements. */
+#define CT_EVAL_REPLACE_SCALAR_LEN 32
+
+static size_t ct_eval_replace_max_len(const zval *arg, size_t *count) {
+	size_t max_len = 0;
+	if (Z_TYPE_P(arg) == IS_ARRAY) {
+		const zval *entry;
+		*count = zend_hash_num_elements(Z_ARRVAL_P(arg));
+		ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(arg), entry) {
+			size_t len = Z_TYPE_P(entry) == IS_STRING ? Z_STRLEN_P(entry) : CT_EVAL_REPLACE_SCALAR_LEN;
+			if (len > max_len) {
+				max_len = len;
+			}
+		} ZEND_HASH_FOREACH_END();
+	} else {
+		*count = 1;
+		max_len = Z_TYPE_P(arg) == IS_STRING ? Z_STRLEN_P(arg) : CT_EVAL_REPLACE_SCALAR_LEN;
+	}
+	return max_len;
+}
+
+/* Avoid creating overly large strings at compile-time with str_replace() and str_ireplace().
+ * Each search value is one pass over the subject, which can grow by a factor of at most
+ * 1 + the length of the replacement. */
+static bool ct_eval_replace_result_is_small(zval **args) {
+	size_t search_count, replace_count, subject_count;
+	ct_eval_replace_max_len(args[0], &search_count);
+	size_t replace_len = ct_eval_replace_max_len(args[1], &replace_count);
+	size_t subject_len = ct_eval_replace_max_len(args[2], &subject_count);
+	const size_t limit = 64 * 1024;
+
+	if (subject_len >= limit || replace_len >= limit) {
+		return false;
+	}
+	size_t size = subject_len;
+	for (size_t pass = 0; pass < search_count; pass++) {
+		size += size * replace_len;
+		if (size >= limit) {
+			return false;
+		}
+	}
+	return true;
+}
+
 static bool can_ct_eval_func_call(const zend_function *func, const zend_string *name, uint32_t num_args, zval **args) {
 	/* Precondition: func->type == ZEND_INTERNAL_FUNCTION, this is a global function */
 	/* Functions setting ZEND_ACC_COMPILE_TIME_EVAL (@compile-time-eval) must always produce the same result for the same arguments,
 	 * and have no dependence on global state (such as locales). It is okay if they throw
 	 * or warn on invalid arguments, as we detect this and will discard the evaluation result. */
 	if (func->common.fn_flags & ZEND_ACC_COMPILE_TIME_EVAL) {
+		if (num_args == 3
+				&& (zend_string_equals_literal(name, "str_replace")
+					|| zend_string_equals_literal(name, "str_ireplace"))) {
+			return ct_eval_replace_result_is_small(args);
+		}
 		/* This has @compile-time-eval in stub info and uses a macro such as ZEND_SUPPORTS_COMPILE_TIME_EVAL_FE */
 		return true;
 	}
