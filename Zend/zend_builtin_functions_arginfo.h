@@ -1,5 +1,5 @@
 /* This is a generated file, edit zend_builtin_functions.stub.php instead.
- * Stub hash: 5d7145b7bc305bb50b45e75c02740206148223b1 */
+ * Stub hash: b78b90216e006f248fdc2d19de318c18c4ab078b */
 
 #include "zend_attributes.h"
 
@@ -147,7 +147,7 @@ ZEND_END_ARG_INFO()
 
 #define arginfo_user_error arginfo_trigger_error
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_set_error_handler, 0, 0, 1)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_set_error_handler, 0, 1, IS_CALLABLE, 1)
 	ZEND_ARG_TYPE_INFO(0, callback, IS_CALLABLE, 1)
 	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, error_levels, IS_LONG, 0, "E_ALL")
 ZEND_END_ARG_INFO()
@@ -158,7 +158,7 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_get_error_handler, 0, 0, IS_CALLABLE, 1)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_set_exception_handler, 0, 0, 1)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_set_exception_handler, 0, 1, IS_CALLABLE, 1)
 	ZEND_ARG_TYPE_INFO(0, callback, IS_CALLABLE, 1)
 ZEND_END_ARG_INFO()
 
