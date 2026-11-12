@@ -1090,6 +1090,38 @@ const CURLM_OUT_OF_MEMORY = UNKNOWN;
  */
 const CURLM_ADDED_ALREADY = UNKNOWN;
 
+/* Curl Share Constants */
+/**
+ * @var int
+ * @cvalue CURLSHE_OK
+ */
+const CURLSHE_OK = UNKNOWN;
+/**
+ * @var int
+ * @cvalue CURLSHE_BAD_OPTION
+ */
+const CURLSHE_BAD_OPTION = UNKNOWN;
+/**
+ * @var int
+ * @cvalue CURLSHE_IN_USE
+ */
+const CURLSHE_IN_USE = UNKNOWN;
+/**
+ * @var int
+ * @cvalue CURLSHE_INVALID
+ */
+const CURLSHE_INVALID = UNKNOWN;
+/**
+ * @var int
+ * @cvalue CURLSHE_NOMEM
+ */
+const CURLSHE_NOMEM = UNKNOWN;
+/**
+ * @var int
+ * @cvalue CURLSHE_NOT_BUILT_IN
+ */
+const CURLSHE_NOT_BUILT_IN = UNKNOWN;
+
 /* Curl proxy constants */
 /**
  * @var int
