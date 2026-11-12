@@ -495,8 +495,12 @@ PHP_FUNCTION(mt_srand)
 
 	switch (mode) {
 	case MT_RAND_PHP:
-		state->mode = MT_RAND_PHP;
+		/* The error handler may use the generator, so the mode is written afterwards. */
 		zend_error(E_DEPRECATED, "The MT_RAND_PHP variant of Mt19937 is deprecated");
+		if (UNEXPECTED(EG(exception))) {
+			RETURN_THROWS();
+		}
+		state->mode = MT_RAND_PHP;
 		break;
 	default:
 		state->mode = MT_RAND_MT19937;
