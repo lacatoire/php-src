@@ -25,4 +25,9 @@ PHP_RINIT_FUNCTION(crypt);
 /* sha512 crypt has the maximal salt length of 123 characters */
 #define PHP_MAX_SALT_LEN 123
 
+/* Maximum length of a $6$ (SHA-512) crypt() output string, including the
+ * terminating NUL: "$6$" (3) + "rounds=<9 digits>$" (17) + salt (up to
+ * PHP_MAX_SALT_LEN - 20, i.e. 16) + "$" (1) + the 86-character hash + NUL. */
+#define PHP_MAX_SHA512_CRYPT_LEN (PHP_MAX_SALT_LEN + 1)
+
 #endif
