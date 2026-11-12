@@ -270,9 +270,7 @@ PHP_FUNCTION(socket_recvmsg)
 		}
 		RETVAL_LONG((zend_long)res);
 	} else {
-		SOCKETS_G(last_error) = errno;
-		php_error_docref(NULL, E_WARNING, "Error in recvmsg [%d]: %s",
-				errno, sockets_strerror(errno));
+		PHP_SOCKET_ERROR(php_sock, "Error in recvmsg", errno);
 		RETVAL_FALSE;
 	}
 
