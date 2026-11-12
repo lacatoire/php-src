@@ -668,9 +668,9 @@ function sodium_crypto_generichash_keygen(): string {}
 
 function sodium_crypto_generichash_init(#[\SensitiveParameter] string $key = "", int $length = SODIUM_CRYPTO_GENERICHASH_BYTES): string {}
 
-function sodium_crypto_generichash_update(string &$state, string $message): true {}
+function sodium_crypto_generichash_update(#[\SensitiveParameter] string &$state, string $message): true {}
 
-function sodium_crypto_generichash_final(string &$state, int $length = SODIUM_CRYPTO_GENERICHASH_BYTES): string {}
+function sodium_crypto_generichash_final(#[\SensitiveParameter] string &$state, int $length = SODIUM_CRYPTO_GENERICHASH_BYTES): string {}
 
 function sodium_crypto_kdf_derive_from_key(int $subkey_length, int $subkey_id, string $context, #[\SensitiveParameter] string $key): string {}
 
@@ -718,14 +718,14 @@ function sodium_crypto_secretstream_xchacha20poly1305_keygen(): string {}
  */
 function sodium_crypto_secretstream_xchacha20poly1305_init_push(#[\SensitiveParameter] string $key): array {}
 
-function sodium_crypto_secretstream_xchacha20poly1305_push(string &$state, #[\SensitiveParameter] string $message, string $additional_data = "", int $tag = SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_TAG_MESSAGE): string {}
+function sodium_crypto_secretstream_xchacha20poly1305_push(#[\SensitiveParameter] string &$state, #[\SensitiveParameter] string $message, string $additional_data = "", int $tag = SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_TAG_MESSAGE): string {}
 
 function sodium_crypto_secretstream_xchacha20poly1305_init_pull(string $header, #[\SensitiveParameter] string $key): string {}
 
 /** @return array<int, int|string>|false */
-function sodium_crypto_secretstream_xchacha20poly1305_pull(string &$state, string $ciphertext, string $additional_data = ""): array|false {}
+function sodium_crypto_secretstream_xchacha20poly1305_pull(#[\SensitiveParameter] string &$state, string $ciphertext, string $additional_data = ""): array|false {}
 
-function sodium_crypto_secretstream_xchacha20poly1305_rekey(string &$state): void {}
+function sodium_crypto_secretstream_xchacha20poly1305_rekey(#[\SensitiveParameter] string &$state): void {}
 #endif
 
 function sodium_crypto_shorthash(string $message, #[\SensitiveParameter] string $key): string {}
