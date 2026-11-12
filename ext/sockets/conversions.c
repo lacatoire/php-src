@@ -756,8 +756,18 @@ static void from_zval_write_sockaddr_aux(const zval *container,
 					"supported on this socket", family);
 			return;
 		}
-		*sockaddr_ptr = accounted_ecalloc(1, sizeof(struct sockaddr_in), ctx);
-		*sockaddr_len = sizeof(struct sockaddr_in);
+		{
+			size_t size = sizeof(struct sockaddr_in);
+#ifdef HAVE_IPV6
+			/* When receiving, the kernel stores the address of the socket,
+			 * whatever the family given here */
+			if (!fill_sockaddr && ctx->sock->type == AF_INET6) {
+				size = sizeof(struct sockaddr_in6);
+			}
+#endif
+			*sockaddr_ptr = accounted_ecalloc(1, size, ctx);
+			*sockaddr_len = size;
+		}
 		if (fill_sockaddr) {
 			from_zval_write_sockaddr_in(container, (char*)*sockaddr_ptr, ctx);
 			(*sockaddr_ptr)->sa_family = AF_INET;
