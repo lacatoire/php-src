@@ -1755,9 +1755,12 @@ PHP_FUNCTION(socket_sendto)
 			}
 
 			s_un.sun_family = AF_UNIX;
+			/* The length is the one of the name, not of a C string: an abstract
+			 * name starts with a NUL byte (as in socket_connect()) */
 			memcpy(s_un.sun_path, ZSTR_VAL(addr), ZSTR_LEN(addr) + 1);
 
-			retval = sendto(php_sock->bsd_socket, buf, ((size_t)len > buf_len) ? buf_len : (size_t)len,	flags, (struct sockaddr *) &s_un, SUN_LEN(&s_un));
+			retval = sendto(php_sock->bsd_socket, buf, ((size_t)len > buf_len) ? buf_len : (size_t)len,	flags, (struct sockaddr *) &s_un,
+				(socklen_t)(offsetof(struct sockaddr_un, sun_path) + ZSTR_LEN(addr)));
 			break;
 
 		case AF_INET:

@@ -113,6 +113,7 @@ typedef struct {
 } field_descriptor;
 
 #define KEY_FILL_SOCKADDR "fill_sockaddr"
+#define KEY_SUN_PATH_LEN "sun_path_len"
 #define KEY_RECVMSG_RET   "recvmsg_ret"
 #define KEY_CMSG_LEN	  "cmsg_len"
 
@@ -669,6 +670,12 @@ static void from_zval_write_sun_path(const zval *path, char *sockaddr_un_c, ser_
 
 	path_str = zval_get_tmp_string((zval *) path, &tmp_path_str);
 
+	/* the length of an abstract name cannot be recovered from the nul terminated copy */
+	size_t *path_len = zend_hash_str_find_ptr(&ctx->params, KEY_SUN_PATH_LEN, sizeof(KEY_SUN_PATH_LEN) - 1);
+	if (path_len != NULL) {
+		*path_len = ZSTR_LEN(path_str);
+	}
+
 	/* code in this file relies on the path being nul terminated, even though
 	 * this is not required, at least on linux for abstract paths. It also
 	 * assumes that the path is not empty */
@@ -789,17 +796,24 @@ static void from_zval_write_sockaddr_aux(const zval *container,
 		*sockaddr_ptr = accounted_ecalloc(1, sizeof(struct sockaddr_un), ctx);
 		if (fill_sockaddr) {
 			struct sockaddr_un *sock_un = (struct sockaddr_un*)*sockaddr_ptr;
+			size_t path_len = 0;
 
+			if (zend_hash_str_update_ptr(&ctx->params, KEY_SUN_PATH_LEN, sizeof(KEY_SUN_PATH_LEN) - 1, &path_len) == NULL) {
+				do_from_zval_err(ctx, "%s", "could not add sun_path_len; this is a bug");
+				return;
+			}
 			from_zval_write_sockaddr_un(container, (char*)*sockaddr_ptr, ctx);
+			zend_hash_str_del(&ctx->params, KEY_SUN_PATH_LEN, sizeof(KEY_SUN_PATH_LEN) - 1);
 			(*sockaddr_ptr)->sa_family = AF_UNIX;
 
 			/* calculating length is more complicated here. Giving the size of
 			 * struct sockaddr_un here and relying on the nul termination of
-			 * sun_path does not work for paths in the abstract namespace. Note
-			 * that we always assume the path is not empty and nul terminated */
+			 * sun_path does not work for paths in the abstract namespace, which
+			 * may also contain NUL bytes: their length is the one of the given
+			 * name. Note that we always assume the path is not empty */
 			*sockaddr_len = offsetof(struct sockaddr_un, sun_path) +
 					(sock_un->sun_path[0] == '\0'
-					? (1 + strlen(&sock_un->sun_path[1]))
+					? path_len
 					: strlen(sock_un->sun_path));
 		} else {
 			*sockaddr_len = sizeof(struct sockaddr_un);
