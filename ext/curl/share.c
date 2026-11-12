@@ -31,13 +31,19 @@
 PHP_FUNCTION(curl_share_init)
 {
 	php_curlsh *sh;
+	CURLSH *share;
 
 	ZEND_PARSE_PARAMETERS_NONE();
 
+	share = curl_share_init();
+	if (UNEXPECTED(share == NULL)) {
+		zend_throw_error(NULL, "%s(): Could not initialize a new cURL share handle", get_active_function_name());
+		RETURN_THROWS();
+	}
+
 	object_init_ex(return_value, curl_share_ce);
 	sh = Z_CURL_SHARE_P(return_value);
-
-	sh->share = curl_share_init();
+	sh->share = share;
 }
 /* }}} */
 
@@ -230,6 +236,11 @@ PHP_FUNCTION(curl_share_init_persistent)
 
 	// We could not find an existing share handle, so we'll have to create one.
 	sh->share = curl_share_init();
+	if (UNEXPECTED(sh->share == NULL)) {
+		zend_throw_error(NULL, "%s(): Could not initialize a new cURL share handle", get_active_function_name());
+
+		goto error;
+	}
 
 	// Apply the options property to the handle. We avoid using $share_opts as zval_get_long may not necessarily return
 	// the same value as it did in the initial ZEND_HASH_FOREACH_VAL above.
