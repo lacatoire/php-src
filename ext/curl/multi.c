@@ -313,6 +313,15 @@ PHP_FUNCTION(curl_multi_info_read)
 
 	mh = Z_CURL_MULTI_P(z_mh);
 
+	if (zmsgs_in_queue) {
+		/* The message is removed from the queue of libcurl by the call below, so
+		 * a typed reference that rejects an int must be detected before it. */
+		ZEND_TRY_ASSIGN_REF_LONG(zmsgs_in_queue, 0);
+		if (EG(exception)) {
+			RETURN_THROWS();
+		}
+	}
+
 	tmp_msg = curl_multi_info_read(mh->multi, &queued_msgs);
 	if (tmp_msg == NULL) {
 		RETURN_FALSE;
