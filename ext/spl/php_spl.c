@@ -321,6 +321,8 @@ PHP_FUNCTION(spl_autoload)
 		pos = SPL_DEFAULT_FILE_EXTENSIONS;
 		pos_len = sizeof(SPL_DEFAULT_FILE_EXTENSIONS) - 1;
 	} else {
+		/* An included file can call spl_autoload_extensions() and release the global list. */
+		file_exts = zend_string_copy(file_exts);
 		pos = ZSTR_VAL(file_exts);
 		pos_len = ZSTR_LEN(file_exts);
 	}
@@ -345,6 +347,9 @@ PHP_FUNCTION(spl_autoload)
 		pos_len = pos1? pos_len - pos1_len - 1 : 0;
 	}
 	zend_string_release(lc_name);
+	if (file_exts) {
+		zend_string_release(file_exts);
+	}
 } /* }}} */
 
 /* {{{ Register and return default file extensions for spl_autoload */
