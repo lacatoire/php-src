@@ -512,7 +512,12 @@ PHPAPI zend_result php_stream_filter_flush(php_stream_filter *filter, bool finis
 	}
 
 	if (flushed_size == 0) {
-		/* Unlikely, but possible */
+		/* Unlikely, but possible. The brigade may still hold empty buckets,
+		 * which must not stay linked to it once this function has returned. */
+		while ((bucket = inp->head)) {
+			php_stream_bucket_unlink(bucket);
+			php_stream_bucket_delref(bucket);
+		}
 		return SUCCESS;
 	}
 
