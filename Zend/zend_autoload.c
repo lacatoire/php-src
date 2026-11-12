@@ -77,7 +77,22 @@ ZEND_API zend_class_entry *zend_perform_class_autoload(zend_string *class_name, 
 			return ce;
 		}
 
-		zend_hash_move_forward_ex(class_autoload_functions, &pos);
+		/* The autoloader may have unregistered itself or registered another one in front of it,
+		 * which moves or removes its bucket. Resume from where it is now. */
+		bool found = false;
+		uint32_t idx = 0;
+		for (; idx < class_autoload_functions->nNumUsed; idx++) {
+			const zval *entry = &class_autoload_functions->arData[idx].val;
+			if (Z_TYPE_P(entry) != IS_UNDEF && Z_PTR_P(entry) == func_info) {
+				found = true;
+				break;
+			}
+		}
+		if (found) {
+			pos = idx;
+			zend_hash_move_forward_ex(class_autoload_functions, &pos);
+		}
+		/* Otherwise the autoloader was removed, and pos already designates the next one. */
 	}
 	return NULL;
 }
