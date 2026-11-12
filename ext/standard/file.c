@@ -2009,6 +2009,8 @@ PHPAPI HashTable *php_fgetcsv(php_stream *stream, char delimiter, char enclosure
 
 			bptr++;	/* move on to first character in field */
 			hunk_begin = bptr;
+			/* inc_len still holds the width of the enclosure, not of the first character */
+			inc_len = (bptr < limit ? (*bptr == '\0' ? 1 : php_mblen(bptr, limit - bptr)): 0);
 
 			/* 2A. handle enclosure delimited field */
 			for (;;) {
