@@ -403,6 +403,9 @@ PHP_FUNCTION(spl_autoload_register)
 	if (!do_throw) {
 		php_error_docref(NULL, E_NOTICE, "Argument #2 ($do_throw) has been ignored, "
 			"spl_autoload_register() will always throw");
+		if (UNEXPECTED(EG(exception))) {
+			RETURN_THROWS();
+		}
 	}
 
 	/* If first arg is not null */
@@ -412,6 +415,9 @@ PHP_FUNCTION(spl_autoload_register)
 			 * with it ourselves. It is important that it is not refetched on every call,
 			 * because calls may occur from different scopes. */
 			zend_is_callable_ex(&fci.function_name, NULL, IS_CALLABLE_SUPPRESS_DEPRECATIONS, NULL, &fcc, NULL);
+			if (UNEXPECTED(EG(exception))) {
+				RETURN_THROWS();
+			}
 		}
 
 		if (fcc.function_handler->type == ZEND_INTERNAL_FUNCTION &&
