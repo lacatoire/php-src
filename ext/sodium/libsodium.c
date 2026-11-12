@@ -1616,6 +1616,11 @@ PHP_FUNCTION(sodium_crypto_pwhash)
 		sodium_remove_param_values_from_backtrace(EG(exception));
 		RETURN_THROWS();
 	}
+	if (hash_len < crypto_pwhash_BYTES_MIN) {
+		zend_argument_value_error(1, "must be greater than or equal to %d", crypto_pwhash_BYTES_MIN);
+		sodium_remove_param_values_from_backtrace(EG(exception));
+		RETURN_THROWS();
+	}
 	if (hash_len >= 0xffffffff) {
 		zend_argument_value_error(1, "must be less than 4294967295 bytes");
 		sodium_remove_param_values_from_backtrace(EG(exception));
@@ -1652,13 +1657,26 @@ PHP_FUNCTION(sodium_crypto_pwhash)
 		sodium_remove_param_values_from_backtrace(EG(exception));
 		RETURN_THROWS();
 	}
-	if (opslimit < crypto_pwhash_OPSLIMIT_MIN) {
-		zend_argument_value_error(4, "must be greater than or equal to %d", crypto_pwhash_OPSLIMIT_MIN);
+	/* The minimum of $opslimit depends on the algorithm */
+	zend_long opslimit_min = alg == crypto_pwhash_ALG_ARGON2I13
+		? crypto_pwhash_argon2i_OPSLIMIT_MIN : crypto_pwhash_OPSLIMIT_MIN;
+	if (opslimit < opslimit_min) {
+		zend_argument_value_error(4, "must be greater than or equal to " ZEND_LONG_FMT, opslimit_min);
+		sodium_remove_param_values_from_backtrace(EG(exception));
+		RETURN_THROWS();
+	}
+	if (sizeof(zend_long) > sizeof(uint32_t) && (zend_ulong) opslimit > crypto_pwhash_OPSLIMIT_MAX) {
+		zend_argument_value_error(4, "must be less than or equal to %u", crypto_pwhash_OPSLIMIT_MAX);
 		sodium_remove_param_values_from_backtrace(EG(exception));
 		RETURN_THROWS();
 	}
 	if (memlimit < crypto_pwhash_MEMLIMIT_MIN) {
 		zend_argument_value_error(5, "must be greater than or equal to %d", crypto_pwhash_MEMLIMIT_MIN);
+		sodium_remove_param_values_from_backtrace(EG(exception));
+		RETURN_THROWS();
+	}
+	if (sizeof(size_t) > sizeof(uint32_t) && (zend_ulong) memlimit > crypto_pwhash_MEMLIMIT_MAX) {
+		zend_argument_value_error(5, "must be less than or equal to %zu", (size_t) crypto_pwhash_MEMLIMIT_MAX);
 		sodium_remove_param_values_from_backtrace(EG(exception));
 		RETURN_THROWS();
 	}
@@ -1726,8 +1744,18 @@ PHP_FUNCTION(sodium_crypto_pwhash_str)
 		sodium_remove_param_values_from_backtrace(EG(exception));
 		RETURN_THROWS();
 	}
+	if (sizeof(zend_long) > sizeof(uint32_t) && (zend_ulong) opslimit > crypto_pwhash_OPSLIMIT_MAX) {
+		zend_argument_value_error(2, "must be less than or equal to %u", crypto_pwhash_OPSLIMIT_MAX);
+		sodium_remove_param_values_from_backtrace(EG(exception));
+		RETURN_THROWS();
+	}
 	if (memlimit < crypto_pwhash_MEMLIMIT_MIN) {
 		zend_argument_value_error(3, "must be greater than or equal to %d", crypto_pwhash_MEMLIMIT_MIN);
+		sodium_remove_param_values_from_backtrace(EG(exception));
+		RETURN_THROWS();
+	}
+	if (sizeof(size_t) > sizeof(uint32_t) && (zend_ulong) memlimit > crypto_pwhash_MEMLIMIT_MAX) {
+		zend_argument_value_error(3, "must be less than or equal to %zu", (size_t) crypto_pwhash_MEMLIMIT_MAX);
 		sodium_remove_param_values_from_backtrace(EG(exception));
 		RETURN_THROWS();
 	}
@@ -1814,8 +1842,18 @@ PHP_FUNCTION(sodium_crypto_pwhash_scryptsalsa208sha256)
 		sodium_remove_param_values_from_backtrace(EG(exception));
 		RETURN_THROWS();
 	}
-	if (hash_len <= 0 || hash_len >= ZSTR_MAX_LEN || hash_len > 0x1fffffffe0ULL) {
+	if (hash_len <= 0) {
 		zend_argument_value_error(1, "must be greater than 0");
+		sodium_remove_param_values_from_backtrace(EG(exception));
+		RETURN_THROWS();
+	}
+	if (hash_len < crypto_pwhash_scryptsalsa208sha256_BYTES_MIN) {
+		zend_argument_value_error(1, "must be greater than or equal to %d", crypto_pwhash_scryptsalsa208sha256_BYTES_MIN);
+		sodium_remove_param_values_from_backtrace(EG(exception));
+		RETURN_THROWS();
+	}
+	if (hash_len >= ZSTR_MAX_LEN || hash_len > 0x1fffffffe0ULL) {
+		zend_argument_value_error(1, "is too large");
 		sodium_remove_param_values_from_backtrace(EG(exception));
 		RETURN_THROWS();
 	}
