@@ -779,28 +779,36 @@ PHPAPI void php_stat(zend_string *filename, int type, zval *return_value)
 	}
 
 	do {
+		bool cache_hit = false;
+
 		/* Try to hit the cache first */
 		if (flags & PHP_STREAM_URL_STAT_LINK) {
 			if (filename == BG(CurrentLStatFile)
 			 || (BG(CurrentLStatFile)
 			  && zend_string_equal_content(filename, BG(CurrentLStatFile)))) {
 				stat_sb = &BG(lssb).sb;
-				break;
+				cache_hit = true;
 			}
 		} else {
 			if (filename == BG(CurrentStatFile)
 			 || (BG(CurrentStatFile)
 			  && zend_string_equal_content(filename, BG(CurrentStatFile)))) {
 				stat_sb = &BG(ssb).sb;
-				break;
+				cache_hit = true;
 			}
 		}
 
-		if (!wrapper) {
+		/* open_basedir may have changed since the entry was cached, so it must also be
+		 * checked for a cache hit. */
+		if (!wrapper && (!cache_hit || (PG(open_basedir) && *PG(open_basedir)))) {
 			if ((wrapper = php_stream_locate_url_wrapper(ZSTR_VAL(filename), &local, 0)) == &php_plain_files_wrapper
 			 && php_check_open_basedir(local)) {
 				RETURN_FALSE;
 			}
+		}
+
+		if (cache_hit) {
+			break;
 		}
 
 		if (!wrapper
