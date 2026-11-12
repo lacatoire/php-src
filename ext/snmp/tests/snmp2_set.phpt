@@ -39,7 +39,7 @@ $oid1 = 'SNMPv2-MIB::sysContact.0';
 $oldvalue1 = snmpget($hostname, $communityWrite, $oid1, $timeout, $retries);
 $newvalue1 = $oldvalue1 . '0';
 $oid2 = 'SNMPv2-MIB::sysLocation.0';
-$oldvalue2 = snmpget($hostname, $communityWrite, $oid1, $timeout, $retries);
+$oldvalue2 = snmpget($hostname, $communityWrite, $oid2, $timeout, $retries);
 $newvalue2 = $oldvalue2 . '0';
 
 echo "Single OID\n";
