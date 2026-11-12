@@ -422,6 +422,10 @@ PHP_FUNCTION(spl_autoload_register)
 	} else {
 		memset(&fcc, 0, sizeof(fcc));
 		fcc.function_handler = zend_hash_str_find_ptr(CG(function_table), ZEND_STRL("spl_autoload"));
+		if (UNEXPECTED(fcc.function_handler == NULL)) {
+			zend_throw_error(NULL, "Cannot register the default autoloader when function spl_autoload is disabled");
+			RETURN_THROWS();
+		}
 	}
 
 	zend_autoload_register_class_loader(&fcc, prepend);
