@@ -409,7 +409,7 @@ PHP_FUNCTION(msg_send)
 				message_len = 1;
 				break;
 			case IS_DOUBLE:
-				message_len = spprintf(&p, 0, "%F", Z_DVAL_P(message));
+				message_len = spprintf(&p, 0, "%.*H", -1, Z_DVAL_P(message));
 				break;
 
 			default:
