@@ -820,6 +820,12 @@ PHP_FUNCTION(posix_getgrnam)
 		Z_PARAM_STRING(name, name_len)
 	ZEND_PARSE_PARAMETERS_END();
 
+	/* The lookup functions take a C string, so a name with an embedded NUL byte
+	 * would be silently truncated and match a different entry. */
+	if (strlen(name) != name_len) {
+		RETURN_FALSE;
+	}
+
 #if defined(ZTS) && defined(HAVE_GETGRNAM_R) && defined(_SC_GETGR_R_SIZE_MAX)
 	buflen = sysconf(_SC_GETGR_R_SIZE_MAX);
 	if (buflen < 1) {
@@ -967,6 +973,12 @@ PHP_FUNCTION(posix_getpwnam)
 	ZEND_PARSE_PARAMETERS_START(1, 1)
 		Z_PARAM_STRING(name, name_len)
 	ZEND_PARSE_PARAMETERS_END();
+
+	/* The lookup functions take a C string, so a name with an embedded NUL byte
+	 * would be silently truncated and match a different entry. */
+	if (strlen(name) != name_len) {
+		RETURN_FALSE;
+	}
 
 #if defined(ZTS) && defined(_SC_GETPW_R_SIZE_MAX) && defined(HAVE_GETPWNAM_R)
 	buflen = sysconf(_SC_GETPW_R_SIZE_MAX);
