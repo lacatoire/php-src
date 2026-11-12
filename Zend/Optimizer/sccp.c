@@ -862,7 +862,8 @@ static inline zend_result ct_eval_func_call_ex(
 		zval_ptr_dtor(result);
 		zend_clear_exception();
 		retval = FAILURE;
-	} else if (EG(capture_warnings_during_sccp) > 1) {
+	} else if (EG(capture_warnings_during_sccp) > 1 || ZEND_HAS_OOM()) {
+		/* A delayed out of memory error leaves the result untouched (NULL), and is raised later. */
 		zval_ptr_dtor(result);
 		retval = FAILURE;
 	}
