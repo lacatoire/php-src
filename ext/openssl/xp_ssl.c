@@ -2621,7 +2621,7 @@ static zend_result php_openssl_apply_client_session_data(php_stream *stream,
 	return SUCCESS;
 }
 
-static zend_result php_openssl_create_server_ctx(php_stream *stream,
+static zend_result php_openssl_init_server_ctx(php_stream *stream,
 		php_openssl_netstream_data_t *sslsock, int method_flags)
 {
 	zval *val;
@@ -2787,6 +2787,29 @@ static zend_result php_openssl_create_server_ctx(php_stream *stream,
 #endif
 
 	return SUCCESS;
+}
+
+static zend_result php_openssl_create_server_ctx(php_stream *stream,
+		php_openssl_netstream_data_t *sslsock, int method_flags)
+{
+	if (php_openssl_init_server_ctx(stream, sslsock, method_flags) == SUCCESS) {
+		return SUCCESS;
+	}
+
+	/* Do not keep a half-configured context: a later call creates a new one */
+	if (sslsock->ctx) {
+		SSL_CTX_free(sslsock->ctx);
+		sslsock->ctx = NULL;
+	}
+#ifdef HAVE_TLS_ALPN
+	if (sslsock->alpn_ctx.data) {
+		pefree(sslsock->alpn_ctx.data, php_stream_is_persistent(stream));
+		sslsock->alpn_ctx.data = NULL;
+		sslsock->alpn_ctx.len = 0;
+	}
+#endif
+
+	return FAILURE;
 }
 
 static zend_result php_openssl_setup_crypto(php_stream *stream,
