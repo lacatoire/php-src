@@ -537,9 +537,12 @@ PHPAPI zend_result php_stream_filter_flush(php_stream_filter *filter, bool finis
 	} else if (chain == &(stream->writefilters)) {
 		/* Send flushed data to the stream */
 		while ((bucket = inp->head)) {
-			ssize_t count = stream->ops->write(stream, bucket->buf, bucket->buflen);
-			if (count > 0) {
-				stream->position += count;
+			/* Streams without a write handler (data://, directory handles) drop the data */
+			if (stream->ops->write) {
+				ssize_t count = stream->ops->write(stream, bucket->buf, bucket->buflen);
+				if (count > 0) {
+					stream->position += count;
+				}
 			}
 			php_stream_bucket_unlink(bucket);
 			php_stream_bucket_delref(bucket);
