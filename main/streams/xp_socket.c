@@ -315,7 +315,8 @@ static inline int sock_recvfrom(php_netstream_data_t *sock, char *buf, size_t bu
 			ret = buflen;
 		}
 #endif
-		if (sl) {
+		/* On failure the address was not written by recvfrom() */
+		if (ret >= 0 && sl) {
 			php_network_populate_name_from_sockaddr((struct sockaddr*)&sa, sl,
 					textaddr, addr, addrlen);
 		} else {

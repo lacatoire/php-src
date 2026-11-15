@@ -446,6 +446,9 @@ PHP_FUNCTION(stream_socket_recvfrom)
 		RETURN_NEW_STR(read_buf);
 	}
 
+	if (remote_addr) {
+		zend_string_release(remote_addr);
+	}
 	zend_string_efree(read_buf);
 	RETURN_FALSE;
 }
