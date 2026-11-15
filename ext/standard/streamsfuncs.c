@@ -933,11 +933,15 @@ static zend_result parse_context_options(php_stream_context *context, const Hash
 		ZVAL_DEREF(wval);
 		if (wkey && Z_TYPE_P(wval) == IS_ARRAY) {
 			if (!HT_IS_PACKED(Z_ARRVAL_P(wval))) {
-				ZEND_HASH_MAP_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(wval), okey, oval) {
+				/* Replacing an option may run a destructor that releases this array */
+				zend_array *wrapper_options = Z_ARRVAL_P(wval);
+				GC_TRY_ADDREF(wrapper_options);
+				ZEND_HASH_MAP_FOREACH_STR_KEY_VAL(wrapper_options, okey, oval) {
 					if (okey) {
 						php_stream_context_set_option(context, ZSTR_VAL(wkey), ZSTR_VAL(okey), oval);
 					}
 				} ZEND_HASH_FOREACH_END();
+				zend_array_release(wrapper_options);
 			}
 		} else {
 			zend_value_error("Options should have the form [\"wrappername\"][\"optionname\"] = $value");

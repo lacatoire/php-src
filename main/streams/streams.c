@@ -2395,7 +2395,19 @@ PHPAPI void php_stream_context_set_option(php_stream_context *context,
 	ZVAL_DEREF(optionvalue);
 	Z_TRY_ADDREF_P(optionvalue);
 	SEPARATE_ARRAY(wrapperhash);
-	zend_hash_str_update(Z_ARRVAL_P(wrapperhash), optionname, strlen(optionname), optionvalue);
+
+	size_t optionname_len = strlen(optionname);
+	zval *slot = zend_hash_str_find(Z_ARRVAL_P(wrapperhash), optionname, optionname_len);
+	if (slot) {
+		/* Store the new value before releasing the old one: its destructor may
+		 * run user code that changes the options of this context. */
+		zval old_value;
+		ZVAL_COPY_VALUE(&old_value, slot);
+		ZVAL_COPY_VALUE(slot, optionvalue);
+		zval_ptr_dtor(&old_value);
+	} else {
+		zend_hash_str_add_new(Z_ARRVAL_P(wrapperhash), optionname, optionname_len, optionvalue);
+	}
 }
 
 void php_stream_context_unset_option(php_stream_context *context,
