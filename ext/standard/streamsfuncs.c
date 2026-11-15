@@ -1393,6 +1393,11 @@ PHP_FUNCTION(stream_filter_remove)
 	}
 
 	php_stream *stream = filter->chain->stream;
+	if (stream->in_free) {
+		/* The filter would be flushed into a stream that is already closed */
+		php_error_docref(NULL, E_WARNING, "Cannot remove filter while its stream is being closed");
+		RETURN_FALSE;
+	}
 	uint32_t no_remove_flag = filter->chain == &stream->readfilters ?
 			PHP_STREAM_FLAG_NO_READ_FILTER_REMOVE : PHP_STREAM_FLAG_NO_WRITE_FILTER_REMOVE;
 	if (stream->flags & no_remove_flag) {
