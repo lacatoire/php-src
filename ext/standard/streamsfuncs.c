@@ -663,6 +663,9 @@ static int stream_array_to_fd_set(const HashTable *stream_array, php_growable_fd
 		ZVAL_DEREF(elem);
 		php_stream_from_zval_no_verify(stream, elem);
 		if (stream == NULL) {
+			if (EG(exception)) {
+				return 0;
+			}
 			continue;
 		}
 		/* get the fd.
@@ -804,11 +807,17 @@ PHP_FUNCTION(stream_select)
 	if (r_array != NULL) {
 		sets += stream_array_to_fd_set(Z_ARR_P(r_array), &rfds, &max_fd);
 	}
-	if (w_array != NULL) {
+	if (w_array != NULL && !EG(exception)) {
 		sets += stream_array_to_fd_set(Z_ARR_P(w_array), &wfds, &max_fd);
 	}
-	if (e_array != NULL) {
+	if (e_array != NULL && !EG(exception)) {
 		sets += stream_array_to_fd_set(Z_ARR_P(e_array), &efds, &max_fd);
+	}
+
+	/* An element that is not a stream has thrown: do not wait for the others */
+	if (EG(exception)) {
+		php_stream_error_operation_end(context);
+		goto cleanup;
 	}
 
 	if (!sets) {
