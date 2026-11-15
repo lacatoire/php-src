@@ -1400,17 +1400,27 @@ PHP_FUNCTION(stream_filter_remove)
 		RETURN_FALSE;
 	}
 
+	/* The flush runs user code that may drop the last reference to the stream */
+	zend_resource *stream_res = stream->res;
+	if (stream_res) {
+		GC_ADDREF(stream_res);
+	}
+
 	stream->flags |= no_remove_flag;
 	zend_result flushed = php_stream_filter_flush(filter, 1);
 	stream->flags &= ~no_remove_flag;
 	if (flushed == FAILURE) {
 		php_error_docref(NULL, E_WARNING, "Unable to flush filter, not removing");
-		RETURN_FALSE;
+		RETVAL_FALSE;
+	} else {
+		zend_list_close(Z_RES_P(zfilter));
+		php_stream_filter_remove(filter, 1);
+		RETVAL_TRUE;
 	}
 
-	zend_list_close(Z_RES_P(zfilter));
-	php_stream_filter_remove(filter, 1);
-	RETURN_TRUE;
+	if (stream_res) {
+		zend_list_delete(stream_res);
+	}
 }
 /* }}} */
 
