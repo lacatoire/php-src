@@ -83,6 +83,12 @@ fprintf(stderr, "forget_persistent: %s:%p\n", stream->ops->label, stream);
 	/* Request resources have been destroyed; clear their stale pointers. */
 	stream->res = NULL;
 	stream->ctx = NULL;
+	for (php_stream_filter *filter = stream->readfilters.head; filter; filter = filter->next) {
+		filter->res = NULL;
+	}
+	for (php_stream_filter *filter = stream->writefilters.head; filter; filter = filter->next) {
+		filter->res = NULL;
+	}
 
 	return 0;
 }
