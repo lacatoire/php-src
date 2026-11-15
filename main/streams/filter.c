@@ -371,7 +371,12 @@ PHPAPI zend_result php_stream_filter_append_ex(php_stream_filter_chain *chain, p
 		php_stream_bucket *bucket;
 		size_t consumed = 0;
 
-		bucket = php_stream_bucket_new(stream, (char*) stream->readbuf + stream->readpos, stream->writepos - stream->readpos, 0, 0);
+		/* The bucket owns a copy of the buffered data: the filter may run user code
+		 * that reads from the stream and reallocates its read buffer. */
+		size_t buffered_len = stream->writepos - stream->readpos;
+		char *buffered = pemalloc(buffered_len, php_stream_is_persistent(stream));
+		memcpy(buffered, stream->readbuf + stream->readpos, buffered_len);
+		bucket = php_stream_bucket_new(stream, buffered, buffered_len, 1, php_stream_is_persistent(stream));
 		php_stream_bucket_append(brig_inp, bucket);
 		uint32_t orig_no_remove = stream->flags & PHP_STREAM_FLAG_NO_READ_FILTER_REMOVE;
 		stream->flags |= PHP_STREAM_FLAG_NO_READ_FILTER_REMOVE;
