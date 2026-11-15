@@ -1268,12 +1268,14 @@ PHP_FUNCTION(stream_context_create)
 
 	if (options) {
 		if (parse_context_options(context, options) == FAILURE) {
+			zend_list_delete(context->res);
 			RETURN_THROWS();
 		}
 	}
 
 	if (params) {
 		if (parse_context_params(context, params) == FAILURE) {
+			zend_list_delete(context->res);
 			RETURN_THROWS();
 		}
 	}
