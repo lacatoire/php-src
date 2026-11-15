@@ -86,6 +86,8 @@ static zend_result php_io_linux_copy_file_to_file(int src_fd, int dest_fd, size_
 				case EXDEV:
 				case ENOSYS:
 				case EIO:
+				/* copy_file_range() reports a destination opened with O_APPEND as EBADF */
+				case EBADF:
 					if (total_copied == 0) {
 						return php_io_generic_copy_fallback(src_fd, dest_fd, maxlen, copied);
 					}
