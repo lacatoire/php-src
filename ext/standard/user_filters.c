@@ -567,6 +567,7 @@ PHP_FUNCTION(stream_bucket_append)
 PHP_FUNCTION(stream_bucket_new)
 {
 	zval zbucket;
+	zval *zstream;
 	php_stream *stream;
 	char *buffer;
 	char *pbuffer;
@@ -574,9 +575,12 @@ PHP_FUNCTION(stream_bucket_new)
 	php_stream_bucket *bucket;
 
 	ZEND_PARSE_PARAMETERS_START(2, 2)
-		PHP_Z_PARAM_STREAM(stream)
+		Z_PARAM_RESOURCE(zstream)
 		Z_PARAM_STRING(buffer, buffer_len)
 	ZEND_PARSE_PARAMETERS_END();
+
+	/* Fetched after the other arguments: their conversion may close the stream */
+	php_stream_from_zval(stream, zstream);
 
 	pbuffer = pemalloc(buffer_len, php_stream_is_persistent(stream));
 
