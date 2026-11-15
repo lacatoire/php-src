@@ -1627,7 +1627,7 @@ PHP_FUNCTION(stream_socket_enable_crypto)
 				RETURN_THROWS();
 			}
 
-			cryptokind = Z_LVAL_P(val);
+			cryptokind = zval_get_long(val);
 		}
 
 		if (php_stream_xport_crypto_setup(stream, cryptokind, sessstream) < 0) {
