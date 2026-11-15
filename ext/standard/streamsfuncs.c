@@ -954,25 +954,31 @@ static zend_result parse_context_params(php_stream_context *context, const HashT
 
 	if (NULL != (tmp = zend_hash_str_find(params, "notification", sizeof("notification")-1))) {
 
-		if (context->notifier) {
-			php_stream_notification_free(context->notifier);
-			context->notifier = NULL;
-		}
-
 		zend_fcall_info_cache *fcc = emalloc(sizeof(*fcc));
 		char *error;
 		if (!zend_is_callable(tmp, fcc, &error)) {
 			zend_argument_type_error(1, "must be an array with valid callbacks as values, %s", error);
 			efree(fcc);
 			efree(error);
+			if (context->notifier) {
+				php_stream_notifier *old_notifier = context->notifier;
+				context->notifier = NULL;
+				php_stream_notification_free(old_notifier);
+			}
 			return FAILURE;
 		}
 		zend_fcc_addref(fcc);
 
+		/* Install the new notifier before releasing the previous one: resolving the
+		 * callable and destroying the old one can both run user code on this context. */
+		php_stream_notifier *old_notifier = context->notifier;
 		context->notifier = php_stream_notification_alloc();
 		context->notifier->func = user_space_stream_notifier;
 		context->notifier->ptr = fcc;
 		context->notifier->dtor = user_space_stream_notifier_dtor;
+		if (old_notifier) {
+			php_stream_notification_free(old_notifier);
+		}
 	}
 	if (NULL != (tmp = zend_hash_str_find(params, "options", sizeof("options")-1))) {
 		if (Z_TYPE_P(tmp) == IS_ARRAY) {
