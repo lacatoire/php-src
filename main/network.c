@@ -850,6 +850,9 @@ PHPAPI php_socket_t php_network_accept_incoming_ex(php_socket_t srvsock,
 	php_sockaddr_storage sa;
 	socklen_t sl;
 
+	/* accept() leaves sun_path untouched for an unnamed AF_UNIX peer */
+	memset(&sa, 0, sizeof(sa));
+
 	n = php_pollfd_for(srvsock, PHP_POLLREADABLE, timeout);
 
 	if (n == 0) {
