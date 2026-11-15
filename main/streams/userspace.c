@@ -69,6 +69,20 @@ static void stream_wrapper_dtor(zend_resource *rsrc)
 {
 	struct php_user_stream_wrapper * uwrap = (struct php_user_stream_wrapper*)rsrc->ptr;
 
+	/* At request shutdown the wrapper is still registered while older streams are
+	 * closed after it: remove it so that their close handlers cannot reach it. */
+	if (FG(stream_wrappers)) {
+		zend_string *protocol;
+		php_stream_wrapper *wrapper;
+
+		ZEND_HASH_FOREACH_STR_KEY_PTR(FG(stream_wrappers), protocol, wrapper) {
+			if (wrapper == &uwrap->wrapper) {
+				zend_hash_del(FG(stream_wrappers), protocol);
+				break;
+			}
+		} ZEND_HASH_FOREACH_END();
+	}
+
 	efree(uwrap);
 }
 
