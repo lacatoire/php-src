@@ -101,9 +101,14 @@ END_EXTERN_C()
 	php_stream_notification_notify((context), PHP_STREAM_NOTIFY_PROGRESS, PHP_STREAM_NOTIFY_SEVERITY_INFO, \
 			NULL, 0, (bsofar), (bmax), NULL); } } while(0)
 
+/* The transfer is over: stop counting until the next php_stream_notify_progress_init(),
+ * so that later traffic on the same context is not added to the finished transfer. */
 #define php_stream_notify_completed(context) do { if ((context) && (context)->notifier) { \
 	php_stream_notification_notify((context), PHP_STREAM_NOTIFY_COMPLETED, PHP_STREAM_NOTIFY_SEVERITY_INFO, \
-			NULL, 0, (context)->notifier->progress, (context)->notifier->progress_max, NULL); } } while(0)
+			NULL, 0, (context)->notifier->progress, (context)->notifier->progress_max, NULL); \
+	if ((context)->notifier) { \
+		(context)->notifier->mask &= ~PHP_STREAM_NOTIFIER_PROGRESS; \
+	} } } while(0)
 
 #define php_stream_notify_progress_init(context, sofar, bmax) do { if ((context) && (context)->notifier) { \
 	(context)->notifier->progress = (sofar); \
