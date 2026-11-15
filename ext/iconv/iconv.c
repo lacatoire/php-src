@@ -2453,8 +2453,8 @@ static int php_iconv_stream_filter_append_bucket(
 								pt = self->stub;
 								tcnt = self->stub_len;
 							} else {
-								tcnt = 0;
-								break;
+								/* No input left: keep the incomplete sequence for the next bucket */
+								goto stub_incomplete;
 							}
 						} else {
 						    php_error_docref(NULL, E_WARNING, "iconv stream filter (\"%s\"=>\"%s\"): invalid multibyte sequence", self->from_charset, self->to_charset);
@@ -2495,6 +2495,7 @@ static int php_iconv_stream_filter_append_bucket(
 			}
 			prev_ocnt = ocnt;
 		}
+stub_incomplete:
 		memmove(self->stub, pt, tcnt);
 		self->stub_len = tcnt;
 	}
