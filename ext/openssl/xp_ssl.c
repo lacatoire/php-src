@@ -3051,6 +3051,45 @@ static int php_openssl_do_handshake(php_stream *stream, php_openssl_netstream_da
 		: SSL_accept(sslsock->ssl_handle);
 }
 
+/* Release the TLS state of the stream so that crypto can be set up again, the socket is kept */
+static void php_openssl_free_crypto_state(php_stream *stream, php_openssl_netstream_data_t *sslsock)
+{
+	if (sslsock->ssl_handle) {
+		SSL_free(sslsock->ssl_handle);
+		sslsock->ssl_handle = NULL;
+	}
+	if (sslsock->ctx) {
+		/* Clear the ctx stream pointer as the ctx may outlive this stream. */
+		if (SSL_CTX_get_ex_data(sslsock->ctx, php_openssl_get_ctx_stream_data_index()) == stream) {
+			SSL_CTX_set_ex_data(sslsock->ctx, php_openssl_get_ctx_stream_data_index(), NULL);
+		}
+		SSL_CTX_free(sslsock->ctx);
+		sslsock->ctx = NULL;
+	}
+#ifdef HAVE_TLS_ALPN
+	if (sslsock->alpn_ctx.data) {
+		pefree(sslsock->alpn_ctx.data, php_stream_is_persistent(stream));
+		sslsock->alpn_ctx.data = NULL;
+		sslsock->alpn_ctx.len = 0;
+	}
+#endif
+	if (sslsock->sni_certs) {
+		for (unsigned i = 0; i < sslsock->sni_cert_count; i++) {
+			if (sslsock->sni_certs[i].ctx) {
+				SSL_CTX_free(sslsock->sni_certs[i].ctx);
+				pefree(sslsock->sni_certs[i].name, php_stream_is_persistent(stream));
+			}
+		}
+		pefree(sslsock->sni_certs, php_stream_is_persistent(stream));
+		sslsock->sni_certs = NULL;
+	}
+	if (sslsock->reneg) {
+		pefree(sslsock->reneg, php_stream_is_persistent(stream));
+		sslsock->reneg = NULL;
+	}
+	sslsock->state_set = 0;
+}
+
 static int php_openssl_enable_crypto(php_stream *stream,
 		php_openssl_netstream_data_t *sslsock,
 		php_stream_xport_crypto_param *cparam) /* {{{ */
@@ -3185,12 +3224,18 @@ static int php_openssl_enable_crypto(php_stream *stream,
 			X509_free(peer_cert);
 		}
 
+		if (n < 0) {
+			/* The handle cannot be used for another handshake */
+			php_openssl_free_crypto_state(stream, sslsock);
+		}
+
 		return n;
 
 	} else if (!cparam->inputs.activate && sslsock->ssl_active) {
 		/* deactivate - common for server/client */
 		SSL_shutdown(sslsock->ssl_handle);
 		sslsock->ssl_active = 0;
+		php_openssl_free_crypto_state(stream, sslsock);
 	}
 
 	return -1;
@@ -3439,23 +3484,7 @@ static int php_openssl_sockop_close(php_stream *stream, int close_handle) /* {{{
 			SSL_shutdown(sslsock->ssl_handle);
 			sslsock->ssl_active = 0;
 		}
-		if (sslsock->ssl_handle) {
-			SSL_free(sslsock->ssl_handle);
-			sslsock->ssl_handle = NULL;
-		}
-		if (sslsock->ctx) {
-			/* Clear the ctx stream pointer as the ctx may outlive this stream. */
-			if (SSL_CTX_get_ex_data(sslsock->ctx, php_openssl_get_ctx_stream_data_index()) == stream) {
-				SSL_CTX_set_ex_data(sslsock->ctx, php_openssl_get_ctx_stream_data_index(), NULL);
-			}
-			SSL_CTX_free(sslsock->ctx);
-			sslsock->ctx = NULL;
-		}
-#ifdef HAVE_TLS_ALPN
-		if (sslsock->alpn_ctx.data) {
-			pefree(sslsock->alpn_ctx.data, php_stream_is_persistent(stream));
-		}
-#endif
+		php_openssl_free_crypto_state(stream, sslsock);
 #ifdef PHP_WIN32
 		if (sslsock->s.socket == -1)
 			sslsock->s.socket = SOCK_ERR;
