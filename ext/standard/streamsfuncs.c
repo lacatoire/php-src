@@ -60,6 +60,19 @@ PHP_FUNCTION(stream_socket_pair)
 		Z_PARAM_RESOURCE_OR_NULL(zcontext)
 	ZEND_PARSE_PARAMETERS_END();
 
+	if (ZEND_LONG_EXCEEDS_INT(domain)) {
+		zend_argument_value_error(1, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+	if (ZEND_LONG_EXCEEDS_INT(type)) {
+		zend_argument_value_error(2, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+	if (ZEND_LONG_EXCEEDS_INT(protocol)) {
+		zend_argument_value_error(3, "must be between %d and %d", INT_MIN, INT_MAX);
+		RETURN_THROWS();
+	}
+
 	if (0 != socketpair((int)domain, (int)type, (int)protocol, pair)) {
 		char errbuf[256];
 		php_error_docref(NULL, E_WARNING, "Failed to create sockets: [%d]: %s",
