@@ -1499,6 +1499,10 @@ PHPAPI int php_stream_set_option(php_stream *stream, int option, int value, void
 				return ret;
 
 			case PHP_STREAM_OPTION_READ_BUFFER:
+				/* Directory streams must stay unbuffered, readdir() reads whole entries */
+				if (stream->flags & PHP_STREAM_FLAG_IS_DIR) {
+					break;
+				}
 				/* try to match the buffer mode as best we can */
 				if (value == PHP_STREAM_BUFFER_NONE) {
 					stream->flags |= PHP_STREAM_FLAG_NO_BUFFER;
