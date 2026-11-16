@@ -971,36 +971,47 @@ zend_memnistr(const char *haystack, const char *needle, size_t needle_len, const
 
 	const char first_lower = zend_tolower_ascii(*needle);
 	const char first_upper = zend_toupper_ascii(*needle);
-	const char *p_lower = (const char *)memchr(haystack, first_lower, end - haystack);
-	const char *p_upper = NULL;
-	if (first_lower != first_upper) {
-		// If the needle length is 1 we don't need to look beyond p_lower as it is a guaranteed match
-		size_t upper_search_length = needle_len == 1 && p_lower != NULL ? p_lower - haystack : end - haystack;
-		p_upper = (const char *)memchr(haystack, first_upper, upper_search_length);
-	}
-	const char *p = !p_upper || (p_lower && p_lower < p_upper) ? p_lower : p_upper;
-
-	if (needle_len == 1) {
-		return p;
-	}
-
 	const char needle_end_lower = zend_tolower_ascii(needle[needle_len - 1]);
 	const char needle_end_upper = zend_toupper_ascii(needle[needle_len - 1]);
-	end -= needle_len;
 
-	while (p && p <= end) {
+	/* A match cannot start after end - needle_len. */
+	const char *limit = end - needle_len + 1;
+	const char *p_lower = (const char *)memchr(haystack, first_lower, limit - haystack);
+	const char *p_upper = NULL;
+	/* The upper case candidate is only searched up to the next lower case one, and the
+	 * search resumes from upper_pos when that one has been consumed. This keeps a match
+	 * near the start of the haystack from scanning all of it. */
+	const char *upper_pos = first_lower != first_upper ? haystack : limit;
+
+	while (1) {
+		const char *upper_limit = p_lower ? p_lower : limit;
+		if (!p_upper && upper_pos < upper_limit) {
+			p_upper = (const char *)memchr(upper_pos, first_upper, upper_limit - upper_pos);
+			upper_pos = p_upper ? p_upper : upper_limit;
+		}
+
+		/* p_upper, when set, is always before p_lower. */
+		const char *p = p_upper ? p_upper : p_lower;
+		if (!p) {
+			break;
+		}
+
+		if (needle_len == 1) {
+			return p;
+		}
+
 		if (needle_end_lower == p[needle_len - 1] || needle_end_upper == p[needle_len - 1]) {
 			if (zend_strnieq(needle + 1, p + 1, needle_len - 2)) {
 				return p;
 			}
 		}
-		if (p_lower == p) {
-			p_lower = (const char *)memchr(p_lower + 1, first_lower, end - p_lower);
+
+		if (p == p_upper) {
+			upper_pos = p + 1;
+			p_upper = NULL;
+		} else {
+			p_lower = p + 1 < limit ? (const char *)memchr(p + 1, first_lower, limit - (p + 1)) : NULL;
 		}
-		if (p_upper == p) {
-			p_upper = (const char *)memchr(p_upper + 1, first_upper, end - p_upper);
-		}
-		p = !p_upper || (p_lower && p_lower < p_upper) ? p_lower : p_upper;
 	}
 
 	return NULL;
