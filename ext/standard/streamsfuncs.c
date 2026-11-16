@@ -1461,7 +1461,8 @@ PHP_FUNCTION(stream_set_blocking)
 	ZEND_PARSE_PARAMETERS_END();
 
 	php_stream_error_operation_begin();
-	RETVAL_BOOL(-1 != php_stream_set_option(stream, PHP_STREAM_OPTION_BLOCKING, block, NULL));
+	int ret = php_stream_set_option(stream, PHP_STREAM_OPTION_BLOCKING, block, NULL);
+	RETVAL_BOOL(ret != PHP_STREAM_OPTION_RETURN_ERR && ret != PHP_STREAM_OPTION_RETURN_NOTIMPL);
 	php_stream_error_operation_end_for_stream(stream);
 }
 
