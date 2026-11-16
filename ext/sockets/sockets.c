@@ -317,7 +317,12 @@ static bool php_accept_connect(php_socket *in_sock, php_socket *out_sock, struct
 #endif
 
 	out_sock->error = 0;
+#if defined(HAVE_ACCEPT4)
+	/* accept4() made the descriptor non-blocking when the listener is */
+	out_sock->blocking = in_sock->blocking;
+#else
 	out_sock->blocking = 1;
+#endif
 	out_sock->type = la->sa_family;
 
 	return true;
