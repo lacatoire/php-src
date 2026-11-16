@@ -1487,8 +1487,15 @@ PHP_FUNCTION(stream_set_timeout)
 	t.tv_sec = (long)seconds;
 
 	if (argc == 3) {
-		t.tv_usec = (long)(microseconds % 1000000);
-		t.tv_sec +=(long)(microseconds / 1000000);
+		/* tv_usec must be in [0, 1000000): the sign of the timeout is the one of tv_sec */
+		zend_long carry = microseconds / 1000000;
+		zend_long rest = microseconds % 1000000;
+		if (rest < 0) {
+			rest += 1000000;
+			carry--;
+		}
+		t.tv_usec = (long)rest;
+		t.tv_sec += (long)carry;
 	} else {
 		t.tv_usec = 0;
 	}
@@ -1496,8 +1503,15 @@ PHP_FUNCTION(stream_set_timeout)
 	t.tv_sec = seconds;
 
 	if (argc == 3) {
-		t.tv_usec = microseconds % 1000000;
-		t.tv_sec += microseconds / 1000000;
+		/* tv_usec must be in [0, 1000000): the sign of the timeout is the one of tv_sec */
+		zend_long carry = microseconds / 1000000;
+		zend_long rest = microseconds % 1000000;
+		if (rest < 0) {
+			rest += 1000000;
+			carry--;
+		}
+		t.tv_usec = rest;
+		t.tv_sec += carry;
 	} else {
 		t.tv_usec = 0;
 	}
