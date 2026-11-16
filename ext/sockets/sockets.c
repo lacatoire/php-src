@@ -1590,7 +1590,8 @@ PHP_FUNCTION(socket_recvfrom)
 			ZSTR_VAL(recv_buf)[ZSTR_LEN(recv_buf)] = '\0';
 
 			ZEND_TRY_ASSIGN_REF_NEW_STR(zdata, recv_buf);
-			ZEND_TRY_ASSIGN_REF_STRING(zaddr, s_un.sun_path);
+			/* The kernel does not terminate a name that fills sun_path */
+			ZEND_TRY_ASSIGN_REF_STRINGL(zaddr, s_un.sun_path, zend_strnlen(s_un.sun_path, sizeof(s_un.sun_path)));
 			break;
 
 		case AF_INET:
