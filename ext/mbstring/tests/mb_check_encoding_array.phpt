@@ -23,7 +23,7 @@ $arr2[] = $tmp;
 var_dump(mb_check_encoding($str), mb_check_encoding($arr1),  mb_check_encoding($arr2));
 ?>
 --EXPECTF--
-Warning: mb_check_encoding(): Cannot not handle circular references in %s on line %d
+Warning: mb_check_encoding(): Cannot handle circular references in %s on line %d
 bool(true)
 bool(false)
 bool(false)
