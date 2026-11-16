@@ -226,6 +226,12 @@ static void ldap_result_entry_free_obj(zend_object *obj)
 	} \
 }
 
+#define VERIFY_LDAP_RESULT_ENTRY_OPEN(re) \
+{ \
+	ldap_resultdata *ldap_entry_result = Z_LDAP_RESULT_P(&re->res); \
+	VERIFY_LDAP_RESULT_OPEN(ldap_entry_result); \
+}
+
 static bool php_ldap_is_numerically_indexed_array(const zend_array *arr)
 {
 	if (zend_hash_num_elements(arr) == 0 || HT_IS_PACKED(arr)) {
@@ -1893,6 +1899,7 @@ PHP_FUNCTION(ldap_next_entry)
 	VERIFY_LDAP_LINK_CONNECTED(ld);
 
 	resultentry = Z_LDAP_RESULT_ENTRY_P(result_entry);
+	VERIFY_LDAP_RESULT_ENTRY_OPEN(resultentry);
 
 	if ((entry_next = ldap_next_entry(ld->link, resultentry->data)) == NULL) {
 		RETVAL_FALSE;
@@ -2021,6 +2028,7 @@ PHP_FUNCTION(ldap_first_attribute)
 	VERIFY_LDAP_LINK_CONNECTED(ld);
 
 	resultentry = Z_LDAP_RESULT_ENTRY_P(result_entry);
+	VERIFY_LDAP_RESULT_ENTRY_OPEN(resultentry);
 
 	if ((attribute = ldap_first_attribute(ld->link, resultentry->data, &resultentry->ber)) == NULL) {
 		RETURN_FALSE;
@@ -2049,6 +2057,7 @@ PHP_FUNCTION(ldap_next_attribute)
 	VERIFY_LDAP_LINK_CONNECTED(ld);
 
 	resultentry = Z_LDAP_RESULT_ENTRY_P(result_entry);
+	VERIFY_LDAP_RESULT_ENTRY_OPEN(resultentry);
 
 	if (resultentry->ber == NULL) {
 		php_error_docref(NULL, E_WARNING, "Called before calling ldap_first_attribute() or no attributes found in result entry");
@@ -2090,6 +2099,7 @@ PHP_FUNCTION(ldap_get_attributes)
 	VERIFY_LDAP_LINK_CONNECTED(ld);
 
 	resultentry = Z_LDAP_RESULT_ENTRY_P(result_entry);
+	VERIFY_LDAP_RESULT_ENTRY_OPEN(resultentry);
 
 	array_init(return_value);
 	num_attrib = 0;
@@ -2145,6 +2155,7 @@ PHP_FUNCTION(ldap_get_values_len)
 	VERIFY_LDAP_LINK_CONNECTED(ld);
 
 	resultentry = Z_LDAP_RESULT_ENTRY_P(result_entry);
+	VERIFY_LDAP_RESULT_ENTRY_OPEN(resultentry);
 
 	if ((ldap_value_len = ldap_get_values_len(ld->link, resultentry->data, attr)) == NULL) {
 		php_error_docref(NULL, E_WARNING, "Cannot get the value(s) of attribute %s", ldap_err2string(_get_lderrno(ld->link)));
@@ -2180,6 +2191,7 @@ PHP_FUNCTION(ldap_get_dn)
 	VERIFY_LDAP_LINK_CONNECTED(ld);
 
 	resultentry = Z_LDAP_RESULT_ENTRY_P(result_entry);
+	VERIFY_LDAP_RESULT_ENTRY_OPEN(resultentry);
 
 	text = ldap_get_dn(ld->link, resultentry->data);
 	if (text != NULL) {
@@ -3560,6 +3572,7 @@ PHP_FUNCTION(ldap_next_reference)
 	VERIFY_LDAP_LINK_CONNECTED(ld);
 
 	resultentry = Z_LDAP_RESULT_ENTRY_P(result_entry);
+	VERIFY_LDAP_RESULT_ENTRY_OPEN(resultentry);
 
 	if ((entry_next = ldap_next_reference(ld->link, resultentry->data)) == NULL) {
 		RETVAL_FALSE;
@@ -3590,6 +3603,7 @@ PHP_FUNCTION(ldap_parse_reference)
 	VERIFY_LDAP_LINK_CONNECTED(ld);
 
 	resultentry = Z_LDAP_RESULT_ENTRY_P(result_entry);
+	VERIFY_LDAP_RESULT_ENTRY_OPEN(resultentry);
 
 	if (ldap_parse_reference(ld->link, resultentry->data, &lreferrals, NULL /* &serverctrls */, 0) != LDAP_SUCCESS) {
 		RETURN_FALSE;
