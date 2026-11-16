@@ -4163,6 +4163,9 @@ PHP_FUNCTION(imageaffine)
 					zend_argument_type_error(2, "contains invalid type for element %i", i);
 					RETURN_THROWS();
 			}
+		} else {
+			zend_argument_value_error(2, "must have the keys 0 to 5");
+			RETURN_THROWS();
 		}
 	}
 
@@ -4345,6 +4348,9 @@ PHP_FUNCTION(imageaffinematrixconcat)
 					zend_argument_type_error(1, "contains invalid type for element %i", i);
 					RETURN_THROWS();
 			}
+		} else {
+			zend_argument_value_error(1, "must have the keys 0 to 5");
+			RETURN_THROWS();
 		}
 
 		if ((tmp = zend_hash_index_find_deref(Z_ARRVAL_P(z_m2), i)) != NULL) {
@@ -4358,6 +4364,9 @@ PHP_FUNCTION(imageaffinematrixconcat)
 					zend_argument_type_error(2, "contains invalid type for element %i", i);
 					RETURN_THROWS();
 			}
+		} else {
+			zend_argument_value_error(2, "must have the keys 0 to 5");
+			RETURN_THROWS();
 		}
 	}
 
