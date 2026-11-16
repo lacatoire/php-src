@@ -207,6 +207,14 @@ PHPAPI double _php_math_round(double value, int places, int mode) {
 
 	if ((places > 0 ? tmp_value2 / exponent : tmp_value2 * exponent) == value) {
 		tmp_value = tmp_value2;
+	} else if (abs(places) < 23) {
+		/* The multiplication can round up to an integer when value is just below it, e.g.
+		 * 0.8999999999999999 * 10 => 9.0. Scaled back, the integral part must not lie beyond
+		 * value, otherwise the directed modes return a result on the wrong side of it. */
+		double scaled_back = places > 0 ? tmp_value / exponent : tmp_value * exponent;
+		if (value >= 0.0 ? scaled_back > value : scaled_back < value) {
+			tmp_value = value >= 0.0 ? tmp_value - 1.0 : tmp_value + 1.0;
+		}
 	}
 
 	/* This value is beyond our precision, so rounding it is pointless */
