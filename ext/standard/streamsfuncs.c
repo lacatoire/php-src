@@ -839,7 +839,11 @@ PHP_FUNCTION(stream_select)
 		}
 
 		/* Windows, Solaris and BSD do not like microsecond values which are >= 1 sec */
-		tv.tv_sec = (long)(sec + (usec / 1000000));
+		if (sec > ZEND_LONG_MAX - usec / 1000000) {
+			tv.tv_sec = (long) ZEND_LONG_MAX;
+		} else {
+			tv.tv_sec = (long)(sec + (usec / 1000000));
+		}
 		tv.tv_usec = (long)(usec % 1000000);
 		tv_p = &tv;
 	}
