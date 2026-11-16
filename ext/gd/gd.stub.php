@@ -656,6 +656,7 @@ function imagesetpixel(GdImage $image, int $x, int $y, int $color): true {}
 
 function imageline(GdImage $image, int $x1, int $y1, int $x2, int $y2, int $color): true {}
 
+#[\Deprecated(since: '8.6', message: "use imagesetstyle() together with imageline() instead")]
 function imagedashedline(GdImage $image, int $x1, int $y1, int $x2, int $y2, int $color): true {}
 
 function imagerectangle(GdImage $image, int $x1, int $y1, int $x2, int $y2, int $color): true {}
