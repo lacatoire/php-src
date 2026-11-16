@@ -47,6 +47,10 @@
 # include "win32/sendmail.h"
 #endif
 
+/* Not isspace()/iscntrl(): in a single-byte locale they classify the continuation bytes of UTF-8 sequences */
+#define MAIL_IS_SPACE(c) ((c) == ' ' || ((c) >= '\t' && (c) <= '\r'))
+#define MAIL_IS_CNTRL(c) ((unsigned char) (c) < ' ' || (c) == 0x7f)
+
 #define SKIP_LONG_HEADER_SEP(str, pos)																	\
 	if (str[pos] == '\r' && str[pos + 1] == '\n' && (str[pos + 2] == ' ' || str[pos + 2] == '\t')) {	\
 		pos += 2;																						\
@@ -297,13 +301,13 @@ PHP_FUNCTION(mail)
 	if (to_len > 0) {
 		to_r = estrndup(to, to_len);
 		for (; to_len; to_len--) {
-			if (!isspace((unsigned char) to_r[to_len - 1])) {
+			if (!MAIL_IS_SPACE((unsigned char) to_r[to_len - 1])) {
 				break;
 			}
 			to_r[to_len - 1] = '\0';
 		}
 		for (i = 0; to_r[i]; i++) {
-			if (iscntrl((unsigned char) to_r[i])) {
+			if (MAIL_IS_CNTRL((unsigned char) to_r[i])) {
 				/* According to RFC 822, section 3.1.1 long headers may be separated into
 				 * parts using CRLF followed at least one linear-white-space character ('\t' or ' ').
 				 * To prevent these separators from being replaced with a space, we use the
@@ -319,13 +323,13 @@ PHP_FUNCTION(mail)
 	if (subject_len > 0) {
 		subject_r = estrndup(subject, subject_len);
 		for (; subject_len; subject_len--) {
-			if (!isspace((unsigned char) subject_r[subject_len - 1])) {
+			if (!MAIL_IS_SPACE((unsigned char) subject_r[subject_len - 1])) {
 				break;
 			}
 			subject_r[subject_len - 1] = '\0';
 		}
 		for (i = 0; subject_r[i]; i++) {
-			if (iscntrl((unsigned char) subject_r[i])) {
+			if (MAIL_IS_CNTRL((unsigned char) subject_r[i])) {
 				SKIP_LONG_HEADER_SEP(subject_r, i);
 				subject_r[i] = ' ';
 			}
