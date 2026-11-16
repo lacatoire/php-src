@@ -231,7 +231,7 @@ BGD_DECLARE(int) gdImageNegate(gdImagePtr src)
             b = gdImageBlue(src, pxl);
             a = gdImageAlpha(src, pxl);
 
-            new_pxl = gdImageColorAllocateAlpha(src, 255 - r, 255 - g, 255 - b, a);
+            new_pxl = gdImageColorResolveAlpha(src, 255 - r, 255 - g, 255 - b, a);
             if (new_pxl == -1) {
                 new_pxl = gdImageColorClosestAlpha(src, 255 - r, 255 - g, 255 - b, a);
             }
@@ -284,7 +284,7 @@ BGD_DECLARE(int) gdImageGrayScale(gdImagePtr src)
             a = gdImageAlpha(src, pxl);
             r = g = b = (int)(.299 * r + .587 * g + .114 * b);
 
-            new_pxl = gdImageColorAllocateAlpha(src, r, g, b, a);
+            new_pxl = gdImageColorResolveAlpha(src, r, g, b, a);
             if (new_pxl == -1) {
                 new_pxl = gdImageColorClosestAlpha(src, r, g, b, a);
             }
@@ -346,7 +346,7 @@ BGD_DECLARE(int) gdImageBrightness(gdImagePtr src, int brightness)
             g = (g > 255) ? 255 : ((g < 0) ? 0 : g);
             b = (b > 255) ? 255 : ((b < 0) ? 0 : b);
 
-            new_pxl = gdImageColorAllocateAlpha(src, (int)r, (int)g, (int)b, a);
+            new_pxl = gdImageColorResolveAlpha(src, (int)r, (int)g, (int)b, a);
             if (new_pxl == -1) {
                 new_pxl = gdImageColorClosestAlpha(src, (int)r, (int)g, (int)b, a);
             }
@@ -422,7 +422,7 @@ BGD_DECLARE(int) gdImageContrast(gdImagePtr src, double contrast)
             gf = (gf > 255.0) ? 255.0 : ((gf < 0.0) ? 0.0 : gf);
             bf = (bf > 255.0) ? 255.0 : ((bf < 0.0) ? 0.0 : bf);
 
-            new_pxl = gdImageColorAllocateAlpha(src, (int)rf, (int)gf, (int)bf, a);
+            new_pxl = gdImageColorResolveAlpha(src, (int)rf, (int)gf, (int)bf, a);
             if (new_pxl == -1) {
                 new_pxl = gdImageColorClosestAlpha(src, (int)rf, (int)gf, (int)bf, a);
             }
@@ -483,7 +483,7 @@ gdImageColor(gdImagePtr src, const int red, const int green, const int blue, con
             b = (b > 255) ? 255 : ((b < 0) ? 0 : b);
             a = (a > 127) ? 127 : ((a < 0) ? 0 : a);
 
-            new_pxl = gdImageColorAllocateAlpha(src, r, g, b, a);
+            new_pxl = gdImageColorResolveAlpha(src, r, g, b, a);
             if (new_pxl == -1) {
                 new_pxl = gdImageColorClosestAlpha(src, r, g, b, a);
             }
@@ -569,7 +569,7 @@ gdImageConvolution(gdImagePtr src, float filter[3][3], float filter_div, float o
             new_gi = gdClampFloatToByte(new_g);
             new_bi = gdClampFloatToByte(new_b);
 
-            new_pxl = gdImageColorAllocateAlpha(src, new_ri, new_gi, new_bi, new_a);
+            new_pxl = gdImageColorResolveAlpha(src, new_ri, new_gi, new_bi, new_a);
             if (new_pxl == -1) {
                 new_pxl = gdImageColorClosestAlpha(src, new_ri, new_gi, new_bi, new_a);
             }
@@ -693,7 +693,7 @@ BGD_DECLARE(int) gdImageSelectiveBlur(gdImagePtr src)
             new_r = (new_r > 255.0f) ? 255.0f : ((new_r < 0.0f) ? 0.0f : new_r);
             new_g = (new_g > 255.0f) ? 255.0f : ((new_g < 0.0f) ? 0.0f : new_g);
             new_b = (new_b > 255.0f) ? 255.0f : ((new_b < 0.0f) ? 0.0f : new_b);
-            new_pxl = gdImageColorAllocateAlpha(src, (int)new_r, (int)new_g, (int)new_b, new_a);
+            new_pxl = gdImageColorResolveAlpha(src, (int)new_r, (int)new_g, (int)new_b, new_a);
             if (new_pxl == -1) {
                 new_pxl = gdImageColorClosestAlpha(src, (int)new_r, (int)new_g, (int)new_b, new_a);
             }
