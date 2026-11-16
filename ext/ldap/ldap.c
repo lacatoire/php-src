@@ -3311,6 +3311,15 @@ PHP_FUNCTION(ldap_set_option)
 			if (val == NULL) {
 				RETURN_THROWS();
 			}
+			if (link) {
+				/* The conversion can run user code that closes the connection */
+				if (!ld->link) {
+					zend_string_release(val);
+					zend_throw_error(NULL, "LDAP connection has already been closed");
+					RETURN_THROWS();
+				}
+				ldap = ld->link;
+			}
 			if (ldap_set_option(ldap, option, ZSTR_VAL(val))) {
 				zend_string_release(val);
 				RETURN_FALSE;
