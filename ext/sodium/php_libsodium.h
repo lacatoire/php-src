@@ -32,6 +32,11 @@ extern zend_module_entry sodium_module_entry;
 
 #define SODIUM_CRYPTO_KX_KEYPAIRBYTES() crypto_kx_SECRETKEYBYTES + crypto_kx_PUBLICKEYBYTES
 
+/* The libsodium value is a size_t-bounded unsigned long long: it does not fit in a 32-bit zend_long. */
+#define SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_MESSAGEBYTES_MAX() \
+	(crypto_secretstream_xchacha20poly1305_MESSAGEBYTES_MAX > (unsigned long long) ZEND_LONG_MAX \
+		? ZEND_LONG_MAX : (zend_long) crypto_secretstream_xchacha20poly1305_MESSAGEBYTES_MAX)
+
 #define SODIUM_CRYPTO_SIGN_KEYPAIRBYTES() crypto_sign_SECRETKEYBYTES + crypto_sign_PUBLICKEYBYTES
 
 #ifdef crypto_kem_PUBLICKEYBYTES
