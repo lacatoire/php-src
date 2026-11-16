@@ -980,7 +980,7 @@ PHP_FUNCTION(ldap_connect)
 		RETURN_THROWS();
 	}
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|s!lssl", &host, &hostlen, &port, &wallet, &walletlen, &walletpasswd, &walletpasswdlen, &authmode) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|p!lssl", &host, &hostlen, &port, &wallet, &walletlen, &walletpasswd, &walletpasswdlen, &authmode) != SUCCESS) {
 		RETURN_THROWS();
 	}
 
@@ -988,7 +988,7 @@ PHP_FUNCTION(ldap_connect)
 		ssl = 1;
 	}
 #else
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|s!l", &host, &hostlen, &port) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|p!l", &host, &hostlen, &port) != SUCCESS) {
 		RETURN_THROWS();
 	}
 #endif
@@ -1092,7 +1092,7 @@ PHP_FUNCTION(ldap_connect_wallet) {
 	ldap_linkdata *ld;
 	LDAP *ldap = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "s!ss|l",
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "p!ss|l",
 		&host, &hostlen, &wallet, &walletlen, &walletpasswd, &walletpasswdlen, &authmode) != SUCCESS
 	) {
 		RETURN_THROWS();
