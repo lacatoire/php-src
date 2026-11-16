@@ -136,8 +136,11 @@ PHP_FUNCTION(stream_socket_client)
 		RETURN_THROWS();
 	}
 
-	php_stream_error_operation_begin();
 	context = php_stream_context_from_zval(zcontext, flags & PHP_FILE_NO_DEFAULT_CONTEXT);
+	if (!context) {
+		RETURN_THROWS();
+	}
+	php_stream_error_operation_begin();
 
 	if (flags & PHP_STREAM_CLIENT_PERSISTENT) {
 		zend_string *escaped = php_stream_escape_persistent_key(ZSTR_VAL(host), ZSTR_LEN(host));
@@ -231,8 +234,11 @@ PHP_FUNCTION(stream_socket_server)
 		Z_PARAM_RESOURCE_OR_NULL(zcontext)
 	ZEND_PARSE_PARAMETERS_END();
 
-	php_stream_error_operation_begin();
 	context = php_stream_context_from_zval(zcontext, flags & PHP_FILE_NO_DEFAULT_CONTEXT);
+	if (!context) {
+		RETURN_THROWS();
+	}
+	php_stream_error_operation_begin();
 
 	if (zerrno) {
 		ZEND_TRY_ASSIGN_REF_LONG(zerrno, 0);
