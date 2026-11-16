@@ -147,8 +147,8 @@ PHPAPI int strnatcmp_ex(char const *a, size_t a_len, char const *b, size_t b_len
 		}
 
 		if (is_case_insensitive) {
-			ca = toupper(ca);
-			cb = toupper(cb);
+			ca = zend_toupper_ascii(ca);
+			cb = zend_toupper_ascii(cb);
 		}
 
 		if (ca < cb)
