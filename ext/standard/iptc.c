@@ -349,14 +349,14 @@ PHP_FUNCTION(iptcparse)
 			break;   /* we ran against some data which does not conform to IPTC - stop parsing! */
 		}
 
-		if ((inx + 4) >= str_len)
+		if ((inx + 4) > str_len)
 			break;
 
 		dataset = buffer[ inx++ ];
 		recnum = buffer[ inx++ ];
 
 		if (buffer[ inx ] & (unsigned char) 0x80) { /* long tag */
-			if((inx+6) >= str_len) {
+			if ((inx + 6) > str_len) {
 				break;
 			}
 			len = (((zend_long) buffer[ inx + 2 ]) << 24) + (((zend_long) buffer[ inx + 3 ]) << 16) +
