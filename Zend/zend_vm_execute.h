@@ -5939,9 +5939,6 @@ static ZEND_VM_COLD ZEND_OPCODE_HANDLER_RET ZEND_FASTCALL ZEND_STRLEN_SPEC_CONST
 					zend_error(E_DEPRECATED,
 						"strlen(): Passing null to parameter #1 ($string) of type string is deprecated");
 					ZVAL_LONG(EX_VAR(opline->result.var), 0);
-					if (UNEXPECTED(EG(exception))) {
-						HANDLE_EXCEPTION();
-					}
 					break;
 				}
 
@@ -15572,9 +15569,6 @@ static ZEND_OPCODE_HANDLER_RET ZEND_FASTCALL ZEND_STRLEN_SPEC_TMPVAR_HANDLER(ZEN
 					zend_error(E_DEPRECATED,
 						"strlen(): Passing null to parameter #1 ($string) of type string is deprecated");
 					ZVAL_LONG(EX_VAR(opline->result.var), 0);
-					if (UNEXPECTED(EG(exception))) {
-						HANDLE_EXCEPTION();
-					}
 					break;
 				}
 
@@ -41740,9 +41734,6 @@ static ZEND_OPCODE_HANDLER_RET ZEND_FASTCALL ZEND_STRLEN_SPEC_CV_HANDLER(ZEND_OP
 					zend_error(E_DEPRECATED,
 						"strlen(): Passing null to parameter #1 ($string) of type string is deprecated");
 					ZVAL_LONG(EX_VAR(opline->result.var), 0);
-					if (UNEXPECTED(EG(exception))) {
-						HANDLE_EXCEPTION();
-					}
 					break;
 				}
 
