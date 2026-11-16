@@ -4515,6 +4515,9 @@ BGD_DECLARE(int) gdImagePaletteToTrueColor(gdImagePtr src)
             gdTrueColorAlpha(src->red[c], src->green[c], src->blue[c], src->alpha[c]);
     }
 
+    /* A truecolor image has no palette */
+    src->colorsTotal = 0;
+
     return 1;
 
 clean_on_error:
