@@ -493,6 +493,7 @@ php_socket_t php_network_bind_socket_to_local_addr(const char *host, unsigned po
 		sock = socket(sa->sa_family, socktype, 0);
 
 		if (sock == SOCK_ERR) {
+			err = php_socket_errno();
 			continue;
 		}
 
