@@ -302,7 +302,7 @@ OK
 [c3a5 42 c3a4 43 c3b6 44 c3bc]
 == UTF-16 ==
 Single byte: []
-With from=1: []
+With from=1: [ff01]
 Bad surrogate: []
 Bad surrogate followed by other bytes: [d9001243]
 BE byte order mark: []
