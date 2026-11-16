@@ -3959,7 +3959,7 @@ PHP_FUNCTION(ldap_escape)
 
 	if (flags & PHP_LDAP_ESCAPE_DN) {
 		havecharlist = true;
-		php_ldap_escape_map_set_chars(map, "\\,=+<>;\"#\r", sizeof("\\,=+<>;\"#\r") - 1, true);
+		php_ldap_escape_map_set_chars(map, "\\,=+<>;\"#\r\0", sizeof("\\,=+<>;\"#\r\0") - 1, true);
 	}
 
 	if (!havecharlist) {
