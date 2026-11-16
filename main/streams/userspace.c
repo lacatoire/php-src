@@ -889,6 +889,18 @@ static int php_userstreamop_set_option(php_stream *stream, int option, int value
 		break;
 
 	case PHP_STREAM_OPTION_LOCKING:
+		if (value == 0) {
+			/* lock support test: do not call stream_lock() with an operation flock() never sends */
+			ZVAL_STRINGL(&func_name, USERSTREAM_LOCK, sizeof(USERSTREAM_LOCK)-1);
+			if (zend_is_callable_ex(&func_name, Z_OBJ(us->object), IS_CALLABLE_SUPPRESS_DEPRECATIONS, NULL, NULL, NULL)) {
+				ret = PHP_STREAM_OPTION_RETURN_OK;
+			} else {
+				ret = PHP_STREAM_OPTION_RETURN_ERR;
+			}
+			zval_ptr_dtor(&func_name);
+			break;
+		}
+
 		ZVAL_LONG(&args[0], 0);
 
 		if (value & LOCK_NB) {
@@ -914,14 +926,9 @@ static int php_userstreamop_set_option(php_stream *stream, int option, int value
 		if (call_result == SUCCESS && (Z_TYPE(retval) == IS_FALSE || Z_TYPE(retval) == IS_TRUE)) {
 			ret = (Z_TYPE(retval) == IS_FALSE);
 		} else if (call_result == FAILURE) {
-			if (value == 0) {
-			   	/* lock support test (TODO: more check) */
-				ret = PHP_STREAM_OPTION_RETURN_OK;
-			} else {
-				php_error_docref(NULL, E_WARNING, "%s::" USERSTREAM_LOCK " is not implemented!",
-								 ZSTR_VAL(us->wrapper->ce->name));
-				ret = PHP_STREAM_OPTION_RETURN_ERR;
-			}
+			php_error_docref(NULL, E_WARNING, "%s::" USERSTREAM_LOCK " is not implemented!",
+							 ZSTR_VAL(us->wrapper->ce->name));
+			ret = PHP_STREAM_OPTION_RETURN_ERR;
 		}
 
 		zval_ptr_dtor(&retval);
