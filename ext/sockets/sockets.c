@@ -2792,6 +2792,10 @@ PHP_FUNCTION(socket_export_stream)
 	stream_data->timeout.tv_sec = FG(default_socket_timeout);
 	stream_data->timeout.tv_usec = 0;
 
+	/* Same as socket_import_stream(): bytes read ahead into the stream buffer
+	 * would be invisible to socket_recv() and socket_select() on the Socket. */
+	php_stream_set_option(stream, PHP_STREAM_OPTION_READ_BUFFER, PHP_STREAM_BUFFER_NONE, NULL);
+
 	php_stream_to_zval(stream, &socket->zstream);
 
 	RETURN_COPY(&socket->zstream);
