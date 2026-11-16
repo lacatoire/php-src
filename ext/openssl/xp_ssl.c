@@ -2687,10 +2687,15 @@ static int php_openssl_sockop_set_option(php_stream *stream, int option, int val
 
 			switch(cparam->op) {
 
-				case STREAM_XPORT_CRYPTO_OP_SETUP:
+				case STREAM_XPORT_CRYPTO_OP_SETUP: {
+					/* Setting up raises warnings while the stream state is in use, an error handler
+					 * must not close the stream under it. */
+					uint32_t orig_no_fclose = stream->flags & PHP_STREAM_FLAG_NO_FCLOSE;
+					stream->flags |= PHP_STREAM_FLAG_NO_FCLOSE;
 					cparam->outputs.returncode = php_openssl_setup_crypto(stream, sslsock, cparam);
+					stream->flags = (stream->flags & ~PHP_STREAM_FLAG_NO_FCLOSE) | orig_no_fclose;
 					return PHP_STREAM_OPTION_RETURN_OK;
-					break;
+				}
 				case STREAM_XPORT_CRYPTO_OP_ENABLE:
 					cparam->outputs.returncode = php_openssl_enable_crypto(stream, sslsock, cparam);
 					return PHP_STREAM_OPTION_RETURN_OK;
