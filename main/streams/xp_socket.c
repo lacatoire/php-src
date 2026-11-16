@@ -413,7 +413,16 @@ static int php_sockop_set_option(php_stream *stream, int option, int value, void
 
 			switch (xparam->op) {
 				case STREAM_XPORT_OP_LISTEN:
-					xparam->outputs.returncode = (listen(sock->socket, xparam->inputs.backlog) == 0) ?  0: -1;
+					if (listen(sock->socket, xparam->inputs.backlog) == 0) {
+						xparam->outputs.returncode = 0;
+					} else {
+						int listen_err = php_socket_errno();
+						xparam->outputs.returncode = -1;
+						xparam->outputs.error_code = listen_err;
+						if (xparam->want_errortext) {
+							xparam->outputs.error_text = php_socket_error_str(listen_err);
+						}
+					}
 					return PHP_STREAM_OPTION_RETURN_OK;
 
 				case STREAM_XPORT_OP_GET_NAME:
@@ -709,8 +718,17 @@ static inline int php_tcp_sockop_bind(php_stream *stream, php_netstream_data_t *
 
 		parse_unix_address(xparam, &unix_addr);
 
-		return bind(sock->socket, (const struct sockaddr *)&unix_addr,
-			(socklen_t) XtOffsetOf(struct sockaddr_un, sun_path) + xparam->inputs.namelen);
+		if (bind(sock->socket, (const struct sockaddr *)&unix_addr,
+				(socklen_t) XtOffsetOf(struct sockaddr_un, sun_path) + xparam->inputs.namelen) != 0) {
+			int bind_err = php_socket_errno();
+			xparam->outputs.error_code = bind_err;
+			if (xparam->want_errortext) {
+				xparam->outputs.error_text = php_socket_error_str(bind_err);
+			}
+			return -1;
+		}
+
+		return 0;
 	}
 #endif
 
@@ -760,7 +778,12 @@ static inline int php_tcp_sockop_bind(php_stream *stream, php_netstream_data_t *
 		efree(host);
 	}
 
-	return sock->socket == -1 ? -1 : 0;
+	if (sock->socket == -1) {
+		xparam->outputs.error_code = err;
+		return -1;
+	}
+
+	return 0;
 }
 
 static inline int php_tcp_sockop_connect(php_stream *stream, php_netstream_data_t *sock,
