@@ -78,8 +78,8 @@ static const char _codes[26] =
 
 /* Note: these functions require an uppercase letter input! */
 static zend_always_inline char encode(char c) {
-	if (isalpha((unsigned char)c)) {
-		ZEND_ASSERT(c >= 'A' && c <= 'Z');
+	/* Not isalpha(): single-byte locales classify bytes >= 0x80 as letters. */
+	if (c >= 'A' && c <= 'Z') {
 		return _codes[(c - 'A')];
 	} else {
 		return 0;
