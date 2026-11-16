@@ -251,7 +251,7 @@ PHP_FUNCTION(shm_remove)
 	}
 
 	if (shmctl(shm_list_ptr->id, IPC_RMID, NULL) < 0) {
-		php_error_docref(NULL, E_WARNING, "Failed for key 0x%x, id " ZEND_LONG_FMT ": %s", shm_list_ptr->key, Z_LVAL_P(shm_id), strerror(errno));
+		php_error_docref(NULL, E_WARNING, "Failed for key 0x%x, id " ZEND_LONG_FMT ": %s", shm_list_ptr->key, shm_list_ptr->id, strerror(errno));
 		RETURN_FALSE;
 	}
 
