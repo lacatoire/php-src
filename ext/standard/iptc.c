@@ -205,6 +205,12 @@ PHP_FUNCTION(iptcembed)
 		RETURN_THROWS();
 	}
 
+	/* The data, padded to an even length, and the 28 header bytes must fit in the 16-bit APP13 segment length */
+	if (iptcdata_len > 65506) {
+		zend_argument_value_error(1, "must not be longer than 65506 bytes");
+		RETURN_THROWS();
+	}
+
 	if ((fp = VCWD_FOPEN(jpeg_file, "rb")) == 0) {
 		php_error_docref(NULL, E_WARNING, "Unable to open %s", jpeg_file);
 		RETURN_FALSE;
