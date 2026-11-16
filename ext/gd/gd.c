@@ -120,6 +120,7 @@ static void _php_image_create_from(INTERNAL_FUNCTION_PARAMETERS, int image_type,
 static void _php_image_output(INTERNAL_FUNCTION_PARAMETERS, int image_type);
 static gdIOCtx *create_stream_context(php_stream *stream, int close_stream);
 static gdIOCtx *create_output_context(zval *to_zval, uint32_t arg_num);
+static bool php_gd_output_succeeded(gdIOCtx *ctx);
 static int _php_image_type(zend_string *data);
 
 /*********************************************************
@@ -1846,8 +1847,17 @@ static void _php_image_output(INTERNAL_FUNCTION_PARAMETERS, int image_type)
 				break;
 			default: ZEND_UNREACHABLE();
 		}
-		fflush(fp);
-		fclose(fp);
+		bool failed = ferror(fp) != 0;
+		if (fflush(fp) != 0) {
+			failed = true;
+		}
+		if (fclose(fp) != 0) {
+			failed = true;
+		}
+		if (failed) {
+			php_error_docref(NULL, E_WARNING, "Unable to write the image to \"%s\"", file);
+			RETURN_FALSE;
+		}
 	} else {
 		size_t b;
 		FILE *tmp;
@@ -1931,9 +1941,10 @@ PHP_FUNCTION(imagexbm)
 
 	gdImageXbmCtx(im, file ? file : "", (int) foreground_color, ctx);
 
+	bool succeeded = php_gd_output_succeeded(ctx);
 	ctx->gd_free(ctx);
 
-	RETURN_TRUE;
+	RETURN_BOOL(succeeded);
 }
 /* }}} */
 
@@ -1971,9 +1982,10 @@ PHP_FUNCTION(imagegif)
 										 quantization_speed);
 	}
 
+	bool succeeded = php_gd_output_succeeded(ctx);
 	ctx->gd_free(ctx);
 
-	RETURN_TRUE;
+	RETURN_BOOL(succeeded);
 }
 /* }}} */
 
@@ -2031,9 +2043,10 @@ PHP_FUNCTION(imagepng)
 	gdImagePngCtxEx(im, ctx, (int) quality);
 #endif
 
+	bool succeeded = php_gd_output_succeeded(ctx);
 	ctx->gd_free(ctx);
 
-	RETURN_TRUE;
+	RETURN_BOOL(succeeded);
 }
 /* }}} */
 #endif /* HAVE_GD_PNG */
@@ -2067,9 +2080,10 @@ PHP_FUNCTION(imagewebp)
 
 	gdImageWebpCtx(im, ctx, (int) quality);
 
+	bool succeeded = php_gd_output_succeeded(ctx);
 	ctx->gd_free(ctx);
 
-	RETURN_TRUE;
+	RETURN_BOOL(succeeded);
 }
 /* }}} */
 #endif /* HAVE_GD_WEBP */
@@ -2111,9 +2125,10 @@ PHP_FUNCTION(imageavif)
 
 	gdImageAvifCtx(im, ctx, (int) quality, (int) speed);
 
+	bool succeeded = php_gd_output_succeeded(ctx);
 	ctx->gd_free(ctx);
 
-	RETURN_TRUE;
+	RETURN_BOOL(succeeded);
 }
 /* }}} */
 #endif /* HAVE_GD_AVIF */
@@ -2147,9 +2162,10 @@ PHP_FUNCTION(imagejpeg)
 
 	gdImageJpegCtx(im, ctx, (int) quality);
 
+	bool succeeded = php_gd_output_succeeded(ctx);
 	ctx->gd_free(ctx);
 
-	RETURN_TRUE;
+	RETURN_BOOL(succeeded);
 }
 /* }}} */
 #endif /* HAVE_GD_JPG */
@@ -2191,9 +2207,10 @@ PHP_FUNCTION(imagewbmp)
 
 	gdImageWBMPCtx(im, foreground_color, ctx);
 
+	bool succeeded = php_gd_output_succeeded(ctx);
 	ctx->gd_free(ctx);
 
-	RETURN_TRUE;
+	RETURN_BOOL(succeeded);
 }
 /* }}} */
 
@@ -2236,9 +2253,10 @@ PHP_FUNCTION(imagebmp)
 
 	gdImageBmpCtx(im, ctx, (int) compressed);
 
+	bool succeeded = php_gd_output_succeeded(ctx);
 	ctx->gd_free(ctx);
 
-	RETURN_TRUE;
+	RETURN_BOOL(succeeded);
 }
 /* }}} */
 
@@ -4501,13 +4519,17 @@ static void _php_image_output_ctxfree(struct gdIOCtx *ctx) /* {{{ */
 typedef struct {
 	gdIOCtx ctx;
 	size_t buf_len;
+	bool failed;
 	unsigned char buf[8192];
 } php_gd_stream_ctx;
 
 static void _php_image_stream_flush(php_gd_stream_ctx *stream_ctx) /* {{{ */
 {
 	if (stream_ctx->buf_len) {
-		php_stream_write((php_stream *) stream_ctx->ctx.data, (char *) stream_ctx->buf, stream_ctx->buf_len);
+		ssize_t written = php_stream_write((php_stream *) stream_ctx->ctx.data, (char *) stream_ctx->buf, stream_ctx->buf_len);
+		if (written < 0 || (size_t) written != stream_ctx->buf_len) {
+			stream_ctx->failed = true;
+		}
 		stream_ctx->buf_len = 0;
 	}
 } /* }}} */
@@ -4524,8 +4546,23 @@ static int _php_image_stream_putbuf(struct gdIOCtx *ctx, const void* buf, int l)
 {
 	php_stream * stream = (php_stream *)ctx->data;
 	_php_image_stream_flush((php_gd_stream_ctx *) ctx);
-	return php_stream_write(stream, (void *)buf, l);
+	ssize_t written = php_stream_write(stream, (void *)buf, l);
+	if (written < 0 || written != l) {
+		((php_gd_stream_ctx *) ctx)->failed = true;
+	}
+	return (int) written;
 } /* }}} */
+
+/* Whether everything the encoder produced reached the destination */
+static bool php_gd_output_succeeded(gdIOCtx *ctx)
+{
+	if (ctx->putC != _php_image_stream_putc) {
+		return true;
+	}
+	php_gd_stream_ctx *stream_ctx = (php_gd_stream_ctx *) ctx;
+	_php_image_stream_flush(stream_ctx);
+	return !stream_ctx->failed;
+}
 
 static void _php_image_stream_ctxfree(struct gdIOCtx *ctx) /* {{{ */
 {
