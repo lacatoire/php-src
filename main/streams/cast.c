@@ -193,8 +193,9 @@ PHPAPI zend_result php_stream_cast(php_stream *stream, int castas, void **ret, i
 	int flags = castas & PHP_STREAM_CAST_MASK;
 	castas &= ~PHP_STREAM_CAST_MASK;
 
-	/* synchronize our buffer (if possible) */
-	if (ret && castas != PHP_STREAM_AS_FD_FOR_SELECT && castas != PHP_STREAM_AS_FD_FOR_COPY
+	/* synchronize our buffer (if possible), unless the cast is only an internal query */
+	if (ret && (flags & PHP_STREAM_CAST_INTERNAL) == 0
+			&& castas != PHP_STREAM_AS_FD_FOR_SELECT && castas != PHP_STREAM_AS_FD_FOR_COPY
 			&& castas != PHP_STREAM_AS_FD_FOR_POLL) {
 		php_stream_flush(stream);
 		if (stream->ops->seek && (stream->flags & PHP_STREAM_FLAG_NO_SEEK) == 0) {
