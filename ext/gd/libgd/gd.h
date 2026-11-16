@@ -1298,7 +1298,7 @@ BGD_DECLARE(void *) gdImageWBMPPtr(gdImagePtr im, int *size, int fg);
 /* 100 is highest quality (there is always a little loss with JPEG).
        0 is lowest. 10 is about the lowest useful setting. */
 BGD_DECLARE(void) gdImageJpeg(gdImagePtr im, FILE *out, int quality);
-BGD_DECLARE(void) gdImageJpegCtx(gdImagePtr im, gdIOCtxPtr out, int quality);
+BGD_DECLARE(int) gdImageJpegCtx(gdImagePtr im, gdIOCtxPtr out, int quality);
 BGD_DECLARE(void)
 gdImageJpegCtxWithMetadata(gdImagePtr im, gdIOCtxPtr out, int quality,
                            const gdImageMetadata *metadata);
