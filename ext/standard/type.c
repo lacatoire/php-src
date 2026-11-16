@@ -150,6 +150,10 @@ PHP_FUNCTION(intval)
 		RETURN_LONG(zval_get_long(num));
 	}
 
+	if (base != 0 && (base < 2 || base > 36)) {
+		zend_argument_value_error(2, "must be 0 or between 2 and 36 (inclusive)");
+		RETURN_THROWS();
+	}
 
 	if (base == 0 || base == 2) {
 		char *strval = Z_STRVAL_P(num);
