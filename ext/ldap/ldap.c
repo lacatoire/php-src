@@ -2147,7 +2147,7 @@ PHP_FUNCTION(ldap_get_values_len)
 	resultentry = Z_LDAP_RESULT_ENTRY_P(result_entry);
 
 	if ((ldap_value_len = ldap_get_values_len(ld->link, resultentry->data, attr)) == NULL) {
-		php_error_docref(NULL, E_WARNING, "Cannot get the value(s) of attribute %s", ldap_err2string(_get_lderrno(ld->link)));
+		php_error_docref(NULL, E_WARNING, "Cannot get the value(s) of attribute \"%s\": %s", attr, ldap_err2string(_get_lderrno(ld->link)));
 		RETURN_FALSE;
 	}
 
