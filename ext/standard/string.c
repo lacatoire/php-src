@@ -261,6 +261,7 @@ PHP_FUNCTION(nl_langinfo)
 {
 	zend_long item;
 	char *value;
+	bool is_char_item = false;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
 		Z_PARAM_LONG(item)
@@ -373,6 +374,8 @@ PHP_FUNCTION(nl_langinfo)
 #ifdef NEGATIVE_SIGN
 		case NEGATIVE_SIGN:
 #endif
+			break;
+		/* These items are single chars, not NUL-terminated strings. */
 #ifdef INT_FRAC_DIGITS
 		case INT_FRAC_DIGITS:
 #endif
@@ -397,6 +400,8 @@ PHP_FUNCTION(nl_langinfo)
 #ifdef N_SIGN_POSN
 		case N_SIGN_POSN:
 #endif
+			is_char_item = true;
+			break;
 #ifdef DECIMAL_POINT
 		case DECIMAL_POINT:
 #elif defined(RADIXCHAR)
@@ -435,6 +440,8 @@ PHP_FUNCTION(nl_langinfo)
 	value = nl_langinfo(item);
 	if (value == NULL) {
 		RETURN_FALSE;
+	} else if (is_char_item) {
+		RETURN_STRINGL(value, 1);
 	} else {
 		RETURN_STRING(value);
 	}
