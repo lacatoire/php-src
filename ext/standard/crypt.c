@@ -90,16 +90,16 @@ PHPAPI zend_string *php_crypt(const char *password, const int pass_len, const ch
 			return NULL;
 		} else if (salt[0]=='$' && salt[1]=='6' && salt[2]=='$') {
 			char *output;
-			output = emalloc(PHP_MAX_SALT_LEN);
+			output = emalloc(PHP_MAX_SHA512_CRYPT_LEN);
 
-			crypt_res = php_sha512_crypt_r(password, salt, output, PHP_MAX_SALT_LEN);
+			crypt_res = php_sha512_crypt_r(password, salt, output, PHP_MAX_SHA512_CRYPT_LEN);
 			if (!crypt_res) {
-				ZEND_SECURE_ZERO(output, PHP_MAX_SALT_LEN);
+				ZEND_SECURE_ZERO(output, PHP_MAX_SHA512_CRYPT_LEN);
 				efree(output);
 				return NULL;
 			} else {
 				result = zend_string_init(output, strlen(output), 0);
-				ZEND_SECURE_ZERO(output, PHP_MAX_SALT_LEN);
+				ZEND_SECURE_ZERO(output, PHP_MAX_SHA512_CRYPT_LEN);
 				efree(output);
 				return result;
 			}
