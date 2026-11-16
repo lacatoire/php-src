@@ -4257,7 +4257,24 @@ static zend_always_inline void php_array_replace_wrapper(INTERNAL_FUNCTION_PARAM
 	} else {
 		for (i = 1; i < argc; i++) {
 			arg = args + i;
-			zend_hash_merge(dest, Z_ARRVAL_P(arg), zval_add_ref, 1);
+			zend_string *string_key;
+			zend_ulong num_key;
+			zval *src_entry;
+			ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(arg), num_key, string_key, src_entry) {
+				if (in_place && GC_REFCOUNT(dest) != 1) {
+					/* A destructor run by an overwrite took a reference to the array */
+					dest = zend_array_dup(dest);
+					ZVAL_ARR(return_value, dest);
+					in_place = false;
+				}
+				zval *dest_entry;
+				if (string_key) {
+					dest_entry = zend_hash_update(dest, string_key, src_entry);
+				} else {
+					dest_entry = zend_hash_index_update(dest, num_key, src_entry);
+				}
+				zval_add_ref(dest_entry);
+			} ZEND_HASH_FOREACH_END();
 		}
 	}
 
@@ -5123,6 +5140,11 @@ PHP_FUNCTION(array_unique)
 			} else {
 				p = &cmpdata->b;
 			}
+			if (in_place && GC_REFCOUNT(Z_ARRVAL_P(return_value)) != 1) {
+				/* A destructor run by a deletion took a reference to the array */
+				RETVAL_ARR(zend_array_dup(Z_ARRVAL_P(return_value)));
+				in_place = false;
+			}
 			if (p->key == NULL) {
 				zend_hash_index_del(Z_ARRVAL_P(return_value), p->h);
 			} else {
@@ -5441,6 +5463,11 @@ static void php_array_intersect(INTERNAL_FUNCTION_PARAMETERS, int behavior, int 
 					if (Z_TYPE(p->val) == IS_UNDEF) {
 						goto out;
 					}
+					if (in_place && GC_REFCOUNT(Z_ARRVAL_P(return_value)) != 1) {
+						/* A comparator or a destructor took a reference to the array */
+						RETVAL_ARR(zend_array_dup(Z_ARRVAL_P(return_value)));
+						in_place = false;
+					}
 					if (p->key == NULL) {
 						zend_hash_index_del(Z_ARRVAL_P(return_value), p->h);
 					} else {
@@ -5457,6 +5484,11 @@ static void php_array_intersect(INTERNAL_FUNCTION_PARAMETERS, int behavior, int 
 			/* with value < value of ptrs[i] */
 			for (;;) {
 				p = ptrs[0];
+				if (in_place && GC_REFCOUNT(Z_ARRVAL_P(return_value)) != 1) {
+					/* A comparator or a destructor took a reference to the array */
+					RETVAL_ARR(zend_array_dup(Z_ARRVAL_P(return_value)));
+					in_place = false;
+				}
 				if (p->key == NULL) {
 					zend_hash_index_del(Z_ARRVAL_P(return_value), p->h);
 				} else {
@@ -5558,6 +5590,12 @@ static zend_always_inline void php_array_intersect_empty_result(zval *first, zva
 	}
 
 	ZEND_HASH_FOREACH_KEY(result, zend_ulong num_key, zend_string *key) {
+		if (in_place && GC_REFCOUNT(result) != 1) {
+			/* A destructor run by a deletion took a reference to the array */
+			result = zend_array_dup(result);
+			ZVAL_ARR(return_value, result);
+			in_place = false;
+		}
 		if (key) {
 			zend_hash_del(result, key);
 		} else {
@@ -5682,18 +5720,16 @@ static zend_never_inline void php_array_intersect_hash(zval *args, uint32_t argc
 		}
 	}
 
-	/* A conversion may retain the first argument through reentrant user code,
-	 * so it may no longer be safe to modify the original array in place. */
-	if (in_place && !zend_may_modify_arg_in_place(&args[0])) {
-		result = zend_array_dup(Z_ARRVAL(args[0]));
-		ZVAL_ARR(return_value, result);
-		in_place = false;
-	}
-
 	/* The late duplication may compact holes, so read keys from the table whose
 	 * bucket indexes are stored in the bitset. */
 	uint32_t result_idx;
 	ZEND_BITSET_FOREACH(delete_bitset, delete_bitset_len, result_idx) {
+		if (in_place && GC_REFCOUNT(result) != 1) {
+			/* A destructor run by a deletion took a reference to the array */
+			result = zend_array_dup(result);
+			ZVAL_ARR(return_value, result);
+			in_place = false;
+		}
 		if (HT_IS_PACKED(scanned_result)) {
 			zend_hash_index_del(result, result_idx);
 		} else {
