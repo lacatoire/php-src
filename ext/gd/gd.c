@@ -3804,6 +3804,9 @@ PHP_FUNCTION(imageconvolution)
 					RETURN_THROWS();
 				}
 			}
+		} else {
+			zend_argument_value_error(2, "must be a 3x3 array, matrix[%d] must be an array", i);
+			RETURN_THROWS();
 		}
 	}
 
