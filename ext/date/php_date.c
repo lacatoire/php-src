@@ -1273,6 +1273,7 @@ PHPAPI void php_strftime(INTERNAL_FUNCTION_PARAMETERS, bool gmt)
 	timelib_tzinfo      *tzi;
 	timelib_time_offset *offset = NULL;
 	zend_string 		*buf;
+	zend_string 		*sentinel_format;
 
 	ZEND_PARSE_PARAMETERS_START(1, 2)
 		Z_PARAM_STR(format)
@@ -1333,7 +1334,10 @@ PHPAPI void php_strftime(INTERNAL_FUNCTION_PARAMETERS, bool gmt)
 	   initial buffer is too small. See
 	   http://connect.microsoft.com/VisualStudio/feedback/details/759720/vs2012-strftime-crash-with-z-formatting-code */
 	buf = zend_string_alloc(buf_len, 0);
-	while ((real_len = strftime(ZSTR_VAL(buf), buf_len, ZSTR_VAL(format), &ta)) == buf_len || real_len == 0) {
+	/* strftime() returns 0 both for a buffer that is too small and for a valid format that
+	 * expands to nothing (for instance %Z on musl). A leading character tells them apart. */
+	sentinel_format = zend_string_concat2("x", 1, ZSTR_VAL(format), ZSTR_LEN(format));
+	while ((real_len = strftime(ZSTR_VAL(buf), buf_len, ZSTR_VAL(sentinel_format), &ta)) == buf_len || real_len == 0) {
 		buf_len *= 2;
 		buf = zend_string_extend(buf, buf_len, 0);
 		if (!--max_reallocs) {
@@ -1348,13 +1352,16 @@ PHPAPI void php_strftime(INTERNAL_FUNCTION_PARAMETERS, bool gmt)
 	}
 #endif
 
+	zend_string_release_ex(sentinel_format, 0);
 	timelib_time_dtor(ts);
 	if (!gmt) {
 		timelib_time_offset_dtor(offset);
 	}
 
 	if (real_len && real_len != buf_len) {
-		buf = zend_string_truncate(buf, real_len, 0);
+		/* Drop the leading character, keeping the terminating NUL written by strftime() */
+		memmove(ZSTR_VAL(buf), ZSTR_VAL(buf) + 1, real_len);
+		buf = zend_string_truncate(buf, real_len - 1, 0);
 		RETURN_NEW_STR(buf);
 	}
 	zend_string_efree(buf);
