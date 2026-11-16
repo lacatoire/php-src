@@ -32,11 +32,13 @@ var_dump(mb_strpos($haystack, "\xD8\x3D\xDE\x01", 0, 'UCS-2'));
 var_dump(mb_stripos($haystack, "\xD8\x3D\xDE\x01", 0, 'UCS-2'));
 var_dump(mb_substr_count($haystack, "\xDE\x01", 'UCS-2'));
 ?>
---EXPECT--
+--EXPECTF--
 UCS-4: 413f42 true
 UCS-4LE: 3f true
 UCS-2: 3f3f true
 UCS-2LE: 3f true
+
+Deprecated: mb_convert_encoding(): Handling HTML entities via mbstring is deprecated; use htmlspecialchars, htmlentities, or mb_encode_numericentity/mb_decode_numericentity instead in %s on line %d
 HTML-ENTITIES: 3f3f true
 mb_convert_variables: 3f true
 mb_decode_numericentity: 3f3f true
