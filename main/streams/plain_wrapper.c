@@ -610,12 +610,7 @@ static int php_stdiop_flush(php_stream *stream)
 static int php_stdiop_sync(php_stream *stream, bool dataonly)
 {
 	php_stdio_stream_data *data = (php_stdio_stream_data*)stream->abstract;
-	FILE *fp;
 	int fd;
-
-	if (php_stream_cast(stream, PHP_STREAM_AS_STDIO, (void**)&fp, REPORT_ERRORS) == FAILURE) {
-		return -1;
-	}
 
 	if (php_stdiop_flush(stream) == 0) {
 		PHP_STDIOP_GET_FD(fd, data);
