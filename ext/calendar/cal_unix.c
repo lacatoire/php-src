@@ -17,6 +17,7 @@
 #include "php.h"
 #include "php_calendar.h"
 #include "sdncal.h"
+#include "ext/date/php_date.h"
 #include <time.h>
 
 #define SECS_PER_DAY (24 * 3600)
@@ -27,7 +28,9 @@ PHP_FUNCTION(unixtojd)
 	time_t ts;
 	zend_long tl = 0;
 	bool tl_is_null = true;
-	struct tm *ta, tmbuf;
+	timelib_tzinfo *tzi;
+	timelib_time_offset *offset;
+	zend_long local_ts;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|l!", &tl, &tl_is_null) == FAILURE) {
 		RETURN_THROWS();
@@ -42,11 +45,23 @@ PHP_FUNCTION(unixtojd)
 		RETURN_THROWS();
 	}
 
-	if (!(ta = php_localtime_r(&ts, &tmbuf))) {
-		RETURN_FALSE;
+	/* Use the time zone of PHP (date_default_timezone_set(), date.timezone), as date() does */
+	tzi = get_timezone_info();
+	if (!tzi) {
+		RETURN_THROWS();
 	}
 
-	RETURN_LONG(GregorianToSdn(ta->tm_year+1900, ta->tm_mon+1, ta->tm_mday));
+	offset = timelib_get_time_zone_info((timelib_sll) ts, tzi);
+	local_ts = (zend_long) ts + offset->offset;
+	timelib_time_offset_dtor(offset);
+
+	/* Days since the epoch, rounded down for a local time before it */
+	zend_long days = local_ts / SECS_PER_DAY;
+	if (local_ts % SECS_PER_DAY < 0) {
+		days--;
+	}
+
+	RETURN_LONG(days + 2440588 /* J.D. of 1.1.1970 */);
 }
 /* }}} */
 
