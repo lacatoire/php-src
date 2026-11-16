@@ -282,14 +282,14 @@ static bool php_accept_connect(php_socket *in_sock, php_socket *out_sock, struct
 	out_sock->bsd_socket = accept4(in_sock->bsd_socket, la, la_len, flags);
 
 	if (IS_INVALID_SOCKET(out_sock)) {
-		PHP_SOCKET_ERROR(out_sock, "unable to accept incoming connection", errno);
+		PHP_SOCKET_ERROR(in_sock, "unable to accept incoming connection", errno);
 		return false;
 	}
 #else
 	out_sock->bsd_socket = accept(in_sock->bsd_socket, la, la_len);
 
 	if (IS_INVALID_SOCKET(out_sock)) {
-		PHP_SOCKET_ERROR(out_sock, "unable to accept incoming connection", errno);
+		PHP_SOCKET_ERROR(in_sock, "unable to accept incoming connection", errno);
 		return false;
 	}
 
@@ -301,7 +301,7 @@ static bool php_accept_connect(php_socket *in_sock, php_socket *out_sock, struct
 	int mode;
 
 	if ((mode = fcntl(out_sock->bsd_socket, F_GETFD)) < 0) {
-		PHP_SOCKET_ERROR(out_sock, "unable to get fcntl mode on the socket", errno);
+		PHP_SOCKET_ERROR(in_sock, "unable to get fcntl mode on the socket", errno);
 		return false;
 	}
 
@@ -309,7 +309,7 @@ static bool php_accept_connect(php_socket *in_sock, php_socket *out_sock, struct
 
 	if (mode != cloexec) {
 		if (fcntl(out_sock->bsd_socket, F_SETFD, cloexec) < 0) {
-			PHP_SOCKET_ERROR(out_sock, "unable to set cloexec mode on the socket", errno);
+			PHP_SOCKET_ERROR(in_sock, "unable to set cloexec mode on the socket", errno);
 			return false;
 		}
 	}
