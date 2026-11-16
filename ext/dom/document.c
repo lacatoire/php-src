@@ -1066,6 +1066,47 @@ PHP_METHOD(DOMDocument, getElementById)
 }
 /* }}} end dom_document_get_element_by_id */
 
+/* A node can be shared with owners that are not dom objects (e.g. SimpleXMLElement), and only
+ * the dom owner recorded in _private can be moved to the new document. Moving the node anyway
+ * would leave the other owners with a reference to the old document. */
+static bool php_dom_node_has_foreign_owner(const xmlNode *node)
+{
+	const php_libxml_node_ptr *ptr = node->_private;
+	return ptr != NULL && ptr->refcount > (ptr->_private != NULL ? 1 : 0);
+}
+
+static bool php_dom_subtree_has_foreign_owner(xmlNodePtr base)
+{
+	xmlNodePtr node = base;
+	do {
+		if (php_dom_node_has_foreign_owner(node)) {
+			return true;
+		}
+		if (node->type == XML_ELEMENT_NODE) {
+			for (const xmlAttr *attr = node->properties; attr != NULL; attr = attr->next) {
+				if (php_dom_node_has_foreign_owner((const xmlNode *) attr)) {
+					return true;
+				}
+				for (const xmlNode *child = attr->children; child != NULL; child = child->next) {
+					if (php_dom_node_has_foreign_owner(child)) {
+						return true;
+					}
+				}
+			}
+		}
+		/* The children of an entity reference belong to the entity declaration, not to this subtree. */
+		if (node->children != NULL && node->type != XML_ENTITY_REF_NODE) {
+			node = node->children;
+			continue;
+		}
+		while (node != base && node->next == NULL) {
+			node = node->parent;
+		}
+		node = node == base ? NULL : node->next;
+	} while (node != NULL);
+	return false;
+}
+
 static void php_dom_transfer_document_ref_single_node(xmlNodePtr node, php_libxml_ref_obj *new_document)
 {
 	php_libxml_node_ptr *iteration_object_ptr = node->_private;
@@ -1160,6 +1201,10 @@ bool php_dom_adopt_node(xmlNodePtr nodep, dom_object *dom_object_new_document, x
 
 	php_libxml_invalidate_node_list_cache_from_doc(old_doc);
 	if (old_doc != new_document) {
+		if (UNEXPECTED(php_dom_subtree_has_foreign_owner(nodep))) {
+			return false;
+		}
+
 		php_libxml_invalidate_node_list_cache(dom_object_new_document->document);
 
 		/* Note for ATTRIBUTE_NODE: specified is always true in ext/dom,
