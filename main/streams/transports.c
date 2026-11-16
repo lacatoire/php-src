@@ -49,6 +49,11 @@ PHPAPI int php_stream_xport_unregister(const char *protocol)
 		if (local_err) { zend_string_release_ex(local_err, 0); local_err = NULL; } \
 	}
 
+static int php_stream_xport_bind_ex(php_stream *stream, const char *name, size_t namelen,
+		zend_string **error_text, int *error_code);
+static int php_stream_xport_listen_ex(php_stream *stream, int backlog,
+		zend_string **error_text, int *error_code);
+
 PHPAPI php_stream *_php_stream_xport_create(const char *name, size_t namelen, int options,
 		int flags, const char *persistent_id,
 		struct timeval *timeout,
@@ -155,7 +160,7 @@ PHPAPI php_stream *_php_stream_xport_create(const char *name, size_t namelen, in
 			} else {
 				/* server */
 				if (flags & STREAM_XPORT_BIND) {
-					if (0 != php_stream_xport_bind(stream, name, namelen, &error_text)) {
+					if (0 != php_stream_xport_bind_ex(stream, name, namelen, &error_text, error_code)) {
 						ERR_RETURN(error_string, error_text, "bind() failed: %s");
 						failed = true;
 					} else if (flags & STREAM_XPORT_LISTEN) {
@@ -166,7 +171,7 @@ PHPAPI php_stream *_php_stream_xport_create(const char *name, size_t namelen, in
 							backlog = zval_get_long(zbacklog);
 						}
 
-						if (0 != php_stream_xport_listen(stream, backlog, &error_text)) {
+						if (0 != php_stream_xport_listen_ex(stream, backlog, &error_text, error_code)) {
 							ERR_RETURN(error_string, error_text, "listen() failed: %s");
 							failed = true;
 						}
@@ -197,10 +202,11 @@ PHPAPI php_stream *_php_stream_xport_create(const char *name, size_t namelen, in
 	return stream;
 }
 
-/* Bind the stream to a local address */
-PHPAPI int php_stream_xport_bind(php_stream *stream,
+/* Bind the stream to a local address, optionally reporting the system error code */
+static int php_stream_xport_bind_ex(php_stream *stream,
 		const char *name, size_t namelen,
-		zend_string **error_text
+		zend_string **error_text,
+		int *error_code
 		)
 {
 	php_stream_xport_param param;
@@ -218,11 +224,23 @@ PHPAPI int php_stream_xport_bind(php_stream *stream,
 		if (error_text) {
 			*error_text = param.outputs.error_text;
 		}
+		if (error_code && param.outputs.returncode != 0) {
+			*error_code = param.outputs.error_code;
+		}
 
 		return param.outputs.returncode;
 	}
 
 	return ret;
+}
+
+/* Bind the stream to a local address */
+PHPAPI int php_stream_xport_bind(php_stream *stream,
+		const char *name, size_t namelen,
+		zend_string **error_text
+		)
+{
+	return php_stream_xport_bind_ex(stream, name, namelen, error_text, NULL);
 }
 
 /* Connect to a remote address */
@@ -262,7 +280,7 @@ PHPAPI int php_stream_xport_connect(php_stream *stream,
 }
 
 /* Prepare to listen */
-PHPAPI int php_stream_xport_listen(php_stream *stream, int backlog, zend_string **error_text)
+static int php_stream_xport_listen_ex(php_stream *stream, int backlog, zend_string **error_text, int *error_code)
 {
 	php_stream_xport_param param;
 	int ret;
@@ -278,11 +296,19 @@ PHPAPI int php_stream_xport_listen(php_stream *stream, int backlog, zend_string 
 		if (error_text) {
 			*error_text = param.outputs.error_text;
 		}
+		if (error_code && param.outputs.returncode != 0) {
+			*error_code = param.outputs.error_code;
+		}
 
 		return param.outputs.returncode;
 	}
 
 	return ret;
+}
+
+PHPAPI int php_stream_xport_listen(php_stream *stream, int backlog, zend_string **error_text)
+{
+	return php_stream_xport_listen_ex(stream, backlog, error_text, NULL);
 }
 
 /* Get the next client and their address (as a string) */
