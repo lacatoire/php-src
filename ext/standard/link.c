@@ -44,6 +44,7 @@ PHP_FUNCTION(readlink)
 	char *link;
 	size_t link_len;
 	char buff[MAXPATHLEN];
+	char expanded_link[MAXPATHLEN];
 	ssize_t ret;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
@@ -54,7 +55,13 @@ PHP_FUNCTION(readlink)
 		RETURN_FALSE;
 	}
 
-	ret = php_sys_readlink(link, buff, MAXPATHLEN-1);
+	/* Expand against the virtual cwd without following the link itself, so the read matches the open_basedir check. */
+	if (!expand_filepath_with_mode(link, expanded_link, NULL, 0, CWD_EXPAND)) {
+		php_error_docref(NULL, E_WARNING, "No such file or directory");
+		RETURN_FALSE;
+	}
+
+	ret = php_sys_readlink(expanded_link, buff, MAXPATHLEN-1);
 
 	if (ret == -1) {
 #ifdef PHP_WIN32
