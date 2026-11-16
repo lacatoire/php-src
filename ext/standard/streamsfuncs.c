@@ -409,11 +409,12 @@ PHP_FUNCTION(stream_socket_recvfrom)
 		Z_PARAM_ZVAL(zremote)
 	ZEND_PARSE_PARAMETERS_END();
 
-	php_stream_from_zval(stream, zstream);
-
 	if (zremote) {
 		ZEND_TRY_ASSIGN_REF_NULL(zremote);
 	}
+
+	/* Releasing the previous value of $address can run a destructor that closes the stream. */
+	php_stream_from_zval(stream, zstream);
 
 	if (to_read <= 0) {
 		zend_argument_value_error(2, "must be greater than 0");
