@@ -695,6 +695,15 @@ static inline int php_tcp_sockop_bind(php_stream *stream, php_netstream_data_t *
 	if (stream->ops == &php_stream_unix_socket_ops || stream->ops == &php_stream_unixdg_socket_ops) {
 		struct sockaddr_un unix_addr;
 
+		/* An abstract name starts with a NUL byte, any other NUL byte would silently truncate the path. */
+		if (xparam->inputs.namelen > 0 && xparam->inputs.name[0] != '\0'
+				&& memchr(xparam->inputs.name, '\0', xparam->inputs.namelen) != NULL) {
+			if (xparam->want_errortext) {
+				xparam->outputs.error_text = strpprintf(0, "The path must not contain null bytes");
+			}
+			return -1;
+		}
+
 		sock->socket = socket(PF_UNIX, stream->ops == &php_stream_unix_socket_ops ? SOCK_STREAM : SOCK_DGRAM, 0);
 
 		if (sock->socket == SOCK_ERR) {
