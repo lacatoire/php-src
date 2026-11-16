@@ -613,6 +613,8 @@ BGD_DECLARE(int) gdImageSelectiveBlur(gdImagePtr src)
         for (x = 0; x < src->sx; x++) {
             flt_r_sum = flt_g_sum = flt_b_sum = 0.0;
             cpxl = f(src, x, y);
+            /* The alpha of the pixel being filtered, not the one of its last neighbour */
+            new_a = gdImageAlpha(srcback, cpxl);
 
             for (j = 0; j < 3; j++) {
                 for (i = 0; i < 3; i++) {
@@ -620,8 +622,6 @@ BGD_DECLARE(int) gdImageSelectiveBlur(gdImagePtr src)
                         flt_r[1][1] = flt_g[1][1] = flt_b[1][1] = 0.5;
                     } else {
                         pxl = f(src, x - (3 >> 1) + i, y - (3 >> 1) + j);
-                        new_a = gdImageAlpha(srcback, pxl);
-
                         new_r =
                             ((float)gdImageRed(srcback, cpxl)) - ((float)gdImageRed(srcback, pxl));
 
