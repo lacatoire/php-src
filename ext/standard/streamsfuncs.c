@@ -718,9 +718,11 @@ static int stream_array_from_fd_set(zval *stream_array, const php_growable_fd_se
 		}
 	} ZEND_HASH_FOREACH_END();
 
-	/* destroy old array and add new one */
-	zval_ptr_dtor(stream_array);
+	/* replace the array before destroying the old one, as the destructor may run user code */
+	zval garbage;
+	ZVAL_COPY_VALUE(&garbage, stream_array);
 	ZVAL_ARR(stream_array, ht);
+	zval_ptr_dtor(&garbage);
 
 	return ret;
 }
@@ -761,9 +763,11 @@ static int stream_array_emulate_read_fd_set(zval *stream_array)
 	} ZEND_HASH_FOREACH_END();
 
 	if (ret > 0) {
-		/* destroy old array and add new one */
-		zval_ptr_dtor(stream_array);
+		/* replace the array before destroying the old one, as the destructor may run user code */
+		zval garbage;
+		ZVAL_COPY_VALUE(&garbage, stream_array);
 		ZVAL_ARR(stream_array, ht);
+		zval_ptr_dtor(&garbage);
 	} else {
 		zend_array_destroy(ht);
 	}
@@ -853,12 +857,16 @@ PHP_FUNCTION(stream_select)
 		if (retval > 0) {
 			php_stream_error_operation_end(context);
 			if (w_array != NULL) {
-				zval_ptr_dtor(w_array);
+				zval garbage_w;
+				ZVAL_COPY_VALUE(&garbage_w, w_array);
 				ZVAL_EMPTY_ARRAY(w_array);
+				zval_ptr_dtor(&garbage_w);
 			}
 			if (e_array != NULL) {
-				zval_ptr_dtor(e_array);
+				zval garbage_e;
+				ZVAL_COPY_VALUE(&garbage_e, e_array);
 				ZVAL_EMPTY_ARRAY(e_array);
+				zval_ptr_dtor(&garbage_e);
 			}
 			RETVAL_LONG(retval);
 			goto cleanup;
