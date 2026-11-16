@@ -120,6 +120,22 @@ PHP_MINFO_FUNCTION(sysvmsg)
 }
 /* }}} */
 
+/* Reject values that would silently become 0 or be truncated and then be applied to the queue */
+static bool sysvmsg_get_value(zval *item, const char *key, zend_long min, zend_long max, zend_long *value)
+{
+	if (Z_TYPE_P(item) == IS_LONG) {
+		*value = Z_LVAL_P(item);
+	} else if (Z_TYPE_P(item) == IS_NULL || !zend_parse_arg_long_weak(item, value, 0)) {
+		zend_argument_type_error(2, "key \"%s\" must be of type int, %s given", key, zend_zval_type_name(item));
+		return false;
+	}
+	if (*value < min || *value > max) {
+		zend_argument_value_error(2, "key \"%s\" must be between " ZEND_LONG_FMT " and " ZEND_LONG_FMT, key, min, max);
+		return false;
+	}
+	return true;
+}
+
 /* {{{ Set information for a message queue */
 PHP_FUNCTION(msg_set_queue)
 {
@@ -139,17 +155,30 @@ PHP_FUNCTION(msg_set_queue)
 		zval *item;
 
 		/* now pull out members of data and set them in the stat buffer */
+		zend_long value;
 		if ((item = zend_hash_str_find(data, ZEND_STRL("msg_perm.uid"))) != NULL) {
-			stat.msg_perm.uid = zval_get_long(item);
+			if (!sysvmsg_get_value(item, "msg_perm.uid", 0, (zend_long) (uid_t) -1, &value)) {
+				RETURN_THROWS();
+			}
+			stat.msg_perm.uid = value;
 		}
 		if ((item = zend_hash_str_find(data, ZEND_STRL("msg_perm.gid"))) != NULL) {
-			stat.msg_perm.gid = zval_get_long(item);
+			if (!sysvmsg_get_value(item, "msg_perm.gid", 0, (zend_long) (gid_t) -1, &value)) {
+				RETURN_THROWS();
+			}
+			stat.msg_perm.gid = value;
 		}
 		if ((item = zend_hash_str_find(data, ZEND_STRL("msg_perm.mode"))) != NULL) {
-			stat.msg_perm.mode = zval_get_long(item);
+			if (!sysvmsg_get_value(item, "msg_perm.mode", 0, 0xFFFF, &value)) {
+				RETURN_THROWS();
+			}
+			stat.msg_perm.mode = value;
 		}
 		if ((item = zend_hash_str_find(data, ZEND_STRL("msg_qbytes"))) != NULL) {
-			stat.msg_qbytes = zval_get_long(item);
+			if (!sysvmsg_get_value(item, "msg_qbytes", 0, ZEND_LONG_MAX, &value)) {
+				RETURN_THROWS();
+			}
+			stat.msg_qbytes = value;
 		}
 		if (msgctl(mq->id, IPC_SET, &stat) == 0) {
 			RETVAL_TRUE;
