@@ -249,6 +249,14 @@ gdImageXbmCtx(gdImagePtr image, char *file_name, int fg, gdIOCtx *out)
         }
     }
 
+    /* A C identifier cannot start with a digit */
+    if (name[0] >= '0' && name[0] <= '9') {
+        char *prefixed = NULL;
+        spprintf(&prefixed, 0, "_%s", name);
+        gdFree(name);
+        name = prefixed;
+    }
+
     /* Since "name" comes from the user, run it through a direct puts.
      * Trying to printf it into a local buffer means we'd need a large
      * or dynamic buffer to hold it all. */
