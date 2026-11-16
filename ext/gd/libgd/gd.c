@@ -4215,26 +4215,36 @@ BGD_DECLARE(void) gdImageSaveAlpha(gdImagePtr im, int saveAlphaArg)
 BGD_DECLARE(void)
 gdImageSetClip(gdImagePtr im, int x1, int y1, int x2, int y2)
 {
+    int tmp;
+
+    /* The corners are the upper left and the lower right ones, whatever the order given */
+    if (x1 > x2) {
+        tmp = x1;
+        x1 = x2;
+        x2 = tmp;
+    }
+    if (y1 > y2) {
+        tmp = y1;
+        y1 = y2;
+        y2 = tmp;
+    }
+
+    /* Intersect with the image. A rectangle that does not overlap it clips everything. */
+    if (x2 < 0 || y2 < 0 || x1 >= im->sx || y1 >= im->sy) {
+        im->cx1 = 0;
+        im->cy1 = 0;
+        im->cx2 = -1;
+        im->cy2 = -1;
+        return;
+    }
     if (x1 < 0) {
         x1 = 0;
-    }
-    if (x1 >= im->sx) {
-        x1 = im->sx - 1;
-    }
-    if (x2 < 0) {
-        x2 = 0;
-    }
-    if (x2 >= im->sx) {
-        x2 = im->sx - 1;
     }
     if (y1 < 0) {
         y1 = 0;
     }
-    if (y1 >= im->sy) {
-        y1 = im->sy - 1;
-    }
-    if (y2 < 0) {
-        y2 = 0;
+    if (x2 >= im->sx) {
+        x2 = im->sx - 1;
     }
     if (y2 >= im->sy) {
         y2 = im->sy - 1;
