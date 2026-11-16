@@ -70,6 +70,9 @@
 #define M_APP14 0xee
 #define M_APP15 0xef
 
+/* Size of the APP13 header, with its terminating NUL */
+#define IPTC_PSHEADER_SIZE 29
+
 /* {{{ php_iptc_put1 */
 static int php_iptc_put1(FILE *fp, int spool, unsigned char c, unsigned char **spoolbuf, const unsigned char *spoolbuf_end)
 {
@@ -173,16 +176,53 @@ static int php_iptc_next_marker(FILE *fp, int spool, unsigned char **spoolbuf, c
 }
 /* }}} */
 
+/* {{{ php_iptc_put_app13 */
+/* Writes the APP13 segment holding the IPTC data, from its psheader byte "start" (1 skips the
+ * leading 0xFF when it was already written). Returns a negative value when the buffer is full. */
+static int php_iptc_put_app13(FILE *fp, int spool, unsigned char **spoolbuf, const unsigned char *spoolbuf_end, const char *iptcdata, size_t iptcdata_len, size_t start)
+{
+	char psheader[] = "\xFF\xED\0\0Photoshop 3.0\08BIM\x04\x04\0\0\0\0";
+	size_t inx;
+
+	if (iptcdata_len & 1) {
+		iptcdata_len++; /* make the length even */
+	}
+
+	psheader[ 2 ] = (char) ((iptcdata_len+28)>>8);
+	psheader[ 3 ] = (iptcdata_len+28)&0xff;
+
+	for (inx = start; inx < 28; inx++) {
+		if (php_iptc_put1(fp, spool, psheader[inx], spoolbuf, spoolbuf_end) < 0) {
+			return -1;
+		}
+	}
+
+	if (php_iptc_put1(fp, spool, (unsigned char)(iptcdata_len>>8), spoolbuf, spoolbuf_end) < 0) {
+		return -1;
+	}
+	if (php_iptc_put1(fp, spool, (unsigned char)(iptcdata_len&0xff), spoolbuf, spoolbuf_end) < 0) {
+		return -1;
+	}
+
+	/* The padding byte, when there is one, is read past the end of the data: the string is NUL-terminated */
+	for (inx = 0; inx < iptcdata_len; inx++) {
+		if (php_iptc_put1(fp, spool, iptcdata[inx], spoolbuf, spoolbuf_end) < 0) {
+			return -1;
+		}
+	}
+
+	return 0;
+}
+/* }}} */
+
 /* {{{ Embed binary IPTC data into a JPEG image. */
 PHP_FUNCTION(iptcembed)
 {
-	char psheader[] = "\xFF\xED\0\0Photoshop 3.0\08BIM\x04\x04\0\0\0\0";
 	char *iptcdata, *jpeg_file;
 	size_t iptcdata_len, jpeg_file_len;
 	zend_long spool = 0;
 	FILE *fp;
 	unsigned int marker, done = 0;
-	size_t inx;
 	zend_string *spoolbuf = NULL;
 	unsigned char *poi = NULL;
 	unsigned char *spoolbuf_end = NULL;
@@ -200,7 +240,7 @@ PHP_FUNCTION(iptcembed)
 		RETURN_FALSE;
 	}
 
-	if (iptcdata_len >= SIZE_MAX - sizeof(psheader) - 1025) {
+	if (iptcdata_len >= SIZE_MAX - IPTC_PSHEADER_SIZE - 1025) {
 		zend_argument_value_error(1, "is too large");
 		RETURN_THROWS();
 	}
@@ -216,10 +256,10 @@ PHP_FUNCTION(iptcembed)
 			RETURN_FALSE;
 		}
 
-		spoolbuf = zend_string_safe_alloc(1, iptcdata_len + sizeof(psheader) + 1024 + 1, sb.st_size, 0);
+		spoolbuf = zend_string_safe_alloc(1, iptcdata_len + IPTC_PSHEADER_SIZE + 1024 + 1, sb.st_size, 0);
 		poi = (unsigned char*)ZSTR_VAL(spoolbuf);
 		spoolbuf_end = poi + ZSTR_LEN(spoolbuf);
-		memset(poi, 0, iptcdata_len + sizeof(psheader) + sb.st_size + 1024 + 1);
+		memset(poi, 0, iptcdata_len + IPTC_PSHEADER_SIZE + sb.st_size + 1024 + 1);
 	}
 
 	if (php_iptc_get1(fp, spool, poi?&poi:0, spoolbuf_end) != 0xFF) {
@@ -243,8 +283,24 @@ err:
 		marker = php_iptc_next_marker(fp, spool, poi?&poi:0, spoolbuf_end);
 
 		if (marker == M_EOI) { /* EOF */
+			if (!written) {
+				/* no place was found for the IPTC data */
+				goto err;
+			}
 			break;
-		} else if (marker != M_APP13) {
+		}
+
+		if (!written && marker != M_APP0 && marker != M_APP1) {
+			/* No APP0 or APP1 so far: put the new APP13 in front of this segment. The 0xFF
+			 * that introduces it is already written. */
+			written = 1;
+			if (php_iptc_put_app13(fp, spool, poi?&poi:0, spoolbuf_end, iptcdata, iptcdata_len, 1) < 0
+					|| php_iptc_put1(fp, spool, 0xFF, poi?&poi:0, spoolbuf_end) < 0) {
+				goto err;
+			}
+		}
+
+		if (marker != M_APP13) {
 			if (php_iptc_put1(fp, spool, (unsigned char)marker, poi?&poi:0, spoolbuf_end) < 0) {
 				goto err;
 			}
@@ -270,30 +326,8 @@ err:
 
 				php_iptc_skip_variable(fp, spool, poi?&poi:0, spoolbuf_end);
 
-				if (iptcdata_len & 1) {
-					iptcdata_len++; /* make the length even */
-				}
-
-				psheader[ 2 ] = (char) ((iptcdata_len+28)>>8);
-				psheader[ 3 ] = (iptcdata_len+28)&0xff;
-
-				for (inx = 0; inx < 28; inx++) {
-					if (php_iptc_put1(fp, spool, psheader[inx], poi?&poi:0, spoolbuf_end) < 0) {
-						goto err;
-					}
-				}
-
-				if (php_iptc_put1(fp, spool, (unsigned char)(iptcdata_len>>8), poi?&poi:0, spoolbuf_end) < 0) {
+				if (php_iptc_put_app13(fp, spool, poi?&poi:0, spoolbuf_end, iptcdata, iptcdata_len, 0) < 0) {
 					goto err;
-				}
-				if (php_iptc_put1(fp, spool, (unsigned char)(iptcdata_len&0xff), poi?&poi:0, spoolbuf_end) < 0) {
-					goto err;
-				}
-
-				for (inx = 0; inx < iptcdata_len; inx++) {
-					if (php_iptc_put1(fp, spool, iptcdata[inx], poi?&poi:0, spoolbuf_end) < 0) {
-						goto err;
-					}
 				}
 				break;
 
