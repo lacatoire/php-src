@@ -211,8 +211,6 @@ static zend_always_inline zend_string *zend_string_checked_alloc(size_t len, int
 # define crypto_kx_SECRETKEYBYTES 32
 #endif
 
-#include "libsodium_arginfo.h"
-
 #ifndef crypto_aead_chacha20poly1305_IETF_KEYBYTES
 # define crypto_aead_chacha20poly1305_IETF_KEYBYTES crypto_aead_chacha20poly1305_KEYBYTES
 #endif
@@ -239,6 +237,8 @@ static zend_always_inline zend_string *zend_string_checked_alloc(size_t len, int
 #ifndef crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_MIN
 # define crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_MIN crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_INTERACTIVE
 #endif
+
+#include "libsodium_arginfo.h"
 
 /* Load after the "standard" module in order to give it
  * priority in registering argon2i/argon2id password hashers.
