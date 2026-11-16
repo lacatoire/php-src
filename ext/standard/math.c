@@ -798,6 +798,11 @@ PHP_FUNCTION(rad2deg)
 		Z_PARAM_DOUBLE(rad)
 	ZEND_PARSE_PARAMETERS_END();
 
+	/* Dividing first underflows for tiny inputs; keep the historical
+	 * evaluation order elsewhere so results do not change. */
+	if (fabs(rad) < 1e-300) {
+		RETURN_DOUBLE((rad * 180.0) / M_PI);
+	}
 	RETURN_DOUBLE((rad / M_PI) * 180);
 }
 /* }}} */
