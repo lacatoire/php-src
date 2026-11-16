@@ -1688,6 +1688,7 @@ PHP_FUNCTION(socket_recvfrom)
 		}
 #endif
 		default:
+			zend_string_efree(recv_buf);
 			zend_argument_value_error(1, "must be one of AF_UNIX, AF_PACKET, AF_INET, or AF_INET6");
 			RETURN_THROWS();
 	}
