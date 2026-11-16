@@ -1971,7 +1971,7 @@ PHPAPI php_stream_wrapper *php_stream_locate_url_wrapper(const char *path, const
 		}
 	}
 	/* TODO: curl based streams probably support file:// properly */
-	if (!protocol || !strncasecmp(protocol, "file", n))	{
+	if (!protocol || (n == 4 && !strncasecmp(protocol, "file", 4)))	{
 		/* fall back on regular file access */
 		php_stream_wrapper *plain_files_wrapper = (php_stream_wrapper*)&php_plain_files_wrapper;
 
