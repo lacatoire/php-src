@@ -712,6 +712,16 @@ PHP_FUNCTION(com_event_sink)
 
 		if (php_com_process_typeinfo(typeinfo, id_to_name, 0, &obj->sink_id, obj->code_page)) {
 
+			/* Tear down any sink this object was already exporting before
+			 * replacing it: otherwise the previous IDispatch and its
+			 * connection point advise are leaked, and sink_cookie is
+			 * overwritten so the old connection can never be un-advised. */
+			if (obj->sink_dispatch) {
+				php_com_object_enable_event_sink(obj, /* enable */ false);
+				IDispatch_Release(obj->sink_dispatch);
+				obj->sink_dispatch = NULL;
+			}
+
 			/* Create the COM wrapper for this sink */
 			obj->sink_dispatch = php_com_wrapper_export_as_sink(sinkobject, &obj->sink_id, id_to_name);
 
