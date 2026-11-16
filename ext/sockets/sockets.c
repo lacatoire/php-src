@@ -1056,11 +1056,26 @@ PHP_FUNCTION(socket_getsockname)
 #ifdef AF_PACKET
 		case AF_PACKET:
 			sll = (struct sockaddr_ll *) sa;
-			char ifrname[IFNAMSIZ];
+			char ifrname[IFNAMSIZ] = {0};
 
-			if (UNEXPECTED(!if_indextoname(sll->sll_ifindex, ifrname))) {
-				zend_throw_error(NULL, "invalid interface index");
-				RETURN_THROWS();
+			/* A socket not bound to an interface has no name, like the other families */
+			if (sll->sll_ifindex != 0) {
+#ifdef SIOCGIFNAME
+				/* Resolve the index on the socket, not in the namespace of the process */
+				struct ifreq if_req;
+				memset(&if_req, 0, sizeof(if_req));
+				if_req.ifr_ifindex = sll->sll_ifindex;
+				if (ioctl(php_sock->bsd_socket, SIOCGIFNAME, &if_req) == -1) {
+					PHP_SOCKET_ERROR(php_sock, "unable to retrieve interface name", errno);
+					RETURN_FALSE;
+				}
+				memcpy(ifrname, if_req.ifr_name, sizeof(ifrname) - 1);
+#else
+				if (!if_indextoname(sll->sll_ifindex, ifrname)) {
+					PHP_SOCKET_ERROR(php_sock, "unable to retrieve interface name", errno);
+					RETURN_FALSE;
+				}
+#endif
 			}
 
 			ZEND_TRY_ASSIGN_REF_STRING(addr, ifrname);
