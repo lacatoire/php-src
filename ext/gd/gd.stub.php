@@ -586,6 +586,7 @@ function imagecreatefromgd2part(string $filename, int $x, int $y, int $width, in
 /** @refcount 1 */
 function imagecreatefrombmp(string $filename): GdImage|false {}
 
+/** @refcount 1 */
 function imagecreatefromtga(string $filename): GdImage|false {}
 
 function imagexbm(GdImage $image, ?string $filename, ?int $foreground_color = null): bool {}
