@@ -1086,10 +1086,13 @@ static struct php_gfxinfo *php_handle_ico(php_stream * stream)
 
 	result = (struct php_gfxinfo *) ecalloc(1, sizeof(struct php_gfxinfo));
 
+	bool has_entry = false;
 	while (num_icons > 0)
 	{
 		if (php_stream_read(stream, (char *) dim, sizeof(dim)) != sizeof(dim))
 			break;
+
+		has_entry = true;
 
 		if ((((unsigned int)dim[7]) <<  8) +  ((unsigned int)dim[6]) >= result->bits)
 		{
@@ -1098,6 +1101,12 @@ static struct php_gfxinfo *php_handle_ico(php_stream * stream)
 			result->bits     =  (((unsigned int)dim[7]) <<  8) +  ((unsigned int)dim[6]);
 		}
 		num_icons--;
+	}
+
+	/* Without a single complete directory entry the size is unknown, not 256x256 */
+	if (!has_entry) {
+		efree(result);
+		return NULL;
 	}
 
 	if (0 == result->width)
