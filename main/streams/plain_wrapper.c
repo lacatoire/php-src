@@ -783,7 +783,9 @@ static int php_stdiop_set_option(php_stream *stream, int option, int value, void
 
 		case PHP_STREAM_OPTION_WRITE_BUFFER:
 
-			if (data->file == NULL) {
+			/* The FILE* of the process streams is shared with code that writes to it directly,
+			 * such as the CLI error log */
+			if (data->file == NULL || data->file == stdin || data->file == stdout || data->file == stderr) {
 				return -1;
 			}
 
