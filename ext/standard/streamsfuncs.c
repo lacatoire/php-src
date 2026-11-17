@@ -654,6 +654,10 @@ static int stream_array_to_fd_set(const HashTable *stream_array, php_growable_fd
 	php_stream *stream;
 	int cnt = 0;
 
+	/* The cast can run user code that replaces or resizes the array of the caller */
+	HashTable *held_array = (HashTable *) stream_array;
+	GC_TRY_ADDREF(held_array);
+
 	ZEND_HASH_FOREACH_VAL(stream_array, elem) {
 		/* Temporary int fd is needed for the STREAM data type on windows, passing this_fd directly to php_stream_cast()
 			would eventually bring a wrong result on x64. php_stream_cast() casts to int internally, and this will leave
@@ -680,16 +684,21 @@ static int stream_array_to_fd_set(const HashTable *stream_array, php_growable_fd
 			cnt++;
 		}
 	} ZEND_HASH_FOREACH_END();
+
+	zend_array_release(held_array);
 	return cnt ? 1 : 0;
 }
 
 static int stream_array_from_fd_set(zval *stream_array, const php_growable_fd_set *fds)
 {
 	ZEND_ASSERT(Z_TYPE_P(stream_array) == IS_ARRAY);
-	HashTable *ht = zend_new_array(zend_hash_num_elements(Z_ARRVAL_P(stream_array)));
+	/* The cast can run user code that replaces or resizes the array of the caller */
+	HashTable *held_array = Z_ARRVAL_P(stream_array);
+	GC_TRY_ADDREF(held_array);
+	HashTable *ht = zend_new_array(zend_hash_num_elements(held_array));
 	int ret = 0;
 
-	ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(stream_array), zend_ulong num_ind, zend_string *key, zval *elem) {
+	ZEND_HASH_FOREACH_KEY_VAL(held_array, zend_ulong num_ind, zend_string *key, zval *elem) {
 		php_stream *stream;
 		php_socket_t this_fd;
 
@@ -717,6 +726,8 @@ static int stream_array_from_fd_set(zval *stream_array, const php_growable_fd_se
 			}
 		}
 	} ZEND_HASH_FOREACH_END();
+
+	zend_array_release(held_array);
 
 	/* destroy old array and add new one */
 	zval_ptr_dtor(stream_array);
