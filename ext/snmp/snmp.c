@@ -399,8 +399,6 @@ static void php_snmp_internal(INTERNAL_FUNCTION_PARAMETERS, int st,
 	char *err;
 	zval snmpval;
 	int snmp_errno;
-	long session_version;
-	char peername[MAX_NAME_LEN];
 
 	/* we start with retval=FALSE. If any actual data is acquired, retval will be set to appropriate type */
 	RETVAL_FALSE;
@@ -421,10 +419,6 @@ static void php_snmp_internal(INTERNAL_FUNCTION_PARAMETERS, int st,
 		RETURN_FALSE;
 	}
 
-	/* An error handler can close the object and free the session while the request runs */
-	session_version = session->version;
-	strlcpy(peername, session->peername, sizeof(peername));
-
 	if ((st & SNMP_CMD_SET) && objid_query->count > objid_query->step) {
 		php_snmp_error(getThis(), PHP_SNMP_ERRNO_MULTIPLE_SET_QUERIES, "Cannot fit all OIDs for SET query into one packet, using multiple queries");
 	}
@@ -432,7 +426,7 @@ static void php_snmp_internal(INTERNAL_FUNCTION_PARAMETERS, int st,
 	while (keepwalking) {
 		keepwalking = false;
 		if (st & SNMP_CMD_WALK) {
-			if (session_version == SNMP_VERSION_1) {
+			if (ss->version == SNMP_VERSION_1) {
 				pdu = snmp_pdu_create(SNMP_MSG_GETNEXT);
 			} else {
 				pdu = snmp_pdu_create(SNMP_MSG_GETBULK);
@@ -616,7 +610,7 @@ retry:
 				}
 			}
 		} else if (status == STAT_TIMEOUT) {
-			php_snmp_error(getThis(), PHP_SNMP_ERRNO_TIMEOUT, "No response from %s", peername);
+			php_snmp_error(getThis(), PHP_SNMP_ERRNO_TIMEOUT, "No response from %s", ss->peername);
 			if (objid_query->array_output) {
 				zval_ptr_dtor(return_value);
 			}
