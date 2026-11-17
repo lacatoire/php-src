@@ -194,6 +194,9 @@ struct _php_stream_wrapper	{
 #define PHP_STREAM_FLAG_NO_READ_FILTER_REMOVE		0x800
 #define PHP_STREAM_FLAG_NO_WRITE_FILTER_REMOVE		0x1000
 
+/* Set while the read operation of the stream runs, to refuse a nested read of the same stream. */
+#define PHP_STREAM_FLAG_IN_READ						0x2000
+
 #define PHP_STREAM_FLAG_WAS_WRITTEN					0x80000000
 
 struct _php_stream  {

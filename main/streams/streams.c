@@ -449,9 +449,30 @@ fprintf(stderr, "stream_free: %s:%p[%s] preserve_handle=%d release_cast=%d remov
 
 /* {{{ generic stream operations */
 
+static ssize_t php_stream_ops_read(php_stream *stream, char *buf, size_t count)
+{
+	stream->flags |= PHP_STREAM_FLAG_IN_READ;
+	ssize_t ret = stream->ops->read(stream, buf, count);
+	stream->flags &= ~PHP_STREAM_FLAG_IN_READ;
+	return ret;
+}
+
+static bool php_stream_refuse_nested_read(php_stream *stream)
+{
+	if (UNEXPECTED(stream->flags & PHP_STREAM_FLAG_IN_READ)) {
+		php_error_docref(NULL, E_WARNING, "Cannot read from a stream while a read is in progress on it");
+		return true;
+	}
+	return false;
+}
+
 PHPAPI zend_result php_stream_fill_read_buffer(php_stream *stream, size_t size)
 {
 	/* allocate/fill the buffer */
+
+	if (php_stream_refuse_nested_read(stream)) {
+		return FAILURE;
+	}
 
 	zend_result retval;
 	bool old_eof = stream->eof;
@@ -476,7 +497,7 @@ PHPAPI zend_result php_stream_fill_read_buffer(php_stream *stream, size_t size)
 			php_stream_filter *filter;
 
 			/* read a chunk into a bucket */
-			justread = stream->ops->read(stream, chunk_buf, stream->chunk_size);
+			justread = php_stream_ops_read(stream, chunk_buf, stream->chunk_size);
 			if (justread < 0 && stream->writepos == stream->readpos) {
 				efree(chunk_buf);
 				retval = FAILURE;
@@ -622,7 +643,7 @@ PHPAPI zend_result php_stream_fill_read_buffer(php_stream *stream, size_t size)
 				stream->readbuflen = newlen;
 			}
 
-			justread = stream->ops->read(stream, (char*)stream->readbuf + stream->writepos,
+			justread = php_stream_ops_read(stream, (char*)stream->readbuf + stream->writepos,
 					stream->readbuflen - stream->writepos
 					);
 			if (justread < 0) {
@@ -647,6 +668,10 @@ out_is_eof:
 PHPAPI ssize_t php_stream_read(php_stream *stream, char *buf, size_t size)
 {
 	ssize_t toread = 0, didread = 0;
+
+	if (php_stream_refuse_nested_read(stream)) {
+		return -1;
+	}
 
 	while (size > 0) {
 
@@ -675,7 +700,7 @@ PHPAPI ssize_t php_stream_read(php_stream *stream, char *buf, size_t size)
 		}
 
 		if (!stream->readfilters.head && ((stream->flags & PHP_STREAM_FLAG_NO_BUFFER) || stream->chunk_size == 1)) {
-			toread = stream->ops->read(stream, buf, size);
+			toread = php_stream_ops_read(stream, buf, size);
 			if (toread < 0) {
 				/* Report an error if the read failed and we did not read any data
 				 * before that. Otherwise return the data we did read. */
