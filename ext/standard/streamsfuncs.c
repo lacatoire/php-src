@@ -1483,25 +1483,39 @@ PHP_FUNCTION(stream_set_timeout)
 		Z_PARAM_LONG(microseconds)
 	ZEND_PARSE_PARAMETERS_END();
 
-#ifdef PHP_WIN32
-	t.tv_sec = (long)seconds;
+	/* php_tvtoto() turns anything outside of this range into an infinite wait */
+	const zend_long max_seconds = (INT_MAX - 1000) / 1000;
 
-	if (argc == 3) {
-		t.tv_usec = (long)(microseconds % 1000000);
-		t.tv_sec +=(long)(microseconds / 1000000);
-	} else {
+	if (seconds == -1 && microseconds == 0) {
+		/* the default_socket_timeout sentinel */
+		t.tv_sec = -1;
 		t.tv_usec = 0;
-	}
-#else
-	t.tv_sec = seconds;
+	} else {
+		if (seconds < 0 || seconds > max_seconds) {
+			zend_argument_value_error(2, "must be -1 or between 0 and " ZEND_LONG_FMT, max_seconds);
+			RETURN_THROWS();
+		}
 
-	if (argc == 3) {
-		t.tv_usec = microseconds % 1000000;
-		t.tv_sec += microseconds / 1000000;
-	} else {
-		t.tv_usec = 0;
+		zend_long extra_seconds = 0;
+		zend_long usec = 0;
+		if (argc == 3) {
+			extra_seconds = microseconds / 1000000;
+			usec = microseconds % 1000000;
+			if (usec < 0) {
+				usec += 1000000;
+				extra_seconds--;
+			}
+		}
+
+		zend_long total_seconds = seconds + extra_seconds;
+		if (total_seconds < 0 || total_seconds > max_seconds) {
+			zend_argument_value_error(3, "must give a timeout between 0 and " ZEND_LONG_FMT " seconds", max_seconds);
+			RETURN_THROWS();
+		}
+
+		t.tv_sec = (long) total_seconds;
+		t.tv_usec = (long) usec;
 	}
-#endif
 
 	php_stream_error_operation_begin();
 	RETVAL_BOOL(PHP_STREAM_OPTION_RETURN_OK == php_stream_set_option(stream, PHP_STREAM_OPTION_READ_TIMEOUT, 0, &t));
