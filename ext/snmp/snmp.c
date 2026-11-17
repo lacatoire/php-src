@@ -427,7 +427,7 @@ static void php_snmp_internal(INTERNAL_FUNCTION_PARAMETERS, int st,
 	while (keepwalking) {
 		keepwalking = false;
 		if (st & SNMP_CMD_WALK) {
-			if (session->version == SNMP_VERSION_1) {
+			if (ss->version == SNMP_VERSION_1) {
 				pdu = snmp_pdu_create(SNMP_MSG_GETNEXT);
 			} else {
 				pdu = snmp_pdu_create(SNMP_MSG_GETBULK);
@@ -618,7 +618,7 @@ retry:
 				}
 			}
 		} else if (status == STAT_TIMEOUT) {
-			php_snmp_error(getThis(), PHP_SNMP_ERRNO_TIMEOUT, "No response from %s", session->peername);
+			php_snmp_error(getThis(), PHP_SNMP_ERRNO_TIMEOUT, "No response from %s", ss->peername);
 			if (objid_query->array_output) {
 				zval_ptr_dtor(return_value);
 			}
