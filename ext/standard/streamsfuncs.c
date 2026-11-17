@@ -17,6 +17,7 @@
 #include "ext/standard/flock_compat.h"
 #include "ext/standard/file.h"
 #include "ext/standard/basic_functions.h"
+#include "ext/standard/php_fopen_wrappers.h"
 #include "php_ini.h"
 #include "streamsfuncs.h"
 #include "php_network.h"
@@ -1682,6 +1683,24 @@ PHP_FUNCTION(stream_resolve_include_path)
 }
 /* }}} */
 
+/* A php://filter URL is as local as the resource= target it wraps. */
+static php_stream_wrapper *stream_is_local_wrapper(const char *path)
+{
+	php_stream_wrapper *wrapper = php_stream_locate_url_wrapper(path, NULL, 0);
+
+	while (wrapper == &php_stream_php_wrapper
+			&& strncasecmp(path, "php://filter/", sizeof("php://filter/") - 1) == 0) {
+		const char *target = strstr(path + sizeof("php://filter") - 1, "/resource=");
+		if (!target) {
+			break;
+		}
+		path = target + sizeof("/resource=") - 1;
+		wrapper = php_stream_locate_url_wrapper(path, NULL, 0);
+	}
+
+	return wrapper;
+}
+
 /* {{{ */
 PHP_FUNCTION(stream_is_local)
 {
@@ -1699,6 +1718,9 @@ PHP_FUNCTION(stream_is_local)
 	if (Z_TYPE_P(zstream) == IS_RESOURCE) {
 		php_stream_from_zval(stream, zstream);
 		wrapper = stream->wrapper;
+		if (wrapper == &php_stream_php_wrapper && stream->orig_path) {
+			wrapper = stream_is_local_wrapper(stream->orig_path);
+		}
 	} else {
 		if (!try_convert_to_string(zstream)) {
 			RETURN_THROWS();
@@ -1706,7 +1728,7 @@ PHP_FUNCTION(stream_is_local)
 
 		php_stream_error_operation_begin();
 		context = php_stream_context_from_zval(zcontext, 0);
-		wrapper = php_stream_locate_url_wrapper(Z_STRVAL_P(zstream), NULL, 0);
+		wrapper = stream_is_local_wrapper(Z_STRVAL_P(zstream));
 		php_stream_error_operation_end(context);
 	}
 
