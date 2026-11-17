@@ -38,5 +38,5 @@ Warning: stream_socket_client(): no valid certs found cafile stream: '%s' in %sS
 
 Warning: stream_socket_client(): Failed to enable crypto in %sServerClientTestCase.inc(%d) : eval()'d code on line 4
 
-Warning: stream_socket_client(): Unable to connect to ssl://127.0.0.1:%d (Unknown error) in %sServerClientTestCase.inc(%d) : eval()'d code on line 4
+Warning: stream_socket_client(): Unable to connect to ssl://127.0.0.1:%d (Cannot enable crypto) in %sServerClientTestCase.inc(%d) : eval()'d code on line 4
 bool(false)

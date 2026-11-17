@@ -69,5 +69,5 @@ error:%s:SSL routines:%S:certificate verify failed in %s : eval()'d code on line
 
 Warning: stream_socket_client(): Failed to enable crypto in %s : eval()'d code on line %d
 
-Warning: stream_socket_client(): Unable to connect to ssl://127.0.0.1:%d (Unknown error) in %s : eval()'d code on line %d
+Warning: stream_socket_client(): Unable to connect to ssl://127.0.0.1:%d (Cannot enable crypto) in %s : eval()'d code on line %d
 bool(false)
