@@ -1447,7 +1447,7 @@ static PHP_MINIT_FUNCTION(zlib)
 /* {{{ PHP_MSHUTDOWN_FUNCTION */
 static PHP_MSHUTDOWN_FUNCTION(zlib)
 {
-	php_unregister_url_stream_wrapper("zlib");
+	php_unregister_url_stream_wrapper("compress.zlib");
 	php_stream_filter_unregister_factory("zlib.*");
 
 	UNREGISTER_INI_ENTRIES();
