@@ -489,7 +489,7 @@ static int php_stream_temp_cast(php_stream *stream, int castas, void **ret)
 		return FAILURE;
 	}
 	if (php_stream_is(ts->innerstream, PHP_STREAM_IS_STDIO)) {
-		return php_stream_cast(ts->innerstream, castas, ret, 0);
+		return php_stream_cast(ts->innerstream, castas | PHP_STREAM_CAST_INTERNAL, ret, 0);
 	}
 
 	/* we are still using a memory based backing. If they are if we can be
