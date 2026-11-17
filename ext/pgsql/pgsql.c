@@ -4389,6 +4389,7 @@ static ssize_t php_pgsql_fd_read(php_stream *stream, char *buf, size_t count) /*
 
 static int php_pgsql_fd_close(php_stream *stream, int close_handle) /* {{{ */
 {
+	OBJ_RELEASE((zend_object *) stream->abstract);
 	return EOF;
 }
 /* }}} */
@@ -4401,7 +4402,11 @@ static int php_pgsql_fd_flush(php_stream *stream) /* {{{ */
 
 static int php_pgsql_fd_set_option(php_stream *stream, int option, int value, void *ptrparam) /* {{{ */
 {
-	PGconn *pgsql = (PGconn *) stream->abstract;
+	/* pg_close() frees the connection while the link object, held by the stream, stays alive */
+	PGconn *pgsql = pgsql_link_from_obj((zend_object *) stream->abstract)->conn;
+	if (!pgsql) {
+		return FAILURE;
+	}
 	switch (option) {
 		case PHP_STREAM_OPTION_BLOCKING:
 			return PQsetnonblocking(pgsql, value);
@@ -4413,7 +4418,10 @@ static int php_pgsql_fd_set_option(php_stream *stream, int option, int value, vo
 
 static int php_pgsql_fd_cast(php_stream *stream, int cast_as, void **ret) /* {{{ */
 {
-	PGconn *pgsql = (PGconn *) stream->abstract;
+	PGconn *pgsql = pgsql_link_from_obj((zend_object *) stream->abstract)->conn;
+	if (!pgsql) {
+		return FAILURE;
+	}
 
 	switch (cast_as)	{
 		case PHP_STREAM_AS_FD_FOR_SELECT:
@@ -4443,7 +4451,6 @@ PHP_FUNCTION(pg_socket)
 	zval *pgsql_link;
 	pgsql_link_handle *link;
 	php_stream *stream;
-	PGconn *pgsql;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
 		Z_PARAM_OBJECT_OF_CLASS(pgsql_link, pgsql_link_ce)
@@ -4451,11 +4458,11 @@ PHP_FUNCTION(pg_socket)
 
 	link = Z_PGSQL_LINK_P(pgsql_link);
 	CHECK_PGSQL_LINK(link);
-	pgsql = link->conn;
 
-	stream = php_stream_alloc(&php_stream_pgsql_fd_ops, pgsql, NULL, "r");
+	stream = php_stream_alloc(&php_stream_pgsql_fd_ops, &link->std, NULL, "r");
 
 	if (stream) {
+		GC_ADDREF(&link->std);
 		php_stream_to_zval(stream, return_value);
 		return;
 	}
