@@ -1597,7 +1597,7 @@ PHPAPI zend_string *_php_stream_copy_to_mem(php_stream *src, size_t maxlen, bool
 			return NULL;
 		}
 		ptr = ZSTR_VAL(result);
-		while ((len < maxlen) && !php_stream_eof(src)) {
+		while (len < maxlen) {
 			ret = php_stream_read(src, ptr, maxlen - len);
 			if (ret <= 0) {
 				// TODO: Propagate error?
