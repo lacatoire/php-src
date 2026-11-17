@@ -676,7 +676,11 @@ PHP_FUNCTION(socket_select)
 	if (!sec_is_null) {
 		/* Solaris + BSD do not like microsecond values which are >= 1 sec */
 		if (usec > 999999) {
-			tv.tv_sec = sec + (usec / 1000000);
+			if (sec > ZEND_LONG_MAX - usec / 1000000) {
+				tv.tv_sec = ZEND_LONG_MAX;
+			} else {
+				tv.tv_sec = sec + (usec / 1000000);
+			}
 			tv.tv_usec = usec % 1000000;
 		} else {
 			tv.tv_sec = sec;
