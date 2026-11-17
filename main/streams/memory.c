@@ -548,6 +548,9 @@ static int php_stream_temp_set_option(php_stream *stream, int option, int value,
 				zend_hash_copy(Z_ARRVAL_P((zval*)ptrparam), Z_ARRVAL(ts->meta), zval_add_ref);
 			}
 			return PHP_STREAM_OPTION_RETURN_OK;
+		case PHP_STREAM_OPTION_SET_CHUNK_SIZE:
+			/* The outer stream owns the chunk size: the inner stream is replaced on a spill to a file */
+			return PHP_STREAM_OPTION_RETURN_NOTIMPL;
 		default:
 			if (ts->innerstream) {
 				return php_stream_set_option(ts->innerstream, option, value, ptrparam);
