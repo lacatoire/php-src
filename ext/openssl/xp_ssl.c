@@ -3909,6 +3909,12 @@ static int php_openssl_sockop_set_option(php_stream *stream, int option, int val
 								php_stream_xport_crypto_enable(stream, 1) < 0) {
 							php_stream_warn(stream, ProtocolError, "Failed to enable crypto");
 							xparam->outputs.returncode = -1;
+							if (xparam->want_errortext) {
+								if (xparam->outputs.error_text) {
+									zend_string_free(xparam->outputs.error_text);
+								}
+								xparam->outputs.error_text = ZSTR_INIT_LITERAL("Cannot enable crypto", 0);
+							}
 						}
 					}
 					return PHP_STREAM_OPTION_RETURN_OK;
