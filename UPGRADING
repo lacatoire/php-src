@@ -47,6 +47,10 @@ PHP 8.6 UPGRADE NOTES
   . Array access on Dom\DtdNamedNodeMap objects now raises a ValueError when
     the integer index is greater than INT_MAX instead of overflowing to a
     smaller index.
+  . Dom\import_simplexml() now throws a TypeError when the node already has a
+    legacy DOMNode object attached and its document is not yet locked to a
+    model. Previously it returned that legacy object, which violated the
+    Attr|Element return type.
 
 - GD:
   . imagesetstyle(), imagefilter() and imagecrop() filter their array arguments
