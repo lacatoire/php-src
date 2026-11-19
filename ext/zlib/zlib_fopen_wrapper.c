@@ -86,9 +86,16 @@ static ssize_t php_gziop_write(php_stream *stream, const char *buf, size_t count
 		int written = gzwrite(self->gz_file, buf, chunk_size);
 		count -= chunk_size;
 
-		if (UNEXPECTED(written < 0)) {
-			php_gziop_report_errors(stream, chunk_size, "Write");
-			return written;
+		/* gzwrite() returns 0 in case of error, never a negative value */
+		if (UNEXPECTED(written <= 0)) {
+			int error = 0;
+			gzerror(self->gz_file, &error);
+			if (error == Z_ERRNO) {
+				php_gziop_report_errors(stream, chunk_size, "Write");
+				return total_written > 0 ? total_written : -1;
+			}
+			/* Nothing could be written, for example to a stream opened for reading */
+			return total_written;
 		}
 
 		total_written += written;
