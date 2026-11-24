@@ -192,6 +192,9 @@ static ssize_t php_sockop_read(php_stream *stream, char *buf, size_t count)
 				return has_buffered_data ? 0 : -1;
 			}
 		}
+	} else {
+		/* The mode is cached, while another handle on the same socket may have made it blocking. */
+		recv_flags = MSG_DONTWAIT;
 	}
 
 	ssize_t nr_bytes = recv(sock->socket, buf, XP_SOCK_BUF_SIZE(count), recv_flags);
