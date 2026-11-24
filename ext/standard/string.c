@@ -1474,6 +1474,20 @@ static bool _is_basename_start(const char *start, const char *pos)
 }
 #endif
 
+#ifdef _REENTRANT
+/* mbrlen() returns 0 without consuming a byte when the previous character expanded to two
+ * wide characters (e.g. BIG5-HKSCS) and the second one is still pending. This is not the end
+ * of the data: the next call reports the length of the byte that is actually there. */
+PHPAPI int php_mblen_ex(const char *ptr, size_t len)
+{
+	size_t result = mbrlen(ptr, len, &BG(mblen_state));
+	if (result == 0 && len > 0 && *ptr != '\0') {
+		result = mbrlen(ptr, len, &BG(mblen_state));
+	}
+	return (int) result;
+}
+#endif
+
 /* {{{ php_basename */
 PHPAPI zend_string *php_basename(const char *s, size_t len, const char *suffix, size_t suffix_len)
 {
