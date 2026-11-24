@@ -2401,11 +2401,11 @@ void php_stream_context_unset_option(php_stream_context *context,
 {
 	zval *wrapperhash;
 
+	SEPARATE_ARRAY(&context->options);
 	wrapperhash = zend_hash_str_find(Z_ARRVAL(context->options), wrappername, strlen(wrappername));
 	if (NULL == wrapperhash) {
 		return;
 	}
-	SEPARATE_ARRAY(&context->options);
 	SEPARATE_ARRAY(wrapperhash);
 	zend_hash_str_del(Z_ARRVAL_P(wrapperhash), optionname, strlen(optionname));
 }
