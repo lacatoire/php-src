@@ -1563,6 +1563,9 @@ PHPAPI ssize_t _php_stream_passthru(php_stream * stream STREAMS_DC)
 		}
 		PHPWRITE(buf, b);
 		bcount += b;
+		if (UNEXPECTED(EG(exception))) {
+			break;
+		}
 	}
 
 	if (b < 0 && bcount == 0) {
@@ -1603,6 +1606,9 @@ PHPAPI zend_string *_php_stream_copy_to_mem(php_stream *src, size_t maxlen, bool
 			}
 			len += ret;
 			ptr += ret;
+			if (UNEXPECTED(EG(exception))) {
+				break;
+			}
 		}
 		if (len) {
 			ZSTR_LEN(result) = len;
@@ -1644,6 +1650,9 @@ PHPAPI zend_string *_php_stream_copy_to_mem(php_stream *src, size_t maxlen, bool
 	// TODO: Propagate error?
 	while ((ret = php_stream_read(src, ptr, buflen - len)) > 0) {
 		len += ret;
+		if (UNEXPECTED(EG(exception))) {
+			break;
+		}
 		if (len + min_room >= buflen) {
 			if (maxlen == len) {
 				break;
@@ -1713,6 +1722,11 @@ static zend_result php_stream_copy_fallback(php_stream *src, php_stream *dest, s
 
 			towrite -= didwrite;
 			writeptr += didwrite;
+		}
+
+		if (UNEXPECTED(EG(exception))) {
+			*len = haveread;
+			return FAILURE;
 		}
 
 		if (maxlen && maxlen == haveread) {

@@ -1129,6 +1129,10 @@ finish:
 			header_info.transfer_encoding = NULL;
 		}
 
+		if (EG(exception)) {
+			goto out;
+		}
+
 		if (header_info.location != NULL) {
 
 			char *new_path = NULL;
