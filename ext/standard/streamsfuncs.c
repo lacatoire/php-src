@@ -1291,6 +1291,7 @@ static void apply_filter_to_stream(bool append, INTERNAL_FUNCTION_PARAMETERS)
 	zend_long read_write = 0;
 	zval *filterparams = NULL;
 	php_stream_filter *filter = NULL;
+	php_stream_filter *read_filter = NULL;
 
 	ZEND_PARSE_PARAMETERS_START(2, 4)
 		PHP_Z_PARAM_STREAM(stream)
@@ -1319,6 +1320,10 @@ static void apply_filter_to_stream(bool append, INTERNAL_FUNCTION_PARAMETERS)
 		if (filter == NULL) {
 			RETURN_FALSE;
 		}
+		if (EG(exception)) {
+			php_stream_filter_free(filter);
+			RETURN_THROWS();
+		}
 
 		if (append) {
 			zend_result ret = php_stream_filter_append_ex(&stream->readfilters, filter);
@@ -1329,18 +1334,32 @@ static void apply_filter_to_stream(bool append, INTERNAL_FUNCTION_PARAMETERS)
 		} else {
 			php_stream_filter_prepend_ex(&stream->readfilters, filter);
 		}
+		read_filter = filter;
 	}
 
 	if (read_write & PHP_STREAM_FILTER_WRITE) {
 		filter = php_stream_filter_create(filtername, filterparams, php_stream_is_persistent(stream));
 		if (filter == NULL) {
+			if (read_filter) {
+				php_stream_filter_remove(read_filter, 1);
+			}
 			RETURN_FALSE;
+		}
+		if (EG(exception)) {
+			php_stream_filter_free(filter);
+			if (read_filter) {
+				php_stream_filter_remove(read_filter, 1);
+			}
+			RETURN_THROWS();
 		}
 
 		if (append) {
 			zend_result ret = php_stream_filter_append_ex(&stream->writefilters, filter);
 			if (ret != SUCCESS) {
 				php_stream_filter_remove(filter, 1);
+				if (read_filter) {
+					php_stream_filter_remove(read_filter, 1);
+				}
 				RETURN_FALSE;
 			}
 		} else {
