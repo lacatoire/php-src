@@ -86,6 +86,8 @@ PHP_MINIT_FUNCTION(user_streams)
 struct _php_userstream_data {
 	struct php_user_stream_wrapper * wrapper;
 	zend_object *object;
+	/* stream returned by stream_cast(), kept open while the caller uses its descriptor */
+	zval cast_result;
 };
 typedef struct _php_userstream_data php_userstream_data_t;
 
@@ -306,6 +308,7 @@ static php_stream *user_wrapper_opener(php_stream_wrapper *wrapper, const char *
 	}
 
 	us = emalloc(sizeof(*us));
+	ZVAL_UNDEF(&us->cast_result);
 	us->wrapper = uwrap;
 	/* zend_call_method_if_exists() may unregister the stream wrapper. Hold on to it. */
 	GC_ADDREF(us->wrapper->resource);
@@ -400,6 +403,7 @@ static php_stream *user_wrapper_opendir(php_stream_wrapper *wrapper, const char 
 	PG(user_stream_current_filename) = filename;
 
 	us = emalloc(sizeof(*us));
+	ZVAL_UNDEF(&us->cast_result);
 	us->wrapper = uwrap;
 	/* zend_call_method_if_exists() may unregister the stream wrapper. Hold on to it. */
 	GC_ADDREF(us->wrapper->resource);
@@ -729,6 +733,7 @@ static int php_userstreamop_close(php_stream *stream, int close_handle)
 	ZEND_ASSERT(us->object != NULL);
 	OBJ_RELEASE(us->object);
 
+	zval_ptr_dtor(&us->cast_result);
 	efree(us);
 
 	return 0;
@@ -1494,6 +1499,12 @@ static int php_userstreamop_cast(php_stream *stream, int castas, void **retptr)
 			break;
 		}
 		ret = php_stream_cast(intstream, castas, retptr, 1);
+		if (ret == SUCCESS) {
+			/* The caller uses the descriptor after this call returns */
+			zval_ptr_dtor(&us->cast_result);
+			ZVAL_COPY_VALUE(&us->cast_result, &retval);
+			goto out;
+		}
 	} while (0);
 
 	zval_ptr_dtor(&retval);
