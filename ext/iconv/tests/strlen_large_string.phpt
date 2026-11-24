@@ -15,7 +15,7 @@ foreach (["a", "é", "€", "𝄞"] as $char) {
 
 $string = str_repeat("é", 1000000);
 var_dump(iconv_substr($string, 5, 3, "UTF-8"));
-var_dump(iconv_substr($string, -3, 3, "UTF-8"));
+var_dump(iconv_substr(str_repeat("é", 3000), -3, 3, "UTF-8"));
 var_dump(iconv_strlen("aé€𝄞", "UTF-8"));
 var_dump(iconv_strlen(str_repeat("é", 1500) . "\xFF", "UTF-8"));
 ?>
