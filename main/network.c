@@ -975,6 +975,17 @@ php_socket_t php_network_connect_socket_to_host_ex(const char *host, unsigned sh
 		sock = socket(sa->sa_family, socktype, 0);
 
 		if (sock == SOCK_ERR) {
+			int err = php_socket_errno();
+
+			if (error_code) {
+				*error_code = err;
+			}
+			if (error_string) {
+				if (*error_string) {
+					zend_string_release_ex(*error_string, 0);
+				}
+				*error_string = php_socket_error_str(err);
+			}
 			continue;
 		}
 
