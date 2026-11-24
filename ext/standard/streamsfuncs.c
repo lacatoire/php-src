@@ -1081,7 +1081,12 @@ PHP_FUNCTION(stream_context_set_option)
 			RETURN_THROWS();
 		}
 
-		if (parse_context_options(context, options) == FAILURE) {
+		/* The context of a stream may be owned by that stream alone, and replacing
+		 * an option can run a destructor that closes it: keep the context alive. */
+		GC_ADDREF(context->res);
+		zend_result result = parse_context_options(context, options);
+		zend_list_delete(context->res);
+		if (result == FAILURE) {
 			RETURN_THROWS();
 		}
 
@@ -1095,7 +1100,9 @@ PHP_FUNCTION(stream_context_set_option)
 			zend_argument_value_error(4, "must be provided when argument #2 ($wrapper_or_options) is a string");
 			RETURN_THROWS();
 		}
+		GC_ADDREF(context->res);
 		php_stream_context_set_option(context, ZSTR_VAL(wrappername), optionname, zvalue);
+		zend_list_delete(context->res);
 		RETURN_TRUE;
 	}
 }
@@ -1118,7 +1125,11 @@ PHP_FUNCTION(stream_context_set_options)
 		RETURN_THROWS();
 	}
 
-	if (parse_context_options(context, options) == FAILURE) {
+	/* See stream_context_set_option() */
+	GC_ADDREF(context->res);
+	zend_result result = parse_context_options(context, options);
+	zend_list_delete(context->res);
+	if (result == FAILURE) {
 		RETURN_THROWS();
 	}
 
@@ -1143,7 +1154,11 @@ PHP_FUNCTION(stream_context_set_params)
 		RETURN_THROWS();
 	}
 
-	if (parse_context_params(context, params) == FAILURE) {
+	/* See stream_context_set_option() */
+	GC_ADDREF(context->res);
+	zend_result result = parse_context_params(context, params);
+	zend_list_delete(context->res);
+	if (result == FAILURE) {
 		RETURN_THROWS();
 	}
 
