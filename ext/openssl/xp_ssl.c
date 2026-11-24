@@ -3596,6 +3596,7 @@ static inline int php_openssl_tcp_sockop_accept(php_stream *stream, php_openssl_
 		memcpy(clisockdata, sock, sizeof(clisockdata->s));
 
 		clisockdata->s.socket = clisock;
+		clisockdata->s.timeout_event = false;
 #ifdef __linux__
 		/* O_NONBLOCK is not inherited on Linux */
 		clisockdata->s.is_blocked = true;

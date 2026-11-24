@@ -1084,6 +1084,7 @@ static inline int php_tcp_sockop_accept(php_stream *stream, php_netstream_data_t
 
 		memcpy(clisockdata, sock, sizeof(*clisockdata));
 		clisockdata->socket = clisock;
+		clisockdata->timeout_event = false;
 #ifdef __linux__
 		/* O_NONBLOCK is not inherited on Linux */
 		clisockdata->is_blocked = true;
