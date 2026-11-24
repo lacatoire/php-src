@@ -243,6 +243,9 @@ PHP_FUNCTION(sem_get)
 		semarg.val = max_acquire;
 		if (semctl(semid, SYSVSEM_SEM, SETVAL, semarg) == -1) {
 			php_error_docref(NULL, E_WARNING, "Failed for key 0x" ZEND_XLONG_FMT ": %s", key_arg, strerror(errno));
+			/* Nobody else uses the set, and without a valid maximum it could never be acquired. */
+			semctl(semid, 0, IPC_RMID, semarg);
+			RETURN_FALSE;
 		}
 	}
 
