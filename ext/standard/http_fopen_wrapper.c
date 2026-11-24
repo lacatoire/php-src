@@ -452,6 +452,7 @@ static php_stream *php_stream_url_wrap_http_ex(php_stream_wrapper *wrapper,
 	int header_init = ((flags & HTTP_WRAPPER_HEADER_INIT) != 0);
 	int redirected = ((flags & HTTP_WRAPPER_REDIRECTED) != 0);
 	int redirect_keep_method = ((flags & HTTP_WRAPPER_KEEP_METHOD) != 0);
+	bool redirect_followed = false;
 	int response_code;
 	smart_str req_buf = {0};
 	bool custom_request_method;
@@ -1212,6 +1213,7 @@ finish:
 			stream = php_stream_url_wrap_http_ex(
 				wrapper, new_path, mode, options, opened_path, context,
 				--redirect_max, new_flags, response_header STREAMS_CC);
+			redirect_followed = true;
 			efree(new_path);
 		} else {
 			php_stream_wrapper_log_warn(wrapper, context, options, ProtocolError,
@@ -1239,7 +1241,11 @@ out:
 		if (header_init) {
 			ZVAL_COPY(&stream->wrapperdata, response_header);
 		}
-		php_stream_notify_progress_init(context, 0, header_info.file_size);
+		/* The progress of a followed redirect was set up from the headers of the
+		 * final response, those of the redirecting response must not replace it. */
+		if (!redirect_followed) {
+			php_stream_notify_progress_init(context, 0, header_info.file_size);
+		}
 
 		/* Restore original chunk size now that we're done with headers */
 		if (options & STREAM_WILL_CAST)
@@ -1262,7 +1268,7 @@ out:
 		/* It's possible that the server already sent in more data than just the headers.
 		 * We account for this by adjusting the progress counter by the difference of
 		 * already read header data and the body. */
-		if (stream->writepos > stream->readpos) {
+		if (!redirect_followed && stream->writepos > stream->readpos) {
 			php_stream_notify_progress_increment(context, stream->writepos - stream->readpos, 0);
 		}
 	} else if (header_info.transfer_encoding) {
