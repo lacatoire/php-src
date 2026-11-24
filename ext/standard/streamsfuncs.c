@@ -373,6 +373,7 @@ PHP_FUNCTION(stream_socket_get_name)
 PHP_FUNCTION(stream_socket_sendto)
 {
 	php_stream *stream;
+	zval *zstream;
 	zend_long flags = 0;
 	char *data, *target_addr = NULL;
 	size_t datalen, target_addr_len = 0;
@@ -380,12 +381,15 @@ PHP_FUNCTION(stream_socket_sendto)
 	socklen_t sl = 0;
 
 	ZEND_PARSE_PARAMETERS_START(2, 4)
-		PHP_Z_PARAM_STREAM(stream)
+		Z_PARAM_RESOURCE(zstream)
 		Z_PARAM_STRING(data, datalen)
 		Z_PARAM_OPTIONAL
 		Z_PARAM_LONG(flags)
 		Z_PARAM_STRING(target_addr, target_addr_len)
 	ZEND_PARSE_PARAMETERS_END();
+
+	/* An argument deprecation can run an error handler that closes the stream, so fetch it last. */
+	php_stream_from_zval(stream, zstream);
 
 	php_stream_error_operation_begin();
 	if (target_addr_len) {
