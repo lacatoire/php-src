@@ -483,7 +483,9 @@ php_stream * php_stream_url_wrap_ftp(php_stream_wrapper *wrapper, const char *pa
 	}
 
 	if (context &&
-		(tmpzval = php_stream_context_get_option(context, "ftp", "proxy")) != NULL) {
+		(tmpzval = php_stream_context_get_option(context, "ftp", "proxy")) != NULL &&
+		Z_TYPE_P(tmpzval) == IS_STRING &&
+		Z_STRLEN_P(tmpzval) > 0) {
 		if (read_write == 1) {
 			/* Use http wrapper to proxy ftp request */
 			return php_stream_url_wrap_http(wrapper, path, mode, options, opened_path, context STREAMS_CC);
