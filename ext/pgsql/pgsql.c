@@ -4406,7 +4406,7 @@ static int php_pgsql_fd_set_option(php_stream *stream, int option, int value, vo
 		case PHP_STREAM_OPTION_BLOCKING:
 			return PQsetnonblocking(pgsql, value);
 		default:
-			return FAILURE;
+			return PHP_STREAM_OPTION_RETURN_NOTIMPL;
 	}
 }
 /* }}} */
