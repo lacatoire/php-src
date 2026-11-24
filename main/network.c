@@ -312,7 +312,12 @@ static inline void php_network_set_limit_time(struct timeval *limit_time,
 {
 	gettimeofday(limit_time, NULL);
 	const double timeoutmax = (double) PHP_TIMEOUT_ULL_MAX / 1000000.0;
-	ZEND_ASSERT(limit_time->tv_sec < (timeoutmax - timeout->tv_sec));
+	if ((double) limit_time->tv_sec >= timeoutmax - (double) timeout->tv_sec - 1.0) {
+		/* the limit would overflow: saturate it, it is far beyond any real wait */
+		limit_time->tv_sec = (time_t) (timeoutmax - 1.0);
+		limit_time->tv_usec = 0;
+		return;
+	}
 	limit_time->tv_sec += timeout->tv_sec;
 	limit_time->tv_usec += timeout->tv_usec;
 	if (limit_time->tv_usec >= 1000000) {
