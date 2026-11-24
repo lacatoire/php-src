@@ -63,7 +63,7 @@ PHP_FUNCTION(soundex)
 		/* BUG: should also map here accented letters used in non */
 		/* English words or names (also found in English text!): */
 		/* esstsett, thorn, n-tilde, c-cedilla, s-caron, ... */
-		code = toupper((unsigned char)str[i]);
+		code = zend_toupper_ascii(str[i]);
 		if (code >= 'A' && code <= 'Z') {
 			if (_small == 0) {
 				/* remember first valid char */
