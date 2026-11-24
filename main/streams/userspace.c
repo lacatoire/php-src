@@ -1493,7 +1493,7 @@ static int php_userstreamop_cast(php_stream *stream, int castas, void **retptr)
 			intstream = NULL;
 			break;
 		}
-		ret = php_stream_cast(intstream, castas, retptr, 1);
+		ret = php_stream_cast(intstream, castas | PHP_STREAM_CAST_INTERNAL, retptr, 1);
 	} while (0);
 
 	zval_ptr_dtor(&retval);
