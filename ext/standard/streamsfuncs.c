@@ -725,6 +725,23 @@ static int stream_array_from_fd_set(zval *stream_array, const php_growable_fd_se
 	return ret;
 }
 
+static bool stream_array_has_buffered_data(const HashTable *stream_array)
+{
+	zval *elem;
+
+	ZEND_HASH_FOREACH_VAL(stream_array, elem) {
+		php_stream *stream;
+
+		ZVAL_DEREF(elem);
+		php_stream_from_zval_no_verify(stream, elem);
+		if (stream != NULL && (stream->writepos - stream->readpos) > 0) {
+			return true;
+		}
+	} ZEND_HASH_FOREACH_END();
+
+	return false;
+}
+
 static int stream_array_emulate_read_fd_set(zval *stream_array)
 {
 	zval *elem, *dest_elem;
@@ -811,7 +828,8 @@ PHP_FUNCTION(stream_select)
 		sets += stream_array_to_fd_set(Z_ARR_P(e_array), &efds, &max_fd);
 	}
 
-	if (!sets) {
+	/* Streams without a descriptor take part through their buffered data */
+	if (!sets && !(r_array != NULL && stream_array_has_buffered_data(Z_ARR_P(r_array)))) {
 		php_stream_error_operation_end(context);
 		zend_value_error("No stream arrays were passed");
 		goto cleanup;
