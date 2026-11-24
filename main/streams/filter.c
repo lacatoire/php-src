@@ -426,7 +426,8 @@ PHPAPI zend_result php_stream_filter_append_ex(php_stream_filter_chain *chain, p
 						stream->readbuflen += bucket->buflen;
 						stream->readbuf = perealloc(stream->readbuf, stream->readbuflen, stream->is_persistent);
 					}
-					memcpy(stream->readbuf + stream->writepos, bucket->buf, bucket->buflen);
+					/* The bucket may point into the read buffer itself */
+					memmove(stream->readbuf + stream->writepos, bucket->buf, bucket->buflen);
 					stream->writepos += bucket->buflen;
 
 					php_stream_bucket_unlink(bucket);
