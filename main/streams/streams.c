@@ -1854,10 +1854,15 @@ void php_shutdown_stream_wrappers(int module_number)
 }
 
 /* Validate protocol scheme names during registration
- * Must conform to /^[a-zA-Z0-9+.-]+$/
+ * Must conform to /^[a-zA-Z0-9+.-]+$/ and be at least 2 characters long,
+ * as php_stream_locate_url_wrapper() does not recognize shorter schemes
  */
 static inline zend_result php_stream_wrapper_scheme_validate(const char *protocol, size_t protocol_len)
 {
+	if (protocol_len < 2) {
+		return FAILURE;
+	}
+
 	for (size_t i = 0; i < protocol_len; i++) {
 		if (!isalnum((unsigned char)protocol[i]) &&
 			protocol[i] != '+' &&
