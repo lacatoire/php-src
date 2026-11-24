@@ -735,8 +735,8 @@ ZEND_API bool ZEND_FASTCALL zend_parse_arg_number_or_str_slow(zval *arg, zval **
 		zend_object *zobj = Z_OBJ_P(arg);
 		zval obj;
 		if (zobj->handlers->cast_object(zobj, &obj, IS_STRING) == SUCCESS) {
-			OBJ_RELEASE(zobj);
 			ZVAL_COPY_VALUE(arg, &obj);
+			OBJ_RELEASE(zobj);
 			*dest = arg;
 			return true;
 		}
@@ -760,8 +760,8 @@ ZEND_API bool ZEND_FASTCALL zend_parse_arg_str_weak(zval *arg, zend_string **des
 		zend_object *zobj = Z_OBJ_P(arg);
 		zval obj;
 		if (zobj->handlers->cast_object(zobj, &obj, IS_STRING) == SUCCESS) {
-			OBJ_RELEASE(zobj);
 			ZVAL_COPY_VALUE(arg, &obj);
+			OBJ_RELEASE(zobj);
 			*dest = Z_STR_P(arg);
 			return 1;
 		}
