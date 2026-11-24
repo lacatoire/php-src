@@ -1,5 +1,5 @@
 /* This is a generated file, edit test.stub.php instead.
- * Stub hash: b3c6209d96da50e9aa0e0dbd0ee5e9926d64be4d
+ * Stub hash: 82b3279a1e6ca635882b6b08e0180f8086bbe946
  * Has decl header: yes */
 
 #include "zend_constants.h"
