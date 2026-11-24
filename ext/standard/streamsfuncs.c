@@ -360,7 +360,13 @@ PHP_FUNCTION(stream_socket_get_name)
 		RETURN_FALSE;
 	}
 
-	if ((ZSTR_LEN(name) == 0) || (ZSTR_VAL(name)[0] == 0)) {
+	/* An unnamed socket has an empty name, or only NUL bytes on some systems.
+	 * An abstract unix name starts with a NUL byte followed by the name. */
+	size_t name_start = 0;
+	while (name_start < ZSTR_LEN(name) && ZSTR_VAL(name)[name_start] == 0) {
+		name_start++;
+	}
+	if (name_start == ZSTR_LEN(name)) {
 		zend_string_release_ex(name, 0);
 		RETURN_FALSE;
 	}
