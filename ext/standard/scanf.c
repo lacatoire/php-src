@@ -174,8 +174,10 @@ static char * BuildCharSet(CharSet *cset, char *format)
 	cset->nchars = cset->nranges = 0;
 	ch    = format++;
 	start = *ch;
+	bool start_stored = false;
 	if (*ch == ']' || *ch == '-') {
 		cset->chars[cset->nchars++] = *ch;
+		start_stored = true;
 		ch = format++;
 	}
 	while (*ch != ']') {
@@ -185,6 +187,7 @@ static char * BuildCharSet(CharSet *cset, char *format)
 			 * it yet.
 			 */
 			start = *ch;
+			start_stored = false;
 		} else if (*ch == '-') {
 			/*
 			 * Check to see if this is the last character in the set, in which
@@ -192,7 +195,10 @@ static char * BuildCharSet(CharSet *cset, char *format)
 			 * as well as the dash.
 			 */
 			if (*format == ']') {
-				cset->chars[cset->nchars++] = start;
+				/* A leading ']' or '-' was already added above. */
+				if (!start_stored) {
+					cset->chars[cset->nchars++] = start;
+				}
 				cset->chars[cset->nchars++] = *ch;
 			} else {
 				ch = format++;
