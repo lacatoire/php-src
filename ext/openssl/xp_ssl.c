@@ -3191,6 +3191,7 @@ static int php_openssl_enable_crypto(php_stream *stream,
 		/* deactivate - common for server/client */
 		SSL_shutdown(sslsock->ssl_handle);
 		sslsock->ssl_active = 0;
+		return 1;
 	}
 
 	return -1;

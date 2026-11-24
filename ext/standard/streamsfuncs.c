@@ -1638,16 +1638,13 @@ PHP_FUNCTION(stream_socket_enable_crypto)
 
 	ret = php_stream_xport_crypto_enable(stream, enable);
 	php_stream_error_operation_end_for_stream(stream);
-	switch (ret) {
-		case -1:
-			RETURN_FALSE;
-
-		case 0:
-			RETURN_LONG(0);
-
-		default:
-			RETURN_TRUE;
+	if (ret < 0) {
+		RETURN_FALSE;
 	}
+	if (ret == 0) {
+		RETURN_LONG(0);
+	}
+	RETURN_TRUE;
 }
 /* }}} */
 
