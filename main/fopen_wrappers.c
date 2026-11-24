@@ -516,10 +516,7 @@ static zend_string *tsrm_realpath_str(const char *path) {
 	return realpath_str;
 }
 
-/* {{{ php_resolve_path
- * Returns the realpath for given filename according to include path
- */
-PHPAPI zend_string *php_resolve_path(const char *filename, size_t filename_length, const char *path)
+static zend_string *php_resolve_path_impl(const char *filename, size_t filename_length, const char *path)
 {
 	zend_string *resolved_path;
 	char trypath[MAXPATHLEN];
@@ -665,6 +662,27 @@ PHPAPI zend_string *php_resolve_path(const char *filename, size_t filename_lengt
 	}
 
 	return NULL;
+}
+
+/* {{{ php_resolve_path
+ * Returns the realpath for given filename according to include path
+ */
+PHPAPI zend_string *php_resolve_path(const char *filename, size_t filename_length, const char *path)
+{
+	zend_string *resolved_path;
+	char *path_copy;
+
+	if (!path || !strstr(path, "://")) {
+		return php_resolve_path_impl(filename, filename_length, path);
+	}
+
+	/* The url_stat() handler of a user wrapper may change the INI setting
+	 * the path comes from, and free it while it is being walked. */
+	path_copy = estrdup(path);
+	resolved_path = php_resolve_path_impl(filename, filename_length, path_copy);
+	efree(path_copy);
+
+	return resolved_path;
 }
 /* }}} */
 
