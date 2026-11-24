@@ -483,7 +483,7 @@ PHP_FUNCTION(stream_get_contents)
 		if (position >= 0 && desiredpos > position) {
 			/* use SEEK_CUR to allow emulation in streams that don't support seeking */
 			seek_res = php_stream_seek(stream, desiredpos - position, SEEK_CUR);
-		} else if (desiredpos < position)  {
+		} else if (desiredpos < position || (position < 0 && desiredpos > 0)) {
 			/* desired position before position or error on tell */
 			seek_res = php_stream_seek(stream, desiredpos, SEEK_SET);
 		}
