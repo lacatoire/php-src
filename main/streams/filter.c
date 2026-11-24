@@ -535,6 +535,13 @@ PHPAPI zend_result php_stream_filter_flush(php_stream_filter *filter, bool finis
 		}
 	} else if (chain == &(stream->writefilters)) {
 		/* Send flushed data to the stream */
+		/* Data must be written at the current stream position, so invalidate
+		 * the read buffer and seek, like php_stream_write_buffer() does. */
+		if (stream->ops->seek && (stream->flags & PHP_STREAM_FLAG_NO_SEEK) == 0 && stream->readpos != stream->writepos) {
+			stream->readpos = stream->writepos = 0;
+
+			stream->ops->seek(stream, stream->position, SEEK_SET, &stream->position);
+		}
 		while ((bucket = inp->head)) {
 			ssize_t count = stream->ops->write(stream, bucket->buf, bucket->buflen);
 			if (count > 0) {
