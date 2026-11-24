@@ -1624,9 +1624,12 @@ PHPAPI zend_string *_php_stream_copy_to_mem(php_stream *src, size_t maxlen, bool
 	 * result may be inaccurate, as the filter may inflate or deflate the
 	 * number of bytes that we can read.  In order to avoid an upsize followed
 	 * by a downsize of the buffer, overestimate by the CHUNK_SIZE size (which is
-	 * 8K).  */
-	if (php_stream_stat(src, &ssbuf) == 0 && ssbuf.sb.st_size > 0) {
-		buflen = MAX(ssbuf.sb.st_size - src->position, 0) + CHUNK_SIZE;
+	 * 8K).  A read filter makes the stat size meaningless, so ignore it then. */
+	if (!src->readfilters.head && php_stream_stat(src, &ssbuf) == 0 && ssbuf.sb.st_size > 0) {
+		buflen = CHUNK_SIZE;
+		if (ssbuf.sb.st_size > src->position) {
+			buflen += (size_t) (ssbuf.sb.st_size - src->position);
+		}
 		if (maxlen > 0 && buflen > maxlen) {
 			buflen = maxlen;
 		}
