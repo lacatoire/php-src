@@ -1285,6 +1285,7 @@ PHP_FUNCTION(stream_context_create)
 /* {{{ streams filter functions */
 static void apply_filter_to_stream(bool append, INTERNAL_FUNCTION_PARAMETERS)
 {
+	zval *zstream;
 	php_stream *stream;
 	char *filtername;
 	size_t filternamelen;
@@ -1293,12 +1294,15 @@ static void apply_filter_to_stream(bool append, INTERNAL_FUNCTION_PARAMETERS)
 	php_stream_filter *filter = NULL;
 
 	ZEND_PARSE_PARAMETERS_START(2, 4)
-		PHP_Z_PARAM_STREAM(stream)
+		Z_PARAM_RESOURCE(zstream)
 		Z_PARAM_STRING(filtername, filternamelen)
 		Z_PARAM_OPTIONAL
 		Z_PARAM_LONG(read_write)
 		Z_PARAM_ZVAL(filterparams)
 	ZEND_PARSE_PARAMETERS_END();
+
+	/* Fetched after the other arguments: their conversion may close the stream */
+	php_stream_from_zval(stream, zstream);
 
 	if ((read_write & PHP_STREAM_FILTER_ALL) == 0) {
 		/* Chain not specified.
