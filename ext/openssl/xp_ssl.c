@@ -3111,7 +3111,8 @@ static int php_openssl_enable_crypto(php_stream *stream,
 		}
 
 		timeout = sslsock->is_client ? &sslsock->connect_timeout : &sslsock->s.timeout;
-		has_timeout = !sslsock->s.is_blocked && (timeout->tv_sec > 0 || (timeout->tv_sec == 0 && timeout->tv_usec));
+		has_timeout = !sslsock->s.is_blocked && (timeout->tv_sec > 0 ||
+			(timeout->tv_sec == 0 && (timeout->tv_usec || sslsock->is_client)));
 		/* gettimeofday is not monotonic; using it here is not strictly correct */
 		if (has_timeout) {
 			gettimeofday(&start_time, NULL);
