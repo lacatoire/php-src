@@ -63,5 +63,5 @@ Warning: stream_socket_client(): Unable to locate peer certificate CN in %s on l
 
 Warning: stream_socket_client(): Failed to enable crypto in %s on line %d
 
-Warning: stream_socket_client(): Unable to connect to ssl://[::1]:%d (Unknown error) in %s on line %d
+Warning: stream_socket_client(): Unable to connect to ssl://[::1]:%d (Cannot enable crypto) in %s on line %d
 bool(false)
