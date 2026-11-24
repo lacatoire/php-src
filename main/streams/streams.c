@@ -455,7 +455,7 @@ PHPAPI zend_result php_stream_fill_read_buffer(php_stream *stream, size_t size)
 	bool old_eof = stream->eof;
 
 	if (stream->readfilters.head) {
-		size_t to_read_now = MIN(size, stream->chunk_size);
+		size_t to_read_now = MIN(size, (size_t)(stream->writepos - stream->readpos) + stream->chunk_size);
 		char *chunk_buf;
 		php_stream_bucket_brigade brig_in = { NULL, NULL }, brig_out = { NULL, NULL };
 		php_stream_bucket_brigade *brig_inp = &brig_in, *brig_outp = &brig_out, *brig_swap;
