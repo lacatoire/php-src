@@ -99,8 +99,8 @@ typedef struct CharSet {
 	char *chars;
 	int nranges;
 	struct Range {
-		char start;
-		char end;
+		unsigned char start;
+		unsigned char end;
 	} *ranges;
 } CharSet;
 
@@ -134,7 +134,8 @@ static inline void scan_set_error_return(int numVars, zval *return_value);
  */
 static char * BuildCharSet(CharSet *cset, char *format)
 {
-	char *ch, start;
+	char *ch;
+	unsigned char start;
 	int  nranges;
 	char *end;
 
@@ -200,11 +201,11 @@ static char * BuildCharSet(CharSet *cset, char *format)
 				/*
 				 * Check to see if the range is in reverse order.
 				 */
-				if (start < *ch) {
+				if (start < (unsigned char) *ch) {
 					cset->ranges[cset->nranges].start = start;
-					cset->ranges[cset->nranges].end = *ch;
+					cset->ranges[cset->nranges].end = (unsigned char) *ch;
 				} else {
-					cset->ranges[cset->nranges].start = *ch;
+					cset->ranges[cset->nranges].start = (unsigned char) *ch;
 					cset->ranges[cset->nranges].end = start;
 				}
 				cset->nranges++;
@@ -235,11 +236,11 @@ static char * BuildCharSet(CharSet *cset, char *format)
  */
 static int CharInSet(CharSet *cset, int c)
 {
-	char ch = (char) c;
+	unsigned char ch = (unsigned char) c;
 	int i, match = 0;
 
 	for (i = 0; i < cset->nchars; i++) {
-		if (cset->chars[i] == ch) {
+		if ((unsigned char) cset->chars[i] == ch) {
 			match = 1;
 			break;
 		}
