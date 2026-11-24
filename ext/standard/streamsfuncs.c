@@ -1732,7 +1732,7 @@ PHP_FUNCTION(stream_supports_lock)
 PHP_FUNCTION(stream_isatty)
 {
 	php_stream *stream;
-	php_socket_t fileno;
+	php_socket_t fileno = -1;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
 		PHP_Z_PARAM_STREAM(stream)
@@ -1745,9 +1745,15 @@ PHP_FUNCTION(stream_isatty)
 	 * It is only used here so that the buffered data warning is not displayed.
 	 */
 	if (php_stream_can_cast(stream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL) == SUCCESS) {
-		php_stream_cast(stream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL, (void*)&fileno, 0);
+		if (php_stream_cast(stream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL, (void*)&fileno, 0) != SUCCESS) {
+			php_stream_error_operation_end_for_stream(stream);
+			RETURN_FALSE;
+		}
 	} else if (php_stream_can_cast(stream, PHP_STREAM_AS_FD | PHP_STREAM_CAST_INTERNAL) == SUCCESS) {
-		php_stream_cast(stream, PHP_STREAM_AS_FD | PHP_STREAM_CAST_INTERNAL, (void*)&fileno, 0);
+		if (php_stream_cast(stream, PHP_STREAM_AS_FD | PHP_STREAM_CAST_INTERNAL, (void*)&fileno, 0) != SUCCESS) {
+			php_stream_error_operation_end_for_stream(stream);
+			RETURN_FALSE;
+		}
 	} else {
 		php_stream_error_operation_end_for_stream(stream);
 		RETURN_FALSE;
