@@ -152,8 +152,15 @@ static int php_gziop_set_option(php_stream *stream, int option, int value, void 
 
 	switch (option) {
 		case PHP_STREAM_OPTION_LOCKING:
-		case PHP_STREAM_OPTION_META_DATA_API:
 			return self->stream->ops->set_option(self->stream, option, value, ptrparam);
+		case PHP_STREAM_OPTION_META_DATA_API: {
+			int ret = self->stream->ops->set_option(self->stream, option, value, ptrparam);
+			if (ret == PHP_STREAM_OPTION_RETURN_OK) {
+				/* The inner stream never sees the end of the file, gzread() does. */
+				add_assoc_bool((zval *) ptrparam, "eof", php_stream_eof(stream));
+			}
+			return ret;
+		}
 		default:
 			break;
 	}
