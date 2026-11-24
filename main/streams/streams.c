@@ -455,13 +455,15 @@ PHPAPI zend_result php_stream_fill_read_buffer(php_stream *stream, size_t size)
 	bool old_eof = stream->eof;
 
 	if (stream->readfilters.head) {
-		size_t to_read_now = MIN(size, stream->chunk_size);
+		/* a filter may change the chunk size while this loop runs */
+		size_t chunk_size = stream->chunk_size;
+		size_t to_read_now = MIN(size, chunk_size);
 		char *chunk_buf;
 		php_stream_bucket_brigade brig_in = { NULL, NULL }, brig_out = { NULL, NULL };
 		php_stream_bucket_brigade *brig_inp = &brig_in, *brig_outp = &brig_out, *brig_swap;
 
 		/* allocate a buffer for reading chunks */
-		chunk_buf = femalloc(stream->chunk_size, /* fallible */ true);
+		chunk_buf = femalloc(chunk_size, /* fallible */ true);
 		if (UNEXPECTED(!chunk_buf)) {
 			return FAILURE;
 		}
@@ -474,7 +476,7 @@ PHPAPI zend_result php_stream_fill_read_buffer(php_stream *stream, size_t size)
 			php_stream_filter *filter;
 
 			/* read a chunk into a bucket */
-			justread = stream->ops->read(stream, chunk_buf, stream->chunk_size);
+			justread = stream->ops->read(stream, chunk_buf, chunk_size);
 			if (justread < 0 && stream->writepos == stream->readpos) {
 				efree(chunk_buf);
 				retval = FAILURE;
