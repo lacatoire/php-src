@@ -286,7 +286,7 @@ PHPAPI const char* php_get_temporary_directory(void)
 		if (s && *s) {
 			size_t len = strlen(s);
 
-			if (s[len - 1] == DEFAULT_SLASH) {
+			if (len >= 2 && s[len - 1] == DEFAULT_SLASH) {
 				PG(php_sys_temp_dir) = estrndup(s, len - 1);
 			} else {
 				PG(php_sys_temp_dir) = estrndup(s, len);
