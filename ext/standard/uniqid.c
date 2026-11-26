@@ -72,13 +72,13 @@ PHP_FUNCTION(uniqid)
 	 * digits for usecs.
 	 */
 	if (more_entropy) {
-		uint32_t bytes;
-		double seed;
+		uint32_t bytes, seed;
 		if (php_random_bytes_silent(&bytes, sizeof(uint32_t)) == FAILURE) {
 			bytes = php_random_generate_fallback_seed();
 		}
-		seed = ((double) bytes / UINT32_MAX) * 10.0;
-		uniqid = strpprintf(0, "%s%08x%05x%.8F", prefix, sec, usec, seed);
+		/* Scale to [0, 999999999] so the suffix always has a single digit before the dot. */
+		seed = (uint32_t) (((uint64_t) bytes * 1000000000) >> 32);
+		uniqid = strpprintf(0, "%s%08x%05x%u.%08u", prefix, sec, usec, seed / 100000000, seed % 100000000);
 	} else {
 		uniqid = strpprintf(0, "%s%08x%05x", prefix, sec, usec);
 	}
