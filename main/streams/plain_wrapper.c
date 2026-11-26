@@ -563,6 +563,14 @@ static int php_stdiop_close(php_stream *stream, int close_handle)
 		ret = 0;
 		data->file = NULL;
 		data->fd = -1;
+		if (data->temp_name) {
+#ifndef PHP_WIN32
+			/* The handle now belongs to someone else, the file stays until it is closed */
+			unlink(ZSTR_VAL(data->temp_name));
+#endif
+			zend_string_release_ex(data->temp_name, 0);
+			data->temp_name = NULL;
+		}
 	}
 
 	pefree(data, stream->is_persistent);
