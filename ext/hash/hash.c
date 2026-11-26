@@ -1020,10 +1020,6 @@ PHP_FUNCTION(hash_pbkdf2)
 
 	context = php_hash_alloc_context(ops);
 	ops->hash_init(context, args);
-	if (UNEXPECTED(EG(exception))) {
-		php_hash_free_context(ops, context);
-		RETURN_THROWS();
-	}
 
 	K1 = emalloc(ops->block_size);
 	K2 = emalloc(ops->block_size);
