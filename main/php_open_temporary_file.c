@@ -350,6 +350,9 @@ def_tmp:
 		/* Use default temporary directory. */
 		if (!(flags & PHP_TMP_FILE_SILENT)) {
 			php_error_docref(NULL, E_NOTICE, "file created in the system's temporary directory");
+			if (EG(exception)) {
+				return -1;
+			}
 		}
 		goto def_tmp;
 	}
