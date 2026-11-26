@@ -85,6 +85,12 @@ ZEND_API void zend_highlight(zend_syntax_highlighter_ini *syntax_highlighter_ini
 	zend_printf("<pre><code style=\"color: %s\">", last_color);
 	/* highlight stuff coming back from zendlex() */
 	while ((token_type=lex_scan(&token, NULL))) {
+		/* Clear each lexer error instead of chaining it onto the previous one,
+		 * which makes the loop quadratic in the number of errors. */
+		if (UNEXPECTED(EG(exception))) {
+			zend_clear_exception();
+		}
+
 		switch (token_type) {
 			case T_INLINE_HTML:
 				next_color = syntax_highlighter_ini->highlight_html;
@@ -171,6 +177,12 @@ ZEND_API void zend_strip(void)
 	int prev_space = 0;
 
 	while ((token_type=lex_scan(&token, NULL))) {
+		/* Clear each lexer error instead of chaining it onto the previous one,
+		 * which makes the loop quadratic in the number of errors. */
+		if (UNEXPECTED(EG(exception))) {
+			zend_clear_exception();
+		}
+
 		switch (token_type) {
 			case T_WHITESPACE:
 				if (!prev_space) {
