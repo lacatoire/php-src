@@ -378,10 +378,14 @@ static bool tokenize(zval *return_value, zend_string *source, zend_class_entry *
 				&& --need_tokens == 0
 			) {
 				/* fetch the rest into a T_INLINE_HTML */
+				if (CG(increment_lineno)) {
+					CG(zend_lineno)++;
+					CG(increment_lineno) = 0;
+				}
 				if (zendcursor < zendlimit) {
 					if (!add_token(
 						return_value, T_INLINE_HTML, zendcursor, zendlimit - zendcursor,
-						token_line, token_class, &interned_strings)) {
+						CG(zend_lineno), token_class, &interned_strings)) {
 						success = false;
 						break;
 					}
@@ -474,6 +478,10 @@ static void on_event(
 			break;
 		}
 		case ON_STOP:
+			if (CG(increment_lineno)) {
+				CG(zend_lineno)++;
+				CG(increment_lineno) = 0;
+			}
 			if (LANG_SCNG(yy_cursor) != LANG_SCNG(yy_limit)) {
 				add_token(ctx->tokens, T_INLINE_HTML, LANG_SCNG(yy_cursor),
 					LANG_SCNG(yy_limit) - LANG_SCNG(yy_cursor), CG(zend_lineno),
