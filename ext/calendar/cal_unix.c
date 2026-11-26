@@ -30,6 +30,7 @@ PHP_FUNCTION(unixtojd)
 	zend_long tl = 0;
 	bool tl_is_null = 1;
 	struct tm *ta, tmbuf;
+	zend_long sdn;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|l!", &tl, &tl_is_null) == FAILURE) {
 		RETURN_THROWS();
@@ -44,11 +45,17 @@ PHP_FUNCTION(unixtojd)
 		RETURN_THROWS();
 	}
 
-	if (!(ta = php_localtime_r(&ts, &tmbuf))) {
+	if (!(ta = php_localtime_r(&ts, &tmbuf)) || ta->tm_year > INT_MAX - 1900) {
 		RETURN_FALSE;
 	}
 
-	RETURN_LONG(GregorianToSdn(ta->tm_year+1900, ta->tm_mon+1, ta->tm_mday));
+	sdn = GregorianToSdn(ta->tm_year+1900, ta->tm_mon+1, ta->tm_mday);
+	if (sdn == 0) {
+		/* The year is out of the range GregorianToSdn() supports */
+		RETURN_FALSE;
+	}
+
+	RETURN_LONG(sdn);
 }
 /* }}} */
 
