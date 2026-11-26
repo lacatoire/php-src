@@ -152,7 +152,8 @@ PHPAPI int php_exec(int type, const char *cmd, zval *array, zval *return_value)
 					buf = erealloc(buf, buflen);
 					b = buf + bufl;
 				} else {
-					b += bufl;
+					bufl += b - buf;
+					b = buf + bufl;
 				}
 				continue;
 			} else if (b != buf) {
