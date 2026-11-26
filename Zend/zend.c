@@ -1601,16 +1601,24 @@ ZEND_API ZEND_COLD void zend_error_zstr_at(
 			EG(num_errors) = orig_num_errors;
 			EG(errors) = orig_errors;
 
+			bool handled = true;
 			if (res == SUCCESS) {
 				if (Z_TYPE(retval) != IS_UNDEF) {
 					if (Z_TYPE(retval) == IS_FALSE) {
+						handled = false;
 						zend_error_cb(orig_type, error_filename, error_lineno, message);
 					}
 					zval_ptr_dtor(&retval);
 				}
 			} else if (!EG(exception)) {
 				/* The user error handler failed, use built-in error handler */
+				handled = false;
 				zend_error_cb(orig_type, error_filename, error_lineno, message);
+			}
+			if (handled) {
+				/* The error does not become the last error, drop its backtrace */
+				zval_ptr_dtor(&EG(last_fatal_error_backtrace));
+				ZVAL_UNDEF(&EG(last_fatal_error_backtrace));
 			}
 
 			if (in_compilation) {
