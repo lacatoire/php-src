@@ -6,5 +6,7 @@ var_dump(unpack("X*", ""));
 ?>
 --EXPECTF--
 Warning: unpack(): Type X: '*' ignored in %sbug75075.php on line %d
+
+Warning: unpack(): Type X: outside of string in %sbug75075.php on line %d
 array(0) {
 }
