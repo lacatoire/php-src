@@ -2107,7 +2107,7 @@ PHP_FUNCTION(strripos)
 	if (ZSTR_LEN(needle) == 1) {
 		/* Single character search can shortcut memcmps
 		   Can also avoid tolower emallocs */
-		char lowered;
+		unsigned char lowered;
 		if (offset >= 0) {
 			if ((size_t)offset > ZSTR_LEN(haystack)) {
 				zend_argument_value_error(3, "must be contained in argument #1 ($haystack)");
