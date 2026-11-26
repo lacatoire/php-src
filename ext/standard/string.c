@@ -2811,7 +2811,7 @@ PHP_FUNCTION(ucwords)
 	zend_string *str;
 	char *delims = " \t\r\n\f\v";
 	char *r;
-	const char *r_end;
+	const char *r_end, *s;
 	size_t delims_len = 6;
 	char mask[256];
 
@@ -2831,9 +2831,11 @@ PHP_FUNCTION(ucwords)
 	r = Z_STRVAL_P(return_value);
 
 	*r = zend_toupper_ascii((unsigned char) *r);
-	for (r_end = r + Z_STRLEN_P(return_value) - 1; r < r_end; ) {
-		if (mask[(unsigned char)*r++]) {
-			*r = zend_toupper_ascii((unsigned char) *r);
+	/* Check the separators on the input, not on already uppercased bytes */
+	s = ZSTR_VAL(str);
+	for (r_end = r + Z_STRLEN_P(return_value) - 1; r < r_end; r++, s++) {
+		if (mask[(unsigned char)*s]) {
+			r[1] = zend_toupper_ascii((unsigned char) r[1]);
 		}
 	}
 }
