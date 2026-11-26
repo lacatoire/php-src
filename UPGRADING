@@ -76,6 +76,8 @@ PHP 8.7 UPGRADE NOTES
   . The number of filters that can be chained in a php://filter URL is limited
     to 16 by default. Set the stream context option max_filter_count to change
     this.
+  . unpack() now emits a warning when the "X" format code backs up past the
+    start of the data, as pack() does. The position is still clamped to 0.
 
 ========================================
 2. New Features

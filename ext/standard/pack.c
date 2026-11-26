@@ -1347,7 +1347,7 @@ PHP_FUNCTION(unpack)
 						goto no_output;
 
 					case 'X':
-						if (inputpos < size) {
+						if (inputpos < -size) {
 							inputpos = -size;
 							i = repetitions - 1;		/* Break out of for loop */
 
