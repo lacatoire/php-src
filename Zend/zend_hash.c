@@ -3208,6 +3208,7 @@ static void zend_hash_sort_internal(HashTable *ht, sort_func_t sort, bucket_comp
 
 	if (!(ht->nNumOfElements>1) && !(renumber && ht->nNumOfElements>0)) {
 		/* Doesn't require sorting */
+		ht->nInternalPointer = 0;
 		return;
 	}
 
