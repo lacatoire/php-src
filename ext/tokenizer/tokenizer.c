@@ -359,6 +359,12 @@ static bool tokenize(zval *return_value, zend_string *source, zend_class_entry *
 	while ((token_type = lex_scan(&token, NULL))) {
 		ZEND_ASSERT(token_type != T_ERROR);
 
+		/* Clear each lexer error instead of chaining it onto the previous one,
+		 * which makes the loop quadratic in the number of errors. */
+		if (UNEXPECTED(EG(exception))) {
+			zend_clear_exception();
+		}
+
 		if (!add_token(
 			return_value, token_type, zendtext, zendleng, token_line,
 			token_class, &interned_strings)) {
