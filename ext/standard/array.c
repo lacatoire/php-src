@@ -5406,7 +5406,10 @@ static void php_array_intersect(INTERNAL_FUNCTION_PARAMETERS, int behavior, int 
 	}
 
 	/* copy the argument array if necessary */
-	in_place = zend_may_modify_arg_in_place(&args[0]);
+	/* User callbacks may retain the first argument (e.g. through debug_backtrace()) */
+	in_place = data_compare_type != INTERSECT_COMP_DATA_USER
+		&& key_compare_type != INTERSECT_COMP_KEY_USER
+		&& zend_may_modify_arg_in_place(&args[0]);
 	if (in_place) {
 		RETVAL_ARR(Z_ARRVAL_P(&args[0]));
 	} else {
