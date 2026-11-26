@@ -1589,13 +1589,14 @@ static int php_plain_files_metadata(php_stream_wrapper *wrapper, const char *url
 		case PHP_STREAM_META_TOUCH:
 			newtime = (struct utimbuf *)value;
 			if (VCWD_ACCESS(url, F_OK) != 0) {
-				FILE *file = VCWD_FOPEN(url, "w");
-				if (file == NULL) {
+				/* do not truncate a file created concurrently since the check */
+				int fd = VCWD_OPEN_MODE(url, O_CREAT | O_WRONLY, 0666);
+				if (fd == -1) {
 					php_error_docref1(NULL, url, E_WARNING, "Unable to create file %s because %s", url,
 							php_socket_strerror_s(errno, errstr, sizeof(errstr)));
 					return 0;
 				}
-				fclose(file);
+				close(fd);
 			}
 
 			ret = VCWD_UTIME(url, newtime);
