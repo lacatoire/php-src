@@ -605,14 +605,14 @@ again:
 				if (php_array_element_export(val, index, key, level, buf) == FAILURE) {
 					if (!(GC_FLAGS(myht) & GC_IMMUTABLE)) {
 						GC_UNPROTECT_RECURSION(myht);
-						GC_DELREF(myht);
+						GC_DTOR_NO_REF(myht);
 					}
 					return FAILURE;
 				}
 			} ZEND_HASH_FOREACH_END();
 			if (!(GC_FLAGS(myht) & GC_IMMUTABLE)) {
 				GC_UNPROTECT_RECURSION(myht);
-				GC_DELREF(myht);
+				GC_DTOR_NO_REF(myht);
 			}
 			if (level > 1) {
 				buffer_append_spaces(buf, level - 1);
