@@ -134,6 +134,10 @@ PHPAPI php_stream *_php_stream_xport_create(const char *name, size_t namelen, in
 			context STREAMS_REL_CC);
 
 	if (stream) {
+		/* Userland code (an error handler) must not close the stream while it is
+		 * being connected or bound. */
+		uint32_t orig_no_fclose = stream->flags & PHP_STREAM_FLAG_NO_FCLOSE;
+		stream->flags |= PHP_STREAM_FLAG_NO_FCLOSE;
 		zend_try {
 			php_stream_context_set(stream, context);
 			stream->orig_path = pestrdup(orig_path, persistent_id ? 1 : 0);
@@ -179,6 +183,7 @@ PHPAPI php_stream *_php_stream_xport_create(const char *name, size_t namelen, in
 		} zend_catch {
 			bailout = true;
 		} zend_end_try();
+		stream->flags = (stream->flags & ~PHP_STREAM_FLAG_NO_FCLOSE) | orig_no_fclose;
 	}
 
 	if (failed || bailout) {
