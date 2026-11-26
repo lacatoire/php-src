@@ -1586,6 +1586,8 @@ ZEND_API ZEND_COLD void zend_error_zstr_at(
 				SAVE_STACK(loop_var_stack);
 				SAVE_STACK(delayed_oplines_stack);
 				CG(in_compilation) = 0;
+				/* A fiber switch would resume compiling on another fiber's state */
+				zend_fiber_switch_block();
 			}
 
 			orig_record_errors = EG(record_errors);
@@ -1614,6 +1616,7 @@ ZEND_API ZEND_COLD void zend_error_zstr_at(
 			}
 
 			if (in_compilation) {
+				zend_fiber_switch_unblock();
 				CG(active_class_entry) = saved_class_entry;
 				RESTORE_STACK(loop_var_stack);
 				RESTORE_STACK(delayed_oplines_stack);
