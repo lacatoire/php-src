@@ -5776,7 +5776,7 @@ static bool php_mb_check_encoding_recursive(HashTable *vars, const mbfl_encoding
 	}
 
 	if (GC_IS_RECURSIVE(vars)) {
-		php_error_docref(NULL, E_WARNING, "Cannot not handle circular references");
+		php_error_docref(NULL, E_WARNING, "Cannot handle circular references");
 		return false;
 	}
 	GC_TRY_PROTECT_RECURSION(vars);
