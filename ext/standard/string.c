@@ -2858,8 +2858,9 @@ PHP_FUNCTION(ucfirst)
    Lowercase the first character of the word in a native string */
 static zend_string* php_lcfirst(zend_string *str)
 {
-	unsigned char r = zend_tolower_ascii(ZSTR_VAL(str)[0]);
-	if (r == ZSTR_VAL(str)[0]) {
+	const unsigned char ch = ZSTR_VAL(str)[0];
+	unsigned char r = zend_tolower_ascii(ch);
+	if (r == ch) {
 		return zend_string_copy(str);
 	} else {
 		zend_string *s = zend_string_init(ZSTR_VAL(str), ZSTR_LEN(str), 0);
