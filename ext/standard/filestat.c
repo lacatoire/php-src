@@ -24,6 +24,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <time.h>
+#include <fcntl.h>
 
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
@@ -613,7 +614,6 @@ PHP_FUNCTION(touch)
 	zend_long filetime = 0, fileatime = 0;
 	bool filetime_is_null = 1, fileatime_is_null = 1;
 	int ret;
-	FILE *file;
 	struct utimbuf newtimebuf;
 	struct utimbuf *newtime = &newtimebuf;
 	php_stream_wrapper *wrapper;
@@ -672,12 +672,13 @@ PHP_FUNCTION(touch)
 
 	/* create the file if it doesn't exist already */
 	if (VCWD_ACCESS(filename, F_OK) != 0) {
-		file = VCWD_FOPEN(filename, "w");
-		if (file == NULL) {
+		/* do not truncate a file created concurrently since the check */
+		int fd = VCWD_OPEN_MODE(filename, O_CREAT | O_WRONLY, 0666);
+		if (fd == -1) {
 			php_error_docref(NULL, E_WARNING, "Unable to create file %s because %s", filename, strerror(errno));
 			RETURN_FALSE;
 		}
-		fclose(file);
+		close(fd);
 	}
 
 	ret = VCWD_UTIME(filename, newtime);
