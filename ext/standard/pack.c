@@ -796,6 +796,10 @@ PHP_FUNCTION(unpack)
 
 			case '@':
 				size = 0;
+				/* "@0" runs no repetition below, so rewind here */
+				if (repetitions == 0) {
+					inputpos = 0;
+				}
 				break;
 
 			case 'a':
