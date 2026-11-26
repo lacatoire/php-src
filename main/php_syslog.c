@@ -55,7 +55,7 @@ PHPAPI void php_syslog_str(int priority, const zend_string* message)
 			/* Smart string is not NUL terminated */
 			syslog(priority, "%.*s", (int)sbuf.len, sbuf.c);
 			smart_string_reset(&sbuf);
-		} else if ((c < 0x20) && (PG(syslog_filter) == PHP_SYSLOG_FILTER_ALL)) {
+		} else if ((c != '\0') && (c < 0x20) && (PG(syslog_filter) == PHP_SYSLOG_FILTER_ALL)) {
 			smart_string_appendc(&sbuf, c);
 		} else {
 			static const char xdigits[] = "0123456789abcdef";
