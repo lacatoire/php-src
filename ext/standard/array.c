@@ -881,17 +881,20 @@ static int php_array_user_compare(Bucket *a, Bucket *b) /* {{{ */
 
 #define PHP_ARRAY_CMP_FUNC_VARS \
 	zend_fcall_info old_user_compare_fci; \
-	zend_fcall_info_cache old_user_compare_fci_cache \
+	zend_fcall_info_cache old_user_compare_fci_cache; \
+	bool old_compare_deprecation_thrown \
 
 #define PHP_ARRAY_CMP_FUNC_BACKUP() \
 	old_user_compare_fci = BG(user_compare_fci); \
 	old_user_compare_fci_cache = BG(user_compare_fci_cache); \
+	old_compare_deprecation_thrown = ARRAYG(compare_deprecation_thrown); \
 	ARRAYG(compare_deprecation_thrown) = 0; \
 	BG(user_compare_fci_cache) = empty_fcall_info_cache; \
 
 #define PHP_ARRAY_CMP_FUNC_RESTORE() \
 	BG(user_compare_fci) = old_user_compare_fci; \
 	BG(user_compare_fci_cache) = old_user_compare_fci_cache; \
+	ARRAYG(compare_deprecation_thrown) = old_compare_deprecation_thrown; \
 
 static void php_usort(INTERNAL_FUNCTION_PARAMETERS, bucket_compare_func_t compare_func, bool renumber) /* {{{ */
 {
