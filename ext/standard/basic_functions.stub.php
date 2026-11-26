@@ -2111,7 +2111,7 @@ function crypt(#[\SensitiveParameter] string $string, string $salt): string {}
  * @return array<string, int|string>|false
  * @refcount 1
  */
-#[\Deprecated(since: '8.2', message: 'use date_parse_from_format() (for locale-independent parsing), or IntlDateFormatter::parse() (for locale-dependent parsing) instead')]
+#[\Deprecated(since: '8.1', message: 'use date_parse_from_format() (for locale-independent parsing), or IntlDateFormatter::parse() (for locale-dependent parsing) instead')]
 function strptime(string $timestamp, string $format): array|false {}
 #endif
 
