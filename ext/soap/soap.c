@@ -1925,8 +1925,9 @@ static zend_never_inline ZEND_COLD void soap_real_error_handler(int error_num, z
 				if (php_output_get_length(&outbuflen) != FAILURE && Z_LVAL(outbuflen) != 0) {
 					php_output_get_contents(&outbuf);
 				}
+			}
+			if (php_output_get_level()) {
 				php_output_discard();
-
 			}
 			ZVAL_NULL(&fault_obj);
 			set_soap_fault(&fault_obj, NULL, code, ZSTR_VAL(buffer), NULL, &outbuf, NULL);
