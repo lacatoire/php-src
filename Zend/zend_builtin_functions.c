@@ -1257,7 +1257,12 @@ ZEND_FUNCTION(trigger_error)
 			break;
 	}
 
-	zend_error_zstr_at(error_type, zend_get_executed_filename_ex(), zend_get_executed_lineno(), message);
+	zend_string *filename = zend_get_executed_filename_ex();
+	if (!filename) {
+		/* No user frame, e.g. called as a shutdown function */
+		filename = ZSTR_KNOWN(ZEND_STR_UNKNOWN_CAPITALIZED);
+	}
+	zend_error_zstr_at(error_type, filename, zend_get_executed_lineno(), message);
 	// TODO Change to void
 	RETURN_TRUE;
 }
