@@ -681,8 +681,15 @@ PHPAPI void php_network_populate_name_from_sockaddr(
 			case AF_INET6:
 				buf = (char*)inet_ntop(sa->sa_family, &((struct sockaddr_in6*)sa)->sin6_addr, (char *)&abuf, sizeof(abuf));
 				if (buf) {
-					*textaddr = strpprintf(0, "[%s]:%d",
-						buf, ntohs(((struct sockaddr_in6*)sa)->sin6_port));
+					uint32_t scope_id = ((struct sockaddr_in6*)sa)->sin6_scope_id;
+					if (scope_id != 0) {
+						/* Keep the zone, a link-local address cannot be connected to without it. */
+						*textaddr = strpprintf(0, "[%s%%%" PRIu32 "]:%d",
+							buf, scope_id, ntohs(((struct sockaddr_in6*)sa)->sin6_port));
+					} else {
+						*textaddr = strpprintf(0, "[%s]:%d",
+							buf, ntohs(((struct sockaddr_in6*)sa)->sin6_port));
+					}
 				}
 
 				break;
