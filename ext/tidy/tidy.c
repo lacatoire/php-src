@@ -225,7 +225,16 @@ static zend_result php_tidy_apply_config(TidyDoc doc, const zend_string *str_str
 		if (php_check_open_basedir(ZSTR_VAL(str_string))) {
 			return FAILURE;
 		}
-		php_tidy_load_config(doc, ZSTR_VAL(str_string));
+		if (ZSTR_VAL(str_string)[0] == '~' && PG(open_basedir) && *PG(open_basedir)) {
+			/* libtidy expands a leading "~" to a home directory, which was not
+			 * checked above: load the literal relative path instead. */
+			char *path;
+			spprintf(&path, 0, "./%s", ZSTR_VAL(str_string));
+			php_tidy_load_config(doc, path);
+			efree(path);
+		} else {
+			php_tidy_load_config(doc, ZSTR_VAL(str_string));
+		}
 	}
 	return SUCCESS;
 }
