@@ -22167,7 +22167,7 @@ yy1145:
 		TIMELIB_UNHAVE_TIME();
 		TIMELIB_HAVE_TIME();
 
-		if (*ptr == 'b') {
+		if (*ptr == 'b' || *ptr == 'B') {
 			s->time->h = timelib_get_nr(&ptr, 2);
 			s->time->i = 15;
 		} else {
