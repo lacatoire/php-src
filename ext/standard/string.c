@@ -3541,9 +3541,17 @@ PHP_FUNCTION(strtr)
 	} else {
 		ZEND_PARSE_PARAMETERS_START(3, 3)
 			Z_PARAM_STR(str)
-			Z_PARAM_STR(from_str)
-			Z_PARAM_STRING(to, to_len)
+			Z_PARAM_ARRAY_HT_OR_STR(from_ht, from_str)
+			Z_PARAM_STRING_OR_NULL(to, to_len)
 		ZEND_PARSE_PARAMETERS_END();
+
+		if (!to && !from_ht) {
+			zend_argument_type_error(2, "must be of type array, string given");
+			RETURN_THROWS();
+		} else if (to && !from_str) {
+			zend_argument_type_error(2, "must be of type string, array given");
+			RETURN_THROWS();
+		}
 	}
 
 	/* shortcut for empty string */
@@ -3586,6 +3594,11 @@ ZEND_FRAMELESS_FUNCTION(strtr, 3)
 {
 	zval str_tmp, from_tmp, to_tmp;
 	zend_string *str, *from, *to;
+
+	if (Z_TYPE_P(arg3) == IS_NULL) {
+		ZEND_FRAMELESS_FUNCTION_NAME(strtr, 2)(return_value, arg1, arg2);
+		return;
+	}
 
 	Z_FLF_PARAM_STR(1, str, str_tmp);
 	Z_FLF_PARAM_STR(2, from, from_tmp);
