@@ -1482,11 +1482,16 @@ static zend_result php_array_walk(
 			Z_ADDREF(ref);
 			GC_PROTECT_RECURSION(thash);
 			result = php_array_walk(context, zv, userdata, recursive);
-			if (Z_TYPE_P(Z_REFVAL(ref)) == IS_ARRAY && thash == Z_ARRVAL_P(Z_REFVAL(ref))) {
-				/* If the hashtable changed in the meantime, we'll "leak" this apply count
-				 * increment -- our reference to thash is no longer valid. */
-				GC_UNPROTECT_RECURSION(thash);
-			}
+			/* Unprotect unconditionally: the previous "only if ref still
+			 * points at thash" check assumed a reseated reference means
+			 * thash is no longer reachable, but the callback can keep it
+			 * alive through an unrelated copy-on-write reference (e.g.
+			 * $GLOBALS['x'] = $sub;) and then detach the walked slot
+			 * ($sub = $other;). thash then survives with its recursion
+			 * flag permanently stuck, so later, unrelated uses of that same
+			 * array (json_encode(), var_export(), var_dump()) see it as
+			 * falsely self-referential. */
+			GC_UNPROTECT_RECURSION(thash);
 			zval_ptr_dtor(&ref);
 		} else {
 			ZVAL_COPY_VALUE(&args[0], zv);
