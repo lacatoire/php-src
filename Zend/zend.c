@@ -1447,6 +1447,8 @@ ZEND_API ZEND_COLD void zend_error_zstr_at(
 	zval orig_user_error_handler;
 	bool in_compilation;
 	zend_class_entry *saved_class_entry = NULL;
+	zend_string *saved_doc_comment = NULL;
+	uint32_t saved_extra_fn_flags = 0;
 	zend_stack loop_var_stack;
 	zend_stack delayed_oplines_stack;
 	int type = orig_type & E_ALL;
@@ -1585,6 +1587,10 @@ ZEND_API ZEND_COLD void zend_error_zstr_at(
 				CG(active_class_entry) = NULL;
 				SAVE_STACK(loop_var_stack);
 				SAVE_STACK(delayed_oplines_stack);
+				saved_doc_comment = CG(doc_comment);
+				CG(doc_comment) = NULL;
+				saved_extra_fn_flags = CG(extra_fn_flags);
+				CG(extra_fn_flags) = 0;
 				CG(in_compilation) = 0;
 			}
 
@@ -1617,6 +1623,9 @@ ZEND_API ZEND_COLD void zend_error_zstr_at(
 				CG(active_class_entry) = saved_class_entry;
 				RESTORE_STACK(loop_var_stack);
 				RESTORE_STACK(delayed_oplines_stack);
+				RESET_DOC_COMMENT();
+				CG(doc_comment) = saved_doc_comment;
+				CG(extra_fn_flags) = saved_extra_fn_flags;
 				CG(in_compilation) = 1;
 			}
 
