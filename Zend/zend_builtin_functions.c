@@ -1147,13 +1147,13 @@ ZEND_FUNCTION(interface_exists)
 /* {{{ Checks if the trait exists */
 ZEND_FUNCTION(trait_exists)
 {
-	class_exists_impl(INTERNAL_FUNCTION_PARAM_PASSTHRU, ZEND_ACC_TRAIT, 0);
+	class_exists_impl(INTERNAL_FUNCTION_PARAM_PASSTHRU, ZEND_ACC_LINKED|ZEND_ACC_TRAIT, 0);
 }
 /* }}} */
 
 ZEND_FUNCTION(enum_exists)
 {
-	class_exists_impl(INTERNAL_FUNCTION_PARAM_PASSTHRU, ZEND_ACC_ENUM, 0);
+	class_exists_impl(INTERNAL_FUNCTION_PARAM_PASSTHRU, ZEND_ACC_LINKED|ZEND_ACC_ENUM, 0);
 }
 
 /* {{{ Checks if the function exists */
