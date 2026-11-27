@@ -677,7 +677,12 @@ ZEND_FRAMELESS_FUNCTION(trim, 2)
 	Z_FLF_PARAM_STR(1, str, str_tmp);
 	Z_FLF_PARAM_STR(2, what, what_tmp);
 
+	/* An error handler called for an invalid range may release the arguments. */
+	zend_string_addref(str);
+	zend_string_addref(what);
 	ZVAL_STR(return_value, php_trim_int(str, ZSTR_VAL(what), ZSTR_LEN(what), /* mode */ 3));
+	zend_string_release(str);
+	zend_string_release(what);
 
 flf_clean:
 	Z_FLF_PARAM_FREE_STR(1, str_tmp);
