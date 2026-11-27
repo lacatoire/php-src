@@ -172,6 +172,7 @@ php_version_compare(const char *orig_ver1, const char *orig_ver2)
 	}
 	p1 = n1 = ver1;
 	p2 = n2 = ver2;
+compare_components:
 	while (*p1 && *p2 && n1 && n2) {
 		if ((n1 = strchr(p1, '.')) != NULL) {
 			*n1 = '\0';
@@ -207,12 +208,20 @@ php_version_compare(const char *orig_ver1, const char *orig_ver2)
 		if (n1 != NULL) {
 			if (isdigit((unsigned char)*p1)) {
 				compare = 1;
+			} else if (*p1 == '#') {
+				/* Same as php_version_compare(p1, "#N#"), without copying p1 again */
+				p2 = n2 = (char *) "#N#";
+				goto compare_components;
 			} else {
 				compare = php_version_compare(p1, "#N#");
 			}
 		} else if (n2 != NULL) {
 			if (isdigit((unsigned char)*p2)) {
 				compare = -1;
+			} else if (*p2 == '#') {
+				/* Same as php_version_compare("#N#", p2), without copying p2 again */
+				p1 = n1 = (char *) "#N#";
+				goto compare_components;
 			} else {
 				compare = php_version_compare("#N#", p2);
 			}
