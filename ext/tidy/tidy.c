@@ -48,8 +48,6 @@
 #endif
 
 /* {{{ ext/tidy macros */
-#define FIX_BUFFER(bptr) do { if ((bptr)->size) { (bptr)->bp[(bptr)->size-1] = '\0'; } } while(0)
-
 #define TIDY_SET_CONTEXT \
     zval *object = getThis();
 
@@ -336,6 +334,20 @@ static void tidy_create_node_object(zval *zv, PHPTidyDoc *ptdoc, TidyNode node)
 	tidy_add_node_default_properties(newobj);
 }
 
+/* Length of a libtidy output buffer without its trailing newline, which is
+ * CRLF or a single character, encoded on 2 bytes in the UTF-16 encodings. */
+static size_t php_tidy_output_len(TidyDoc doc, const TidyBuffer *buf)
+{
+	const char *enc = (const char *) tidyOptGetEncName(doc, TidyOutCharEncoding);
+	size_t nl_len = tidyOptGetInt(doc, TidyNewline) == TidyCRLF ? 2 : 1;
+
+	if (enc && strncmp(enc, "utf16", sizeof("utf16") - 1) == 0) {
+		nl_len *= 2;
+	}
+
+	return buf->size > nl_len ? buf->size - nl_len : 0;
+}
+
 static void php_tidy_quick_repair(INTERNAL_FUNCTION_PARAMETERS, bool is_file)
 {
 	char *enc = NULL;
@@ -420,8 +432,7 @@ static void php_tidy_quick_repair(INTERNAL_FUNCTION_PARAMETERS, bool is_file)
 				tidyBufInit(&output);
 
 				tidySaveBuffer (doc, &output);
-				FIX_BUFFER(&output);
-				RETVAL_STRINGL((const char *) output.bp, output.size ? output.size-1 : 0);
+				RETVAL_STRINGL((const char *) output.bp, php_tidy_output_len(doc, &output));
 				tidyBufFree(&output);
 			} else {
 				RETVAL_FALSE;
@@ -554,7 +565,7 @@ static zend_result tidy_doc_cast_handler(zend_object *in, zval *out, int type)
 			tidyBufInit(&output);
 			tidySaveBuffer (obj->ptdoc->doc, &output);
 			if (output.size) {
-				ZVAL_STRINGL(out, (const char *) output.bp, output.size-1);
+				ZVAL_STRINGL(out, (const char *) output.bp, php_tidy_output_len(obj->ptdoc->doc, &output));
 			} else {
 				ZVAL_EMPTY_STRING(out);
 			}
@@ -594,7 +605,7 @@ static zend_result tidy_node_cast_handler(zend_object *in, zval *out, int type)
 			}
 			tidyBufInit(&buf);
 			if (obj->ptdoc && tidyNodeGetText(obj->ptdoc->doc, obj->node, &buf)) {
-				ZVAL_STRINGL(out, (const char *) buf.bp, buf.size-1);
+				ZVAL_STRINGL(out, (const char *) buf.bp, php_tidy_output_len(obj->ptdoc->doc, &buf));
 			} else {
 				ZVAL_EMPTY_STRING(out);
 			}
@@ -622,7 +633,7 @@ static void tidy_doc_update_properties(PHPTidyObj *obj)
 			"value",
 			sizeof("value") - 1,
 			(char*) output.bp,
-			output.size-1
+			php_tidy_output_len(obj->ptdoc->doc, &output)
 		);
 	}
 
@@ -661,7 +672,7 @@ static void tidy_add_node_default_properties(PHPTidyObj *obj)
 		"value",
 		sizeof("value") - 1,
 		buf.size ? (const char *) buf.bp : "",
-		buf.size ? buf.size - 1 : 0
+		php_tidy_output_len(obj->ptdoc->doc, &buf)
 	);
 
 	tidyBufFree(&buf);
@@ -1043,9 +1054,8 @@ static zend_result php_tidy_output_handler(void **nothing, php_output_context *o
 			if (0 <= tidyParseBuffer(doc, &inbuf) && 0 <= tidyCleanAndRepair(doc)) {
 				tidyBufInit(&outbuf);
 				tidySaveBuffer(doc, &outbuf);
-				FIX_BUFFER(&outbuf);
 				output_context->out.data = (char *) outbuf.bp;
-				output_context->out.used = outbuf.size ? outbuf.size-1 : 0;
+				output_context->out.used = php_tidy_output_len(doc, &outbuf);
 				output_context->out.free = 1;
 				status = SUCCESS;
 			}
@@ -1111,8 +1121,7 @@ PHP_FUNCTION(tidy_get_output)
 
 	tidyBufInit(&output);
 	tidySaveBuffer(obj->ptdoc->doc, &output);
-	FIX_BUFFER(&output);
-	RETVAL_STRINGL((const char *) output.bp, output.size ? output.size-1 : 0);
+	RETVAL_STRINGL((const char *) output.bp, php_tidy_output_len(obj->ptdoc->doc, &output));
 	tidyBufFree(&output);
 }
 /* }}} */
