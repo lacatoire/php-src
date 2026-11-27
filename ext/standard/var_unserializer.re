@@ -565,10 +565,16 @@ static int is_property_visibility_changed(zend_class_entry *ce, zval *key)
 		if (unmangled_class == NULL) {
 			existing_propinfo = zend_hash_find_ptr(&ce->properties_info, Z_STR_P(key));
 		} else {
-			if (!strcmp(unmangled_class, "*")
-			 || !strcasecmp(unmangled_class, ZSTR_VAL(ce->name))) {
+			zend_class_entry *scope = ce;
+
+			if (strcmp(unmangled_class, "*")) {
+				while (scope && strcasecmp(unmangled_class, ZSTR_VAL(scope->name))) {
+					scope = scope->parent;
+				}
+			}
+			if (scope) {
 				existing_propinfo = zend_hash_str_find_ptr(
-					&ce->properties_info, unmangled_prop, unmangled_prop_len);
+					&scope->properties_info, unmangled_prop, unmangled_prop_len);
 			}
 		}
 
