@@ -917,10 +917,15 @@ static void php_usort(INTERNAL_FUNCTION_PARAMETERS, bucket_compare_func_t compar
 
 	zend_array_sort(arr, compare_func, renumber);
 
-	zval garbage;
-	ZVAL_COPY_VALUE(&garbage, array);
-	ZVAL_ARR(array, arr);
-	zval_ptr_dtor(&garbage);
+	zend_reference *ref = Z_REF_P(ZEND_CALL_ARG(execute_data, 1));
+	if (UNEXPECTED(ZEND_REF_HAS_TYPE_SOURCES(ref))) {
+		zend_try_assign_typed_ref_arr(ref, arr);
+	} else {
+		zval garbage;
+		ZVAL_COPY_VALUE(&garbage, array);
+		ZVAL_ARR(array, arr);
+		zval_ptr_dtor(&garbage);
+	}
 
 	PHP_ARRAY_CMP_FUNC_RESTORE();
 	RETURN_TRUE;
